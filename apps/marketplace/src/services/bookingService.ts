@@ -1,1 +1,31 @@
-export * from '@alrehla/api/services/bookingService';
+import * as bookingActions from '../actions/bookingActions';
+
+export const bookingService = {
+  getAllBookings: bookingActions.getAllBookings,
+  createBooking: bookingActions.createBooking,
+  getBookingAvailability: bookingActions.getBookingAvailability,
+  updateBookingStatus: bookingActions.updateBookingStatus,
+  updateBookingProgressNotes: bookingActions.updateBookingProgressNotes,
+  saveBookingDraft: bookingActions.saveBookingDraft,
+  getAllPackages: bookingActions.getAllPackages,
+  createPackage: bookingActions.createPackage,
+  updatePackage: bookingActions.updatePackage,
+  deletePackage: bookingActions.deletePackage,
+  getAllComparisonItems: bookingActions.getAllComparisonItems,
+  createComparisonItem: bookingActions.createComparisonItem,
+  updateComparisonItem: bookingActions.updateComparisonItem,
+  deleteComparisonItem: bookingActions.deleteComparisonItem,
+  getAllStandaloneServices: bookingActions.getAllStandaloneServices,
+  createStandaloneService: bookingActions.createStandaloneService,
+  updateStandaloneService: bookingActions.updateStandaloneService,
+  deleteStandaloneService: bookingActions.deleteStandaloneService,
+  getAllInstructors: bookingActions.getAllInstructors,
+  getInstructorByUserId: bookingActions.getInstructorByUserId,
+  getInstructorBookings: bookingActions.getInstructorBookings,
+  submitRescheduleRequest: bookingActions.submitRescheduleRequest,
+  updateScheduledSession: bookingActions.updateScheduledSession,
+  sendSessionMessage: bookingActions.sendSessionMessage,
+  uploadSessionAttachment: bookingActions.uploadSessionAttachment,
+  getAllScheduledSessions: bookingActions.getAllScheduledSessions,
+  checkSlotAvailability: bookingActions.checkSlotAvailability,
+};

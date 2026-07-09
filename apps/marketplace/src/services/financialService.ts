@@ -1,1 +1,5 @@
-export * from '@alrehla/api/services/financialService';
+import * as financialActions from '../actions/financialActions';
+
+export const financialService = {
+  createPayout: financialActions.createPayout,
+};

@@ -1,29 +1,25 @@
-import React from 'react';
-import { cn } from '@alrehla/utils/utils';
+import * as React from 'react';
+import { cn } from './lib/utils';
 
-interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
-    onCheckedChange?: (checked: boolean) => void;
+export interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
+  onCheckedChange?: (checked: boolean) => void;
 }
 
-const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(({ className, onCheckedChange, ...props }, ref) => {
-    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (onCheckedChange) {
-            onCheckedChange(event.target.checked);
-        }
-        if (props.onChange) {
-            props.onChange(event);
-        }
-    };
-    
-    return (
-        <input
-            type="checkbox"
-            ref={ref}
-            className={cn('h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50', className)}
-            onChange={handleChange}
-            {...props}
-        />
-    );
+const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(({ className, onCheckedChange, onChange, ...props }, ref) => {
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    onCheckedChange?.(event.target.checked);
+    onChange?.(event);
+  };
+
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      className={cn('h-4 w-4 rounded border-input text-primary shadow-sm focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50', className)}
+      onChange={handleChange}
+      {...props}
+    />
+  );
 });
 Checkbox.displayName = 'Checkbox';
 

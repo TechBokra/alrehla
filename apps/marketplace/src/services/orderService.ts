@@ -1,1 +1,26 @@
-export * from '@alrehla/api/services/orderService';
+import * as orderActions from '../actions/orderActions';
+
+export const orderService = {
+  getAllOrders: orderActions.getAllOrders,
+  createOrder: orderActions.createOrder,
+  createSubscription: orderActions.createSubscription,
+  getAllSubscriptions: orderActions.getAllSubscriptions,
+  getSubscriptionPlans: orderActions.getSubscriptionPlans,
+  updateSubscriptionStatus: orderActions.updateSubscriptionStatus,
+  updateOrderStatus: orderActions.updateOrderStatus,
+  updateServiceOrderStatus: orderActions.updateServiceOrderStatus,
+  assignInstructorToServiceOrder: orderActions.assignInstructorToServiceOrder,
+  updateOrderComment: orderActions.updateOrderComment,
+  uploadReceipt: orderActions.uploadReceipt,
+  bulkUpdateOrderStatus: orderActions.bulkUpdateOrderStatus,
+  bulkDeleteOrders: orderActions.bulkDeleteOrders,
+  createSubscriptionPlan: orderActions.createSubscriptionPlan,
+  updateSubscriptionPlan: orderActions.updateSubscriptionPlan,
+  deleteSubscriptionPlan: orderActions.deleteSubscriptionPlan,
+  getPersonalizedProducts: orderActions.getPersonalizedProducts,
+  createPersonalizedProduct: orderActions.createPersonalizedProduct,
+  updatePersonalizedProduct: orderActions.updatePersonalizedProduct,
+  approveProduct: orderActions.approveProduct,
+  deletePersonalizedProduct: orderActions.deletePersonalizedProduct,
+  getAllServiceOrders: orderActions.getAllServiceOrders,
+};

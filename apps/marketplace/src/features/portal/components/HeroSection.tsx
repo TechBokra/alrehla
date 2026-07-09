@@ -1,5 +1,4 @@
 import React from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '../../../components/ui/Button';
 
@@ -12,12 +11,11 @@ interface HeroSectionProps {
 
 const HeroSection: React.FC<HeroSectionProps> = ({ backgroundUrl, content }) => (
   <section className="relative h-[calc(100vh-4rem)] min-h-[500px] flex items-center justify-center bg-cover bg-center">
-    <Image
+    <img
       src={backgroundUrl || placeholder}
       alt="hero-image"
       className="absolute inset-0 w-full h-full object-cover"
-      fill
-      priority
+      fetchPriority="high"
     />
     <div className="absolute inset-0 bg-gradient-to-br from-blue-900/70 via-purple-900/70 to-black/70" />
     <div className="container mx-auto px-4 text-center relative z-10">

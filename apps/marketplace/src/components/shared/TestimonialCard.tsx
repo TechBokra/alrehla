@@ -1,5 +1,3 @@
-"use client";
-
 import React from 'react';
 import { Star } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '../ui/card';

@@ -21,6 +21,9 @@ const nextConfig = {
   turbopack: {
     root: join(__dirname, '../../'),
   },
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
 };
 
 export default nextConfig;
