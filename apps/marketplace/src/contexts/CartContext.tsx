@@ -23,18 +23,24 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [cart, setCart] = useState<CartItem[]>(() => {
-        if (typeof window === 'undefined') return [];
-        try {
-            const localData = window.sessionStorage.getItem('alrehlaCart');
-            return localData ? JSON.parse(localData) : [];
-        } catch (error) {
-            console.error("Could not parse cart from sessionStorage", error);
-            return [];
-        }
-    });
+    const [cart, setCart] = useState<CartItem[]>([]);
+    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
+        try {
+            const localData = window.sessionStorage.getItem('alrehlaCart');
+            if (localData) {
+                setCart(JSON.parse(localData));
+            }
+        } catch (error) {
+            console.error("Could not parse cart from sessionStorage", error);
+        } finally {
+            setIsLoaded(true);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!isLoaded) return;
         try {
             window.sessionStorage.setItem('alrehlaCart', JSON.stringify(cart));
         } catch (error) {
@@ -45,7 +51,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                  console.warn("SessionStorage is full. Cart items might be lost on refresh.");
             }
         }
-    }, [cart]);
+    }, [cart, isLoaded]);
 
     const addItemToCart = useCallback((item: Omit<CartItem, 'timestamp' | 'id'>) => {
         try {

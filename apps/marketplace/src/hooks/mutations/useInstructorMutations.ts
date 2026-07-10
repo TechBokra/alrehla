@@ -18,7 +18,8 @@ export const useInstructorMutations = () => {
         // رفع الصورة إذا تم اختيار صورة
         if (avatarFile) {
             const { cloudinaryService } = await import('../../services/cloudinaryService');
-            avatarUrl = await cloudinaryService.uploadImage(avatarFile, 'instructors');
+            const asset = await cloudinaryService.uploadImage(avatarFile, 'instructors');
+            avatarUrl = JSON.stringify(asset);
         }
 
         const { error } = await (supabase.from('instructors') as any).insert([{ ...data, avatar_url: avatarUrl }]);
@@ -39,8 +40,8 @@ export const useInstructorMutations = () => {
         // رفع الصورة إذا تم اختيار صورة جديدة
         if (avatarFile) {
             const { cloudinaryService } = await import('../../services/cloudinaryService');
-            const imageUrl = await cloudinaryService.uploadImage(avatarFile, 'instructors');
-            updates.avatar_url = imageUrl;
+            const asset = await cloudinaryService.uploadImage(avatarFile, 'instructors');
+            updates.avatar_url = JSON.stringify(asset);
         }
 
         const { error } = await (supabase.from('instructors') as any).update(updates).eq('id', id);

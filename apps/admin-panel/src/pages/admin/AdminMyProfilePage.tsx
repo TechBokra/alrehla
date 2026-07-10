@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../..
 import ImageUploadField from '../../components/admin/ui/ImageUploadField';
 import { supportedCountries } from '../../data/mockData';
 import PageLoader from '../../components/ui/PageLoader';
+import { cloudinaryService } from '../../services/cloudinaryService';
 
 const AdminMyProfilePage: React.FC = () => {
     const { currentUser, updateCurrentUser } = useAuth();
@@ -39,8 +40,21 @@ const AdminMyProfilePage: React.FC = () => {
     const [slug, setSlug] = useState('');
     const [description, setDescription] = useState('');
     const [website, setWebsite] = useState('');
-    const [logoUrl, setLogoUrl] = useState('');
-    const [coverUrl, setCoverUrl] = useState('');
+    const [logoUrl, setLogoUrl] = useState<any>('');
+    const [coverUrl, setCoverUrl] = useState<any>('');
+    const [isUploading, setIsUploading] = useState(false);
+
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (logoUrl instanceof File || coverUrl instanceof File) {
+                e.preventDefault();
+                e.returnValue = 'لديك تعديلات غير محفوظة في الصور. هل أنت متأكد من المغادرة؟';
+                return e.returnValue;
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [logoUrl, coverUrl]);
 
     // Load Publisher Data
     useEffect(() => {
@@ -103,18 +117,49 @@ const AdminMyProfilePage: React.FC = () => {
     const handlePublisherSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!currentUser) return;
+        setIsUploading(true);
 
-        const payload = {
-            user_id: currentUser.id,
-            store_name: storeName,
-            slug,
-            description,
-            website,
-            logo_url: logoUrl,
-            cover_url: coverUrl
-        };
+        try {
+            let finalLogoUrl = logoUrl;
+            let finalCoverUrl = coverUrl;
 
-        await updatePublisherProfile.mutateAsync(payload);
+            if (logoUrl instanceof File) {
+                const asset = await cloudinaryService.uploadImageWithCompression(logoUrl, 'publishers');
+                finalLogoUrl = JSON.stringify(asset);
+            }
+            if (coverUrl instanceof File) {
+                const asset = await cloudinaryService.uploadImageWithCompression(coverUrl, 'publishers');
+                finalCoverUrl = JSON.stringify(asset);
+            }
+
+            const payload = {
+                user_id: currentUser.id,
+                store_name: storeName,
+                slug,
+                description,
+                website,
+                logo_url: finalLogoUrl,
+                cover_url: finalCoverUrl
+            };
+
+            await updatePublisherProfile.mutateAsync(payload);
+
+            // Clean up old assets if new ones were uploaded
+            if (publisherData) {
+                if (logoUrl instanceof File && publisherData.logo_url) {
+                    const publicId = cloudinaryService.getPublicIdFromUrl(publisherData.logo_url);
+                    if (publicId) await cloudinaryService.deleteAsset(publicId);
+                }
+                if (coverUrl instanceof File && publisherData.cover_url) {
+                    const publicId = cloudinaryService.getPublicIdFromUrl(publisherData.cover_url);
+                    if (publicId) await cloudinaryService.deleteAsset(publicId);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to save publisher profile", error);
+        } finally {
+            setIsUploading(false);
+        }
     };
     
     if (isPublisher && publisherLoading) return <PageLoader text="جاري تحميل بياناتك..." />;
@@ -176,7 +221,7 @@ const AdminMyProfilePage: React.FC = () => {
                                     </FormField>
 
                                     <div className="flex justify-end pt-4 border-t">
-                                        <Button type="submit" loading={updatePublisherProfile.isPending} icon={<Save />}>حفظ إعدادات النشر</Button>
+                                        <Button type="submit" loading={updatePublisherProfile.isPending || isUploading} icon={<Save />}>حفظ إعدادات النشر</Button>
                                     </div>
                                 </CardContent>
                             </Card>

@@ -8,6 +8,7 @@ import { Textarea } from '../../ui/Textarea';
 import FormField from '../../ui/FormField';
 import { Card, CardHeader, CardTitle, CardContent } from '../../ui/card';
 import ImageUploadField from '../ui/ImageUploadField';
+import { cloudinaryService } from '../../../services/cloudinaryService';
 
 interface InstructorProfileEditorProps {
     instructor: Instructor;
@@ -19,13 +20,28 @@ const InstructorProfileEditor: React.FC<InstructorProfileEditorProps> = ({ instr
     const [name, setName] = useState(instructor.name || '');
     const [specialty, setSpecialty] = useState(instructor.specialty || '');
     const [bio, setBio] = useState(instructor.bio || '');
-    const [avatarUrl, setAvatarUrl] = useState(instructor.avatar_url || '');
+    const [avatarUrl, setAvatarUrl] = useState<any>(instructor.avatar_url || '');
     const [teachingPhilosophy, setTeachingPhilosophy] = useState(instructor.teaching_philosophy || '');
     const [expertiseAreas, setExpertiseAreas] = useState((instructor.expertise_areas || []).join(', '));
     const [introVideoUrl, setIntroVideoUrl] = useState(instructor.intro_video_url || '');
     const [publishedWorks, setPublishedWorks] = useState<PublishedWork[]>(instructor.published_works || []);
     const [justification, setJustification] = useState('');
+    const [isUploading, setIsUploading] = useState(false);
     const isSaving = requestProfileUpdate.isPending;
+
+    React.useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            const hasUnsavedAvatar = (avatarUrl as any) instanceof File;
+            const hasUnsavedBooks = publishedWorks.some(w => (w.cover_url as any) instanceof File);
+            if (hasUnsavedAvatar || hasUnsavedBooks) {
+                e.preventDefault();
+                e.returnValue = 'لديك تعديلات غير محفوظة في الصور. هل أنت متأكد من المغادرة؟';
+                return e.returnValue;
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [avatarUrl, publishedWorks]);
 
     const handlePublishedWorkChange = (index: number, field: keyof PublishedWork, value: string) => {
         const newWorks = [...publishedWorks];
@@ -33,7 +49,7 @@ const InstructorProfileEditor: React.FC<InstructorProfileEditorProps> = ({ instr
         setPublishedWorks(newWorks);
     };
     
-    const handlePublishedWorkCoverChange = (index: number, newUrl: string) => {
+    const handlePublishedWorkCoverChange = (index: number, newUrl: any) => {
         const newWorks = [...publishedWorks];
         newWorks[index] = { ...newWorks[index], cover_url: newUrl };
         setPublishedWorks(newWorks);
@@ -50,28 +66,73 @@ const InstructorProfileEditor: React.FC<InstructorProfileEditorProps> = ({ instr
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const updates = {
-            name,
-            specialty,
-            bio,
-            avatar_url: avatarUrl,
-            teaching_philosophy: teachingPhilosophy,
-            expertise_areas: expertiseAreas.split(',').map(s => s.trim()).filter(Boolean),
-            intro_video_url: introVideoUrl,
-            published_works: publishedWorks,
-        };
-        
-        await requestProfileUpdate.mutateAsync({ 
-            instructorId: instructor.id,
-            updates,
-            justification
-        });
-        setJustification('');
+        setIsUploading(true);
+
+        try {
+            let finalAvatarUrl = avatarUrl;
+            let finalPublishedWorks = [...publishedWorks];
+
+            if ((avatarUrl as any) instanceof File) {
+                const asset = await cloudinaryService.uploadImageWithCompression(avatarUrl as any, 'instructors');
+                finalAvatarUrl = JSON.stringify(asset);
+            }
+
+            for (let i = 0; i < finalPublishedWorks.length; i++) {
+                const work = finalPublishedWorks[i];
+                if ((work.cover_url as any) instanceof File) {
+                    const asset = await cloudinaryService.uploadImageWithCompression(work.cover_url as any, 'instructor_books');
+                    finalPublishedWorks[i] = {
+                        ...work,
+                        cover_url: JSON.stringify(asset)
+                    };
+                }
+            }
+
+            const updates = {
+                name,
+                specialty,
+                bio,
+                avatar_url: finalAvatarUrl,
+                teaching_philosophy: teachingPhilosophy,
+                expertise_areas: expertiseAreas.split(',').map(s => s.trim()).filter(Boolean),
+                intro_video_url: introVideoUrl,
+                published_works: finalPublishedWorks,
+            };
+            
+            await requestProfileUpdate.mutateAsync({ 
+                instructorId: instructor.id,
+                updates,
+                justification
+            });
+
+            // Clean up old avatar if replaced
+            if ((avatarUrl as any) instanceof File && instructor.avatar_url) {
+                const publicId = cloudinaryService.getPublicIdFromUrl(instructor.avatar_url);
+                if (publicId) await cloudinaryService.deleteAsset(publicId);
+            }
+
+            // Clean up old book covers if replaced
+            if (instructor.published_works) {
+                for (const oldWork of instructor.published_works) {
+                    const newWork = finalPublishedWorks.find(w => w.title === oldWork.title);
+                    if (newWork && newWork.cover_url !== oldWork.cover_url && oldWork.cover_url) {
+                        const publicId = cloudinaryService.getPublicIdFromUrl(oldWork.cover_url);
+                        if (publicId) await cloudinaryService.deleteAsset(publicId);
+                    }
+                }
+            }
+
+            setJustification('');
+        } catch (error) {
+            console.error("Failed to save instructor profile updates", error);
+        } finally {
+            setIsUploading(false);
+        }
     };
     
     return (
         <form onSubmit={handleSubmit} className={`space-y-8 mt-4 ${disabled ? 'opacity-50' : ''}`}>
-            <fieldset disabled={disabled || isSaving} className="space-y-8">
+            <fieldset disabled={disabled || isSaving || isUploading} className="space-y-8">
                 <Card>
                     <CardHeader><CardTitle>المعلومات الأساسية</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
@@ -144,7 +205,7 @@ const InstructorProfileEditor: React.FC<InstructorProfileEditorProps> = ({ instr
                              <Textarea id="justification" value={justification} onChange={(e) => setJustification(e.target.value)} rows={3} placeholder="مثال: قمت بتحديث سيرتي الذاتية وإضافة أعمالي الجديدة." required />
                         </FormField>
                         <div className="flex justify-end mt-4">
-                            <Button type="submit" loading={isSaving} icon={<Save />}>
+                            <Button type="submit" loading={isSaving || isUploading} icon={<Save />}>
                                 إرسال طلب التحديث
                             </Button>
                         </div>

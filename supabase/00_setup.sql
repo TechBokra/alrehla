@@ -800,7 +800,9 @@ DROP POLICY IF EXISTS site_settings_admin_select ON public.site_settings;
 DROP POLICY IF EXISTS site_settings_admin_manage ON public.site_settings;
 CREATE POLICY site_settings_admin_select ON public.site_settings FOR SELECT USING (public.is_admin());
 CREATE POLICY site_settings_admin_manage ON public.site_settings FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
-REVOKE ALL ON public.site_settings FROM anon, authenticated;
+-- Grant table-level access (RLS policies above enforce admin-only restriction)
+GRANT SELECT ON public.site_settings TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.site_settings TO authenticated;
 
 DROP POLICY IF EXISTS site_content_public_read ON public.site_content;
 DROP POLICY IF EXISTS site_content_admin_manage ON public.site_content;

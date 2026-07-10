@@ -226,7 +226,7 @@ const PersonalizedStoriesPage: React.FC = () => {
             <>
                  <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-12 w-full">
                     
-                    <div className="grid w-full grid-cols-2 gap-4 sm:gap-6 mb-10" role="tablist">
+                    <TabsList className="grid w-full grid-cols-2 gap-4 sm:gap-6 mb-10 h-auto bg-transparent p-0">
                         <TabsTrigger 
                             value="hero" 
                             className="h-16 sm:h-20 w-full rounded-2xl border-2 border-pink-200 bg-white text-gray-600 text-lg sm:text-xl font-bold shadow-sm transition-all hover:border-pink-400 hover:text-pink-600 data-[state=active]:bg-pink-600 data-[state=active]:text-white data-[state=active]:border-pink-600 data-[state=active]:shadow-lg data-[state=active]:scale-[1.02] flex items-center justify-center gap-3"
@@ -242,7 +242,7 @@ const PersonalizedStoriesPage: React.FC = () => {
                             <Library className="w-6 h-6 sm:w-8 sm:h-8" />
                             <span>المكتبة العامة</span>
                         </TabsTrigger>
-                    </div>
+                    </TabsList>
 
                     <TabsContent value="hero" className="animate-fadeIn space-y-12 w-full">
                          {/* 1. Subscription Banner */}

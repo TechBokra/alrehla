@@ -54,9 +54,9 @@ export const contentService = {
         return data.value as SiteContent;
     },
 
-    async uploadFile(file: File): Promise<{ url: string }> {
-        const url = await cloudinaryService.uploadImage(file, 'alrehla_content');
-        return { url };
+    async uploadFile(file: File): Promise<any> {
+        const asset = await cloudinaryService.uploadImage(file, 'alrehla_content');
+        return asset;
     },
 
     // --- Blog Posts ---
@@ -74,8 +74,8 @@ export const contentService = {
     async createBlogPost(payload: any) {
         let imageUrl = payload.image_url;
         if (payload.imageFile) {
-            const { url } = await this.uploadFile(payload.imageFile);
-            imageUrl = url;
+            const asset = await this.uploadFile(payload.imageFile);
+            imageUrl = JSON.stringify(asset);
         }
 
         const { imageFile, ...dbPayload } = payload;
@@ -99,12 +99,13 @@ export const contentService = {
     async updateBlogPost(payload: any) {
         let imageUrl = payload.image_url;
         if (payload.imageFile) {
-            const { url } = await this.uploadFile(payload.imageFile);
-            imageUrl = url;
+            const asset = await this.uploadFile(payload.imageFile);
+            imageUrl = JSON.stringify(asset);
         }
 
         const { id, imageFile, ...updates } = payload;
         const updateData = { ...updates, image_url: imageUrl };
+
 
         const { data, error } = await (supabase.from('blog_posts') as any)
             .update(updateData)

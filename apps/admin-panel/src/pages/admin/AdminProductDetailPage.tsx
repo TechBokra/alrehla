@@ -20,6 +20,7 @@ import { Checkbox } from '../../components/ui/Checkbox';
 import ImageUploadField from '../../components/admin/ui/ImageUploadField';
 import DynamicListManager from '../../components/admin/DynamicListManager';
 import { calculateLibraryProductPrice, calculatePublisherNet } from '../../utils/pricingCalculator';
+import { cloudinaryService } from '../../services/cloudinaryService';
 
 const AdminProductDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -60,7 +61,31 @@ const AdminProductDetailPage: React.FC = () => {
         component_keys: [],
         publisher_id: null,
     });
-    
+    const [initialImageUrl, setInitialImageUrl] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if ((product.image_url as any) instanceof File) {
+                e.preventDefault();
+                e.returnValue = 'لديك تعديلات غير محفوظة في الصورة. هل أنت متأكد من المغادرة؟';
+                return e.returnValue;
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [product.image_url]);
+
+    const handleBack = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if ((product.image_url as any) instanceof File) {
+            if (!window.confirm('لديك تعديلات غير محفوظة في الصورة. هل تريد المغادرة وإلغاء التغييرات؟')) {
+                return;
+            }
+        }
+        navigate(permissions.isPublisher ? '/publisher-products' : '/personalized-products');
+    };
+
     // State for NET prices (Publisher Input)
     const [netPricePrinted, setNetPricePrinted] = useState<string>('');
     const [netPriceElectronic, setNetPriceElectronic] = useState<string>('');
@@ -70,6 +95,7 @@ const AdminProductDetailPage: React.FC = () => {
             const productToEdit = allProducts.find(p => p.id === parseInt(id!));
             if (productToEdit) {
                 const displayType = productToEdit.is_addon ? 'addon' : (productToEdit.product_type || 'hero_story');
+                setInitialImageUrl(productToEdit.image_url || null);
                 setProduct({
                     ...productToEdit,
                     product_type: displayType,
@@ -218,40 +244,65 @@ const AdminProductDetailPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const payload: any = {
-            ...product,
-            is_addon: product.product_type === 'addon',
-            has_printed_version: true, // Force Printed for library/publisher products
-            price_printed: Number(product.price_printed),
-            price_electronic: hasElectronicOption ? (Number(product.price_electronic) || null) : null,
-        };
+        setIsUploading(true);
 
-        // Ensure key exists
-        if (isNew && !payload.key) {
-             payload.key = `prod_${uuidv4().slice(0,8)}`;
-        }
-        
-        // Ensure Publisher ID is set correctly
-        if (permissions.isPublisher && currentUser) {
-            payload.publisher_id = currentUser.id;
-        }
+        try {
+            let uploadedImageUrl = product.image_url;
+            let newFileUploaded = false;
 
-        if (isNew) await createPersonalizedProduct.mutateAsync(payload);
-        else await updatePersonalizedProduct.mutateAsync(payload);
-        
-        navigate(permissions.isPublisher ? '/publisher-products' : '/personalized-products');
+            if ((product.image_url as any) instanceof File) {
+                const asset = await cloudinaryService.uploadImageWithCompression(product.image_url as any, 'products');
+                // Save the full asset object stringified to fit in TEXT column
+                uploadedImageUrl = JSON.stringify(asset);
+                newFileUploaded = true;
+            }
+
+            const payload: any = {
+                ...product,
+                image_url: uploadedImageUrl,
+                is_addon: product.product_type === 'addon',
+                has_printed_version: true, // Force Printed for library/publisher products
+                price_printed: Number(product.price_printed),
+                price_electronic: hasElectronicOption ? (Number(product.price_electronic) || null) : null,
+            };
+
+            // Ensure key exists
+            if (isNew && !payload.key) {
+                 payload.key = `prod_${uuidv4().slice(0,8)}`;
+            }
+            
+            // Ensure Publisher ID is set correctly
+            if (permissions.isPublisher && currentUser) {
+                payload.publisher_id = currentUser.id;
+            }
+
+            if (isNew) await createPersonalizedProduct.mutateAsync(payload);
+            else await updatePersonalizedProduct.mutateAsync(payload);
+
+            // Clean up old asset on successful replacement
+            if (initialImageUrl && newFileUploaded) {
+                const publicId = cloudinaryService.getPublicIdFromUrl(initialImageUrl);
+                if (publicId) {
+                    await cloudinaryService.deleteAsset(publicId);
+                }
+            }
+            
+            navigate(permissions.isPublisher ? '/publisher-products' : '/personalized-products');
+        } catch (error) {
+            console.error("Failed to save product", error);
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     if ((productsLoading || configLoading || publishersLoading) && !isNew) return <PageLoader />;
 
-    const backLink = permissions.isPublisher ? "/publisher-products" : "/personalized-products";
-
     return (
          <div className="animate-fadeIn space-y-8">
             <div className="flex justify-between items-center">
-                <Link to={backLink} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-semibold">
+                <div onClick={handleBack} className="inline-flex cursor-pointer items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-semibold">
                     <ArrowLeft size={16} /> العودة
-                </Link>
+                </div>
                 <h1 className="text-2xl font-bold text-foreground">
                     {isNew ? 'كتاب جديد' : `تعديل: ${product.title}`}
                 </h1>
@@ -450,8 +501,8 @@ const AdminProductDetailPage: React.FC = () => {
                                     <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_featured" checked={product.is_featured} onChange={handleSimpleChange}/> منتج مميز</label>
                                 )}
                             </div>
-                            <Button type="submit" loading={isSaving} size="lg" icon={<Save />} className="w-full">
-                                {isSaving ? 'جاري الحفظ...' : 'حفظ الكتاب'}
+                            <Button type="submit" loading={isSaving || isUploading} size="lg" icon={<Save />} className="w-full">
+                                {isSaving || isUploading ? 'جاري الحفظ...' : 'حفظ الكتاب'}
                             </Button>
                         </CardContent>
                     </Card>

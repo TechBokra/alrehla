@@ -17,6 +17,7 @@ import type { SubscriptionPlan, SiteContent } from '../../lib/database.types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import ImageUploadField from '../../components/admin/ui/ImageUploadField';
+import { cloudinaryService } from '../../services/cloudinaryService';
 
 const AdminSubscriptionBoxPage: React.FC = () => {
     const navigate = useNavigate();
@@ -35,7 +36,8 @@ const AdminSubscriptionBoxPage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [planToEdit, setPlanToEdit] = useState<SubscriptionPlan | null>(null);
     const [content, setContent] = useState<SiteContent['enhaLakPage']['subscription'] | null>(null);
-    const [boxImage, setBoxImage] = useState<string>('');
+    const [boxImage, setBoxImage] = useState<any>('');
+    const [isUploading, setIsUploading] = useState(false);
     const [sortConfig, setSortConfig] = useState<{ key: keyof SubscriptionPlan; direction: 'asc' | 'desc' } | null>({ key: 'price', direction: 'asc' });
 
     // Find the actual product record for the subscription box
@@ -80,14 +82,36 @@ const AdminSubscriptionBoxPage: React.FC = () => {
         } catch (e) { /* Error handled in hook */ }
     };
     
-    const handleBoxImageUpdate = async (key: string, url: string) => {
-        if (!boxProduct) return;
-        setBoxImage(url);
-        // تحديث صورة المنتج فوراً في قاعدة البيانات
-        await updatePersonalizedProduct.mutateAsync({
-            ...boxProduct,
-            image_url: url
-        });
+    const handleBoxImageUpdate = (key: string, value: any) => {
+        setBoxImage(value);
+    };
+
+    const handleSaveBoxImage = async () => {
+        if (!boxProduct || !(boxImage instanceof File)) return;
+        setIsUploading(true);
+        try {
+            const asset = await cloudinaryService.uploadImageWithCompression(boxImage, 'products');
+            const newUrl = JSON.stringify(asset);
+            
+            await updatePersonalizedProduct.mutateAsync({
+                ...boxProduct,
+                image_url: newUrl
+            });
+
+            // Clean up old asset on successful replacement
+            if (boxProduct.image_url) {
+                const publicId = cloudinaryService.getPublicIdFromUrl(boxProduct.image_url);
+                if (publicId) {
+                    await cloudinaryService.deleteAsset(publicId);
+                }
+            }
+
+            setBoxImage(newUrl);
+        } catch (e) {
+            console.error("Failed to save box image", e);
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     const handleContentSave = async () => {
@@ -218,8 +242,15 @@ const AdminSubscriptionBoxPage: React.FC = () => {
                                     onUrlChange={handleBoxImageUpdate}
                                     recommendedSize="800x800px"
                                 />
-                                {updatePersonalizedProduct.isPending && (
-                                    <p className="text-xs text-blue-600 mt-2 animate-pulse">جاري تحديث صورة المنتج...</p>
+                                {boxImage instanceof File && (
+                                    <Button 
+                                        onClick={handleSaveBoxImage} 
+                                        loading={isUploading} 
+                                        className="w-full mt-4 animate-fadeIn" 
+                                        icon={<Save size={16} />}
+                                    >
+                                        حفظ صورة الصندوق
+                                    </Button>
                                 )}
                             </CardContent>
                         </Card>

@@ -71,7 +71,8 @@ const AdminMigrationPage: React.FC = () => {
 
             try {
                 // Upload to Cloudinary
-                const newUrl = await cloudinaryService.uploadImage(file, folder);
+                const asset = await cloudinaryService.uploadImage(file, folder);
+                const newUrl = JSON.stringify(asset);
                 
                 // Update Supabase
                 const { error: updateError } = await (supabase.from(tableName) as any)

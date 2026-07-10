@@ -65,7 +65,8 @@ const ChildForm: React.FC<ChildFormProps> = ({ childToEdit, onCancel, onSuccess 
             
             if (avatarFile) {
                 try {
-                    newAvatarUrl = await cloudinaryService.uploadImage(avatarFile, 'alrehla_child_profiles');
+                    const asset = await cloudinaryService.uploadImage(avatarFile, 'alrehla_child_profiles');
+                    newAvatarUrl = JSON.stringify(asset);
                 } catch (uploadError) {
                     console.error("Image upload failed", uploadError);
                     alert("فشل رفع الصورة، سيتم الحفظ بدون تغيير الصورة.");

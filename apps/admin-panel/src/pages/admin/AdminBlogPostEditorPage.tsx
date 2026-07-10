@@ -13,6 +13,7 @@ import { Select } from '../../components/ui/Select';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import ImageUploadField from '../../components/admin/ui/ImageUploadField';
 import type { BlogPost } from '../../lib/database.types';
+import { cloudinaryService } from '../../services/cloudinaryService';
 
 const AdminBlogPostEditorPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -32,11 +33,14 @@ const AdminBlogPostEditorPage: React.FC = () => {
         published_at: null
     });
 
+    const [initialImageUrl, setInitialImageUrl] = useState<string | null>(null);
+
     useEffect(() => {
         if (!isNew && posts.length > 0) {
             const existingPost = posts.find(p => p.id === Number(id));
             if (existingPost) {
                 setPost(existingPost);
+                setInitialImageUrl(existingPost.image_url || null);
             } else if (!postsLoading) {
                 navigate('/blog');
             }
@@ -45,6 +49,29 @@ const AdminBlogPostEditorPage: React.FC = () => {
             setPost(prev => ({ ...prev, published_at: new Date().toISOString() }));
         }
     }, [id, isNew, posts, postsLoading, navigate]);
+
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if ((post.image_url as any) instanceof File) {
+                e.preventDefault();
+                e.returnValue = 'لديك تغييرات غير محفوظة في الصورة. هل أنت متأكد من المغادرة؟';
+                return e.returnValue;
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [post.image_url]);
+
+    const handleBack = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if ((post.image_url as any) instanceof File) {
+            if (!window.confirm('لديك تغييرات غير محفوظة في الصورة. هل تريد المغادرة وإلغاء التغييرات؟')) {
+                return;
+            }
+        }
+        navigate('/blog');
+    };
+
 
     // تحسين دالة توليد الروابط لدعم العربية ومنع التكرار
     const generateSlug = (text: string) => {
@@ -82,7 +109,6 @@ const AdminBlogPostEditorPage: React.FC = () => {
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const dateValue = e.target.value;
         if (dateValue) {
-            // Convert datetime-local value to ISO string
             const date = new Date(dateValue);
             setPost(prev => ({ ...prev, published_at: date.toISOString() }));
         } else {
@@ -90,29 +116,43 @@ const AdminBlogPostEditorPage: React.FC = () => {
         }
     };
 
-    const handleImageChange = (key: string, url: string) => {
-        setPost(prev => ({ ...prev, image_url: url }));
+    const handleImageChange = (key: string, value: any) => {
+        setPost(prev => ({ ...prev, image_url: value }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
         let finalPost = { ...post };
-        // Ensure published_at is set if status is published
         if (finalPost.status === 'published' && !finalPost.published_at) {
             finalPost.published_at = new Date().toISOString();
         }
 
+        let imageFile = null;
+        if ((finalPost.image_url as any) instanceof File) {
+            imageFile = finalPost.image_url as any;
+            finalPost.image_url = ''; 
+        }
+
+        const payload = { ...finalPost, imageFile };
+
         try {
             if (isNew) {
-                await createBlogPost.mutateAsync(finalPost);
+                await createBlogPost.mutateAsync(payload);
             } else {
-                await updateBlogPost.mutateAsync(finalPost);
+                await updateBlogPost.mutateAsync(payload);
             }
+
+            if (initialImageUrl && imageFile) {
+                const publicId = cloudinaryService.getPublicIdFromUrl(initialImageUrl);
+                if (publicId) {
+                    await cloudinaryService.deleteAsset(publicId);
+                }
+            }
+
             navigate('/blog');
         } catch (error: any) {
             console.error("Failed to save post", error);
-            // سيتم عرض الخطأ تلقائياً عبر الـ Toast المرتبط بالـ Mutation
         }
     };
 
@@ -137,7 +177,7 @@ const AdminBlogPostEditorPage: React.FC = () => {
             {/* Header Actions */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sticky top-0 z-20 bg-background/95 backdrop-blur p-4 border-b -mx-6 px-6 shadow-sm">
                 <div className="flex items-center gap-4">
-                    <Link to="/blog" className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                    <Link to="/blog" onClick={handleBack} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
                         <ArrowLeft className="transform rotate-180" />
                     </Link>
                     <div>

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Save, Image as ImageIcon, DollarSign, Shield, Mail, Layout, Database, RefreshCw, AlertTriangle, PenTool, Library, GitMerge } from 'lucide-react';
+import { Save, Image as ImageIcon, DollarSign, Shield, Mail, Layout, Database, RefreshCw, AlertTriangle, PenTool, Library, GitMerge, Loader2 } from 'lucide-react';
 import { useProduct, SiteBranding } from '../../contexts/ProductContext';
 import { useAdminSocialLinks, useAdminPricingSettings, useAdminCommunicationSettings, useAdminMaintenanceSettings, useAdminLibraryPricingSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useAdminSiteContent } from '../../hooks/queries/admin/useAdminContentQuery';
@@ -19,10 +19,26 @@ import { userService } from '../../services/userService';
 import { useToast } from '../../contexts/ToastContext';
 import type { SocialLinks, PricingSettings, MaintenanceSettings, LibraryPricingSettings } from '../../lib/database.types';
 import { Checkbox } from '../../components/ui/Checkbox';
+import { cloudinaryService } from '../../services/cloudinaryService';
 
 const AdminSettingsPage: React.FC = () => {
     const { siteBranding: initialBranding, setSiteBranding, loading: brandingLoading } = useProduct();
     const [branding, setBranding] = useState<Partial<SiteBranding>>({});
+    const [isUploading, setIsUploading] = useState(false);
+    const [deletedPublicIds, setDeletedPublicIds] = useState<string[]>([]);
+
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            const hasUnsavedFiles = Object.values(branding).some(val => (val as any) instanceof File);
+            if (hasUnsavedFiles) {
+                e.preventDefault();
+                e.returnValue = 'لديك تعديلات غير محفوظة في الهوية البصرية. هل أنت متأكد من المغادرة؟';
+                return e.returnValue;
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [branding]);
 
     const { data: siteContent, isLoading: contentLoading } = useAdminSiteContent();
     const { updateSiteContent } = useContentMutations();
@@ -74,12 +90,51 @@ const AdminSettingsPage: React.FC = () => {
     }, [maintenanceData]);
 
 
-    const handleBrandingChange = (fieldKey: string, value: string) => {
+    const handleBrandingChange = (fieldKey: string, value: any) => {
+        const oldValue = branding[fieldKey as keyof SiteBranding] || (initialBranding && (initialBranding as any)[fieldKey]);
+        if (oldValue && typeof oldValue === 'string' && value !== oldValue) {
+            const publicId = cloudinaryService.getPublicIdFromUrl(oldValue);
+            if (publicId) {
+                setDeletedPublicIds(prev => {
+                    if (!prev.includes(publicId)) {
+                        return [...prev, publicId];
+                    }
+                    return prev;
+                });
+            }
+        }
         setBranding(prev => ({ ...prev, [fieldKey]: value }));
     };
 
     const handleImagesSubmit = async () => {
-        await setSiteBranding(branding);
+        setIsUploading(true);
+        try {
+            const finalBranding: any = { ...branding };
+            
+            // Upload any selected File objects to Cloudinary
+            for (const key of Object.keys(finalBranding)) {
+                const val = finalBranding[key];
+                if (val instanceof File) {
+                    const asset = await cloudinaryService.uploadImageWithCompression(val, 'branding');
+                    finalBranding[key] = asset;
+                }
+            }
+
+            await setSiteBranding(finalBranding);
+            
+            // Clean up deleted assets on successful save
+            if (deletedPublicIds.length > 0) {
+                await Promise.all(deletedPublicIds.map(id => cloudinaryService.deleteAsset(id)));
+                setDeletedPublicIds([]);
+            }
+            
+            addToast('تم تحديث الهوية البصرية بنجاح.', 'success');
+        } catch (error: any) {
+            console.error("Failed to upload/save branding images", error);
+            addToast(`فشل حفظ الصور: ${error.message}`, 'error');
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     const handleCommunicationSubmit = async () => {
@@ -173,7 +228,7 @@ const AdminSettingsPage: React.FC = () => {
                     </Card>
 
                     <div className="flex justify-end sticky bottom-6 z-10">
-                        <Button onClick={handleImagesSubmit} icon={<Save />} className="shadow-lg" size="lg">حفظ الهوية البصرية</Button>
+                        <Button onClick={handleImagesSubmit} loading={isUploading} icon={<Save />} className="shadow-lg" size="lg">حفظ الهوية البصرية</Button>
                     </div>
                 </TabsContent>
 

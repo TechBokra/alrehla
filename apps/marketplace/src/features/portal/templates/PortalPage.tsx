@@ -10,16 +10,17 @@ import { publicService } from '@/services/publicService';
 import HeroSection from '../components/HeroSection';
 import ProjectCard from '../components/ProjectCard';
 import HowItWorksStep from '../components/HowItWorksStep';
+import { supabase } from '@/lib/supabaseClient';
 
 const PortalPage = async () => {
   const data = await publicService.getAllPublicData();
-  const {
-    blogPosts,
-    siteContent,
-    personalizedProducts = [],
-    publishers = [],
-    siteBranding,
-  } = data || {};
+  const { data: siteBranding } = await supabase
+    .from('public_settings')
+    .select('value')
+    .eq('key', 'branding')
+    .single();
+
+  const { blogPosts, siteContent, personalizedProducts = [], publishers = [] } = data || {};
 
   // Get project images from personalized products to guarantee sync
   const customStoryImg = personalizedProducts.find((p) => p.key === 'custom_story')?.image_url;
@@ -28,9 +29,10 @@ const PortalPage = async () => {
   const publishedPosts = blogPosts || [];
   const content = siteContent?.portalPage;
 
+  console.log({ siteBranding });
   return (
     <div className="bg-background animate-fadeIn">
-      <HeroSection backgroundUrl={siteBranding?.heroImageUrl} content={content} />
+      <HeroSection backgroundUrl={siteBranding?.value?.heroImageUrl?.url} content={content} />
 
       {content?.showProjectsSection !== false && (
         <section className="bg-muted/30 py-20 sm:py-24">

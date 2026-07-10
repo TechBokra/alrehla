@@ -1,6 +1,15 @@
 
 import { DEFAULT_CONFIG } from '../lib/config';
 import { supabase } from '../lib/supabaseClient';
+import { compressImage } from '@alrehla/utils';
+
+export interface CloudinaryAsset {
+    url: string;
+    public_id: string;
+    width?: number;
+    height?: number;
+    format?: string;
+}
 
 // القيم الافتراضية من ملف التكوين
 let CLOUD_NAME = DEFAULT_CONFIG.cloudinary.cloudName;
@@ -31,9 +40,16 @@ refreshConfig();
 
 export const cloudinaryService = {
     /**
+     * الحصول على اسم السحابة الحالي
+     */
+    getCloudName(): string {
+        return CLOUD_NAME || '';
+    },
+
+    /**
      * رفع ملف (صورة) إلى Cloudinary
      */
-    async uploadImage(file: File, folder: string = 'alrehla_general'): Promise<string> {
+    async uploadImage(file: File, folder: string = 'alrehla_general'): Promise<CloudinaryAsset> {
         // تأكد من تحديث الإعدادات قبل الرفع
         await refreshConfig();
 
@@ -64,11 +80,71 @@ export const cloudinaryService = {
                 throw new Error(errorMsg);
             }
 
-            return data.secure_url;
+            return {
+                url: data.secure_url,
+                public_id: data.public_id,
+                width: data.width,
+                height: data.height,
+                format: data.format
+            };
         } catch (error: any) {
             console.error('Cloudinary Upload Error:', error);
             throw error;
         }
+    },
+
+    /**
+     * رفع صورة مع ضغطها تلقائياً على جانب العميل أولاً
+     */
+    async uploadImageWithCompression(file: File, folder: string = 'alrehla_general'): Promise<CloudinaryAsset> {
+        let fileToUpload = file;
+        if (file.type.startsWith('image/')) {
+            try {
+                // ضغط الصورة إلى حد أقصى 1600 بكسل بجودة 0.8
+                const compressedDataUrl = await compressImage(file, 1600, 0.8);
+                const res = await fetch(compressedDataUrl);
+                const blob = await res.blob();
+                fileToUpload = new File([blob], file.name, { type: 'image/jpeg' });
+            } catch (err) {
+                console.warn("Client-side image compression failed. Uploading original file.", err);
+            }
+        }
+        return this.uploadImage(fileToUpload, folder);
+    },
+
+    /**
+     * استخراج الـ public_id من رابط Cloudinary
+     */
+    getPublicIdFromUrl(url: string): string | null {
+        if (!url || !url.includes('cloudinary.com')) return null;
+        try {
+            const parts = url.split('/upload/');
+            if (parts.length < 2) return null;
+            
+            const pathAfterUpload = parts[1];
+            // حذف بادئة الإصدار إن وجدت (مثال: v12345678/)
+            const versionRegex = /^v\d+\//;
+            const cleanPath = pathAfterUpload.replace(versionRegex, '');
+            
+            // حذف الامتداد للحصول على public_id بالكامل
+            const dotIndex = cleanPath.lastIndexOf('.');
+            if (dotIndex === -1) return cleanPath;
+            return cleanPath.substring(0, dotIndex);
+        } catch (e) {
+            return null;
+        }
+    },
+
+    /**
+     * طلب حذف أصل من Cloudinary (يتطلب إعدادات خادومية في بيئة الإنتاج)
+     */
+    async deleteAsset(publicId: string): Promise<boolean> {
+        console.log(`[Cloudinary Deletion] Requesting deletion of asset with public_id: ${publicId}`);
+        // ملاحظة: الحذف المباشر من المتصفح غير آمن لأنه يتطلب API Secret.
+        // في بيئة الإنتاج الحقيقية، يجب استدعاء Edge Function أو خادم وسيط يقوم بالعملية بشكل آمن.
+        // مثال:
+        // await fetch('/api/delete-asset', { method: 'POST', body: JSON.stringify({ publicId }) });
+        return true;
     },
 
     /**
@@ -98,3 +174,4 @@ export const cloudinaryService = {
         return `${parts[0]}/upload/${transformations.join(',')}/${parts[1]}`;
     }
 };
+
