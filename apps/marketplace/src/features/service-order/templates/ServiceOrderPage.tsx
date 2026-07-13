@@ -136,7 +136,7 @@ const ServiceOrderPage: React.FC = () => {
                             {instructor && (
                                 <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border">
                                     <Image 
-                                        src={instructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
+                                        src={instructor.avatar_url || '/images/male-avatar.png'} 
                                         alt={instructor.name} 
                                         className="w-12 h-12 rounded-full object-cover"
                                     />

@@ -37,7 +37,7 @@ const AddonsSection: React.FC<AddonsSectionProps> = React.memo(({ addonProducts,
                             <div className={`w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full border-2 ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
                                 {isSelected && <Check size={16} className="text-white" />}
                             </div>
-                            <Image src={product.image_url || 'https://i.ibb.co/C0bSJJT/favicon.png'} alt={product.title} className="w-12 h-12 rounded-md bg-gray-100" objectFit="contain" />
+                            <Image src={product.image_url || '/images/favicon.png'} alt={product.title} className="w-12 h-12 rounded-md bg-gray-100" objectFit="contain" />
                             <div className="flex-grow">
                                 <h4 className="font-bold text-gray-800">{product.title}</h4>
                                 <p className="text-sm text-gray-500">{product.description}</p>

@@ -20,7 +20,7 @@ const StudentLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) =
 
     // Fallbacks for display
     const displayName = currentChildProfile?.name || currentUser?.name || 'الطالب';
-    const avatarUrl = currentChildProfile?.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png';
+    const avatarUrl = currentChildProfile?.avatar_url || '/images/male-avatar.png';
 
     return (
         <div className="flex flex-col min-h-screen bg-gray-100" dir="rtl">

@@ -1,28 +1,19 @@
 
-import { supabase } from '../lib/supabaseClient';
 import type {
-    Instructor,
     BlogPost,
-    PersonalizedProduct,
+    CommunicationSettings,
     CreativeWritingPackage,
+    Instructor,
+    MaintenanceSettings,
+    PersonalizedProduct,
+    PricingSettings,
+    PublisherProfile,
     SiteContent,
     SocialLinks,
-    SubscriptionPlan,
     StandaloneService,
-    CommunicationSettings,
-    PricingSettings,
-    MaintenanceSettings,
-    PublisherProfile
+    SubscriptionPlan
 } from '@alrehla/types';
-import { 
-    mockPricingSettings, 
-    mockSiteContent, 
-    mockCommunicationSettings, 
-    mockSocialLinks,
-    mockBlogPosts,
-    mockMaintenanceSettings,
-    mockPublishers // Import mock publishers
-} from '@alrehla/config/mockData';
+import { supabase } from '../lib/supabaseClient';
 
 interface PublicData {
     instructors: Instructor[];
@@ -49,7 +40,7 @@ export const publicService = {
             .lte('published_at', now)
             .is('deleted_at', null)
             .order('published_at', { ascending: false });
-        return (data as BlogPost[])?.length > 0 ? (data as BlogPost[]) : mockBlogPosts;
+        return (data as BlogPost[])?.length > 0 ? (data as BlogPost[]) : [];
     },
 
     async getPersonalizedProducts() {
@@ -98,7 +89,7 @@ export const publicService = {
             instructors: (instructors as Instructor[]) || [],
             creativeWritingPackages: (packages as CreativeWritingPackage[]) || [],
             standaloneServices: (services as StandaloneService[]) || [],
-            pricingSettings: getSetting('pricing_config', mockPricingSettings),
+            pricingSettings: getSetting('pricing_config', null),
             publicHolidays: []
         };
     },
@@ -111,12 +102,12 @@ export const publicService = {
         };
 
         return {
-            siteContent: getSetting('global_content', mockSiteContent),
+            siteContent: getSetting('global_content', null),
             siteBranding: getSetting('branding'),
-            socialLinks: getSetting('social_links', mockSocialLinks),
-            communicationSettings: getSetting('communication_settings', mockCommunicationSettings),
-            pricingSettings: getSetting('pricing_config', mockPricingSettings),
-            maintenanceSettings: getSetting('maintenance_settings', mockMaintenanceSettings)
+            socialLinks: getSetting('social_links', null),
+            communicationSettings: getSetting('communication_settings', null),
+            pricingSettings: getSetting('pricing_config', null),
+            maintenanceSettings: getSetting('maintenance_settings', null)
         };
     },
 
@@ -150,7 +141,7 @@ export const publicService = {
             return item ? item.value : defaultValue || null;
         };
 
-        const displayPublishers = (publishers && publishers.length > 0) ? (publishers as PublisherProfile[]) : mockPublishers;
+        const displayPublishers = (publishers && publishers.length > 0) ? (publishers as PublisherProfile[]) : [];
 
         return {
             instructors: instructors as Instructor[],
@@ -163,12 +154,12 @@ export const publicService = {
             badges: badges as any[],
             comparisonItems: comparisonItems as any[],
             
-            siteContent: getSetting('global_content', mockSiteContent),
+            siteContent: getSetting('global_content', null),
             siteBranding: getSetting('branding'),
-            socialLinks: getSetting('social_links', mockSocialLinks),
-            communicationSettings: getSetting('communication_settings', mockCommunicationSettings),
-            pricingSettings: getSetting('pricing_config', mockPricingSettings),
-            maintenanceSettings: getSetting('maintenance_settings', mockMaintenanceSettings),
+            socialLinks: getSetting('social_links', null),
+            communicationSettings: getSetting('communication_settings', null),
+            pricingSettings: getSetting('pricing_config', null),
+            maintenanceSettings: getSetting('maintenance_settings', null),
             
             publicHolidays: [], 
         };

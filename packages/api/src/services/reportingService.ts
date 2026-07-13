@@ -252,7 +252,7 @@ export const reportingService = {
             .eq('key', 'library_pricing_config')
             .single();
             
-        const pricingConfig = (configData as any)?.value || mockLibraryPricingSettings;
+        const pricingConfig = (configData as any)?.value || null;
 
         // 6. Calculate Earnings
         let totalEarnings = 0;

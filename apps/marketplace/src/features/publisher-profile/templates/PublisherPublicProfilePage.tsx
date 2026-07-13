@@ -85,7 +85,7 @@ const PublisherPublicProfilePage: React.FC = () => {
                     {/* Logo */}
                     <div className="w-32 h-32 md:w-40 md:h-40 rounded-2xl bg-white shadow-md border-4 border-white overflow-hidden flex-shrink-0 -mt-16 md:-mt-20">
                         <Image 
-                            src={publisher.logo_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
+                            src={publisher.logo_url || '/images/male-avatar.png'} 
                             alt={publisher.store_name} 
                             className="w-full h-full"
                             objectFit="contain"

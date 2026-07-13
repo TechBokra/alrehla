@@ -60,7 +60,7 @@ const InstructorSelection: React.FC<InstructorSelectionProps> = ({ instructors, 
                         {/* Header Info */}
                         <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start text-center sm:text-right border-b pb-6">
                             <Image 
-                                src={viewedInstructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
+                                src={viewedInstructor.avatar_url || '/images/male-avatar.png'} 
                                 alt={viewedInstructor.name} 
                                 className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-white shadow-md"
                             />
@@ -146,7 +146,7 @@ const InstructorSelection: React.FC<InstructorSelectionProps> = ({ instructors, 
                         >
                             <div className="relative mx-auto mb-3">
                                 <Image 
-                                    src={instructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
+                                    src={instructor.avatar_url || '/images/male-avatar.png'} 
                                     alt={instructor.name} 
                                     className="w-20 h-20 rounded-full"
                                 />

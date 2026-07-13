@@ -116,7 +116,7 @@ const ChildForm: React.FC<ChildFormProps> = ({ childToEdit, onCancel, onSuccess 
             <form id="child-profile-form" onSubmit={handleSubmit} className="space-y-8 max-w-2xl mx-auto">
                 <div className="flex flex-col items-center gap-4 p-6 border-2 border-dashed rounded-xl bg-gray-50">
                     <div className="relative">
-                        <Image src={preview || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt="Avatar" className="w-24 h-24 rounded-full" />
+                        <Image src={preview || '/images/male-avatar.png'} alt="Avatar" className="w-24 h-24 rounded-full" />
                         {isUploading && (
                             <div className="absolute inset-0 bg-white/60 flex items-center justify-center rounded-full">
                                 <Loader2 className="animate-spin text-primary" size={24}/>

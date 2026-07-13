@@ -40,7 +40,7 @@ const JourneyStep: React.FC<{ icon: React.ReactNode; title: string; description:
 
 const TeamMemberCard: React.FC<{ name: string; role: string; imageUrl: string; }> = ({ name, role, imageUrl }) => (
     <div className="text-center">
-        <Image src={imageUrl || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt={name} className="w-32 h-32 rounded-full mx-auto ring-4 ring-background shadow-lg aspect-square" />
+        <Image src={imageUrl || '/images/male-avatar.png'} alt={name} className="w-32 h-32 rounded-full mx-auto ring-4 ring-background shadow-lg aspect-square" />
         <h4 className="text-xl font-bold mt-4">{name}</h4>
         <p className="text-primary font-semibold">{role}</p>
     </div>
@@ -64,7 +64,7 @@ const AboutPage: React.FC = () => {
             {/* Hero Section */}
             <section 
                 className="relative py-24 sm:py-32 text-center text-white bg-cover bg-center" 
-                style={{ backgroundImage: `url(${siteBranding?.aboutHeroImageUrl || "https://i.ibb.co/8XYt2s5/about-us-image.jpg"})`}}
+                style={{ backgroundImage: `url(${siteBranding?.aboutHeroImageUrl || "/images/about-us-image.jpg"})`}}
             >
                 <div className="absolute inset-0 bg-primary/80 backdrop-blur-sm"></div>
                 <div className="container mx-auto px-4 relative z-10">

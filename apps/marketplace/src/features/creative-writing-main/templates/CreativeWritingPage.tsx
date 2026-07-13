@@ -42,7 +42,7 @@ const InstructorShowcaseCard: React.FC<{ instructor: Instructor }> = ({ instruct
     return (
         <Card className="text-center h-full">
             <CardContent className="pt-6">
-                <Image src={instructor.avatar_url || "https://i.ibb.co/2S4xT8w/male-avatar.png"} alt={instructor.name} className="w-24 h-24 rounded-full mx-auto object-cover ring-4 ring-primary/10" />
+                <Image src={instructor.avatar_url || "/images/male-avatar.png"} alt={instructor.name} className="w-24 h-24 rounded-full mx-auto object-cover ring-4 ring-primary/10" />
                 <h4 className="text-xl font-bold mt-4">{instructor.name}</h4>
                 <p className="text-primary font-semibold text-sm mb-4">{instructor.specialty}</p>
                 <ul className="text-sm text-muted-foreground space-y-2 text-right">

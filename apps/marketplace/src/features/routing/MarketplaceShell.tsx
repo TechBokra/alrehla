@@ -9,7 +9,7 @@ import WhatsAppButton from '@/components/WhatsAppButton';
 import ScrollToTopButton from '@/components/ScrollToTopButton';
 import OfflineBanner from '@/components/shared/OfflineBanner';
 import DevelopmentBanner from '@/components/shared/DevelopmentBanner';
-import ErrorBoundary from '@/components/ErrorBoundary';
+
 import ProfileCompletionGuard from '@/components/auth/ProfileCompletionGuard';
 import { supabase } from '@/lib/supabaseClient';
 import { initGA, pageview } from '@/lib/ga';
@@ -37,23 +37,21 @@ export default function MarketplaceShell({ children }: { children: React.ReactNo
   }, [pathname]);
 
   return (
-    <ErrorBoundary>
-      <div className="flex flex-col min-h-screen" dir="rtl">
-        <DevelopmentBanner />
-        <OfflineBanner />
-        {showLayout && <Header />}
-        <ScrollToTop />
-        <main className="flex-grow">
-          <ProfileCompletionGuard>{children}</ProfileCompletionGuard>
-        </main>
-        {showLayout && <Footer />}
-        {showLayout && (
-          <>
-            <WhatsAppButton />
-            <ScrollToTopButton />
-          </>
-        )}
-      </div>
-    </ErrorBoundary>
+    <div className="flex flex-col min-h-screen" dir="rtl">
+      <DevelopmentBanner />
+      <OfflineBanner />
+      {showLayout && <Header />}
+      <ScrollToTop />
+      <main className="flex-grow">
+        <ProfileCompletionGuard>{children}</ProfileCompletionGuard>
+      </main>
+      {showLayout && <Footer />}
+      {showLayout && (
+        <>
+          <WhatsAppButton />
+          <ScrollToTopButton />
+        </>
+      )}
+    </div>
   );
 }

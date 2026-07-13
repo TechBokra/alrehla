@@ -18,7 +18,7 @@ interface ServiceProvidersModalProps {
 const ProviderCard: React.FC<{ instructor: Instructor, price: number, onSelect: () => void }> = ({ instructor, price, onSelect }) => (
     <div className="p-4 border rounded-lg flex items-center justify-between gap-4 bg-background">
         <div className="flex items-center gap-3">
-            <Image src={instructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt={instructor.name} className="w-12 h-12 rounded-full"/>
+            <Image src={instructor.avatar_url || '/images/male-avatar.png'} alt={instructor.name} className="w-12 h-12 rounded-full"/>
             <div>
                 <p className="font-bold">{instructor.name}</p>
                 <p className="text-xs text-muted-foreground">{instructor.specialty}</p>

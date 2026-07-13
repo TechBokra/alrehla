@@ -20,7 +20,7 @@ const InstructorCard: React.FC<{ instructor: Instructor }> = ({ instructor }) =>
     return (
         <div className="bg-white rounded-2xl p-6 text-center border flex flex-col items-center transform hover:-translate-y-2 transition-transform duration-300 shadow-lg">
             <Image 
-                src={instructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
+                src={instructor.avatar_url || '/images/male-avatar.png'} 
                 alt={instructor.name} 
                 className="w-24 h-24 mb-4 rounded-full object-cover ring-4 ring-blue-100 shadow-md"
             />

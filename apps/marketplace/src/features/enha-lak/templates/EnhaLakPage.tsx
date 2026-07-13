@@ -113,7 +113,7 @@ const EnhaLakPage: React.FC = () => {
                             title="القصة المخصصة"
                             description="جوهر 'إنها لك'، قصة فريدة منسوجة حول شخصية طفلك واهتماماته، تهدف لغرس قيمة تربوية مختارة بعناية."
                             features={["تخصيص كامل للبطل: اسم، صورة، وصف", "اختيار الهدف التربوي من قائمة متنوعة", "متوفرة بنسخ مطبوعة فاخرة وإلكترونية"]}
-                            imageUrl={customStoryProduct?.image_url || content?.customStoryImageUrl || "https://i.ibb.co/RzJzQhL/hero-image-new.jpg"}
+                            imageUrl={customStoryProduct?.image_url || content?.customStoryImageUrl || "/images/hero-image-new.jpg"}
                             ctaLink="/enha-lak/store"
                             ctaText="اكتشف القصص"
                         />
@@ -121,7 +121,7 @@ const EnhaLakPage: React.FC = () => {
                             title="صندوق الرحلة الشهري"
                             description="هدية متجددة تفتح لطفلك أبواباً جديدة من الخيال والمعرفة كل شهر، مع محتوى حصري ومفاجآت ممتعة."
                             features={["قصة مخصصة جديدة كل شهر", "أنشطة تفاعلية وألعاب تعليمية مبتكرة", "هدية إضافية مختارة بعناية لتناسب عمر الطفل"]}
-                            imageUrl={subBoxProduct?.image_url || content?.subscriptionBoxImageUrl || "https://i.ibb.co/L8DDd6V/gift-box-sub.png"}
+                            imageUrl={subBoxProduct?.image_url || content?.subscriptionBoxImageUrl || "/images/gift-box-sub.png"}
                             ctaLink="/enha-lak/subscription"
                             ctaText="اعرف المزيد واشترك"
                             isReversed

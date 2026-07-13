@@ -25,28 +25,13 @@ import type {
     LibraryPricingSettings 
 } from '@alrehla/types';
 
-// Helper to fetch single setting safely with Auto-Seed capability
+// Helper to fetch single setting safely
 const fetchSetting = async (key: string, seedValue: any) => {
     const { data, error } = await supabase.from('site_settings').select('value').eq('key', key).maybeSingle();
     
-    // Auto-Seed logic
+    // Auto-Seed logic removed; returning null when missing
     if (error || !data || (data as any).value === undefined || (data as any).value === null) {
-        console.warn(`Setting '${key}' missing in DB. Auto-seeding...`);
-        const { data: seedData, error: seedError } = await supabase
-            .from('site_settings')
-            .upsert({ 
-                key: key, 
-                value: seedValue,
-                updated_at: new Date().toISOString()
-            } as any)
-            .select('value')
-            .single();
-
-        if (seedError) {
-             console.error(`Failed to seed ${key}:`, seedError);
-             return seedValue; // Fallback only on critical failure
-        }
-        return (seedData as any).value;
+        return null;
     }
     
     return (data as any).value;

@@ -46,4 +46,5 @@ export * from './components/data-display/status-badge';
 export * from './components/forms/form-field';
 export * from './components/forms/search-input';
 export * from './components/forms/submit-button';
+export * from './components/media/alhrela-image';
 export * from './lib/utils';

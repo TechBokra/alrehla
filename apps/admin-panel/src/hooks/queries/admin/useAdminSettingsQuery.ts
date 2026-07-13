@@ -13,19 +13,13 @@ import {
 import { bookingService } from '../../../services/bookingService';
 import { DEFAULT_CONFIG } from '../../../lib/config';
 
-// Helper to fetch single setting safely with Auto-Seed logic embedded in the query
+// Helper to fetch single setting safely
 const fetchSetting = async (key: string, seedValue: any) => {
     const { data, error } = await supabase.from('site_settings').select('value').eq('key', key).maybeSingle();
     
-    // Auto-Seed logic: Only runs if the KEY is missing entirely from the DB.
-    // This ensures we have a structure to work with, but the content is persisted in DB.
+    // Auto-Seed logic removed; returning null when missing
     if (error || !data || (data as any).value === undefined || (data as any).value === null) {
-        await supabase.from('site_settings').upsert({
-             key: key,
-             value: seedValue,
-             updated_at: new Date().toISOString()
-        } as any);
-        return seedValue;
+        return null;
     }
     
     return (data as any).value;

@@ -10,7 +10,7 @@ const fetchJitsiSettings = async () => {
     .maybeSingle();
 
   if (error || !data || (data as any).value === undefined || (data as any).value === null) {
-    return mockJitsiSettings;
+    return null;
   }
 
   return (data as any).value;

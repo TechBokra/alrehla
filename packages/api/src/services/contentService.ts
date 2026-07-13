@@ -14,25 +14,10 @@ export const contentService = {
             .eq('key', 'global_content')
             .single();
         
-        // AUTO-SEED LOGIC:
-        // If content is missing in DB (error or empty), insert the default Rich Content from mockData
+        // AUTO-SEED LOGIC REMOVED
+        // If content is missing in DB (error or empty), return null
         if (error || !data || !(data as any).value) {
-            console.warn("Site content missing in DB. Auto-seeding with default rich content...");
-            
-            const { data: seedData, error: seedError } = await (supabase.from('site_settings') as any)
-                .upsert({ 
-                    key: 'global_content', 
-                    value: mockSiteContent, 
-                    updated_at: new Date().toISOString() 
-                })
-                .select('value')
-                .single();
-                
-            if (seedError) {
-                console.error("Failed to auto-seed content:", seedError);
-                return mockSiteContent; // Fallback only if DB write fails
-            }
-            return (seedData as any).value as SiteContent;
+            return null;
         }
 
         return (data as any).value as SiteContent;

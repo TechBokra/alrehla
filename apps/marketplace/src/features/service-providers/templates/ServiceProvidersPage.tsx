@@ -64,7 +64,7 @@ const ServiceProvidersPage: React.FC = () => {
                                 <Card key={instructor.id} className="hover:shadow-xl transition-shadow duration-300 border-2 border-transparent hover:border-primary/20">
                                     <CardContent className="pt-6 flex flex-col items-center text-center h-full">
                                         <Image 
-                                            src={instructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
+                                            src={instructor.avatar_url || '/images/male-avatar.png'} 
                                             alt={instructor.name} 
                                             className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md mb-4" 
                                         />

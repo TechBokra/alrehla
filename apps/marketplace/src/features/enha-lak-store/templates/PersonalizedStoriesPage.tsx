@@ -36,7 +36,7 @@ const ProductCard = React.memo(React.forwardRef<HTMLElement, ProductCardProps>((
         )}>
             <div className="h-64 w-full overflow-hidden relative bg-gray-50">
                 <Image 
-                    src={product.image_url || 'https://i.ibb.co/RzJzQhL/hero-image-new.jpg'} 
+                    src={product.image_url || '/images/hero-image-new.jpg'} 
                     alt={product.title} 
                     className="w-full h-full transition-transform duration-500 hover:scale-110"
                     objectFit="contain"

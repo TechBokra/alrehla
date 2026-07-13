@@ -117,7 +117,7 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childAct
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start gap-4 border-b pb-4">
                 <Image 
-                    src={child.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
+                    src={child.avatar_url || '/images/male-avatar.png'} 
                     alt={child.name} 
                     className="w-24 h-24 rounded-full border-4 border-white shadow-md flex-shrink-0"
                 />

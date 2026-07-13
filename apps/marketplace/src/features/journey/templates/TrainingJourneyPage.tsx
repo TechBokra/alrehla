@@ -226,7 +226,7 @@ const TrainingJourneyPage: React.FC = () => {
                                                         <div key={msg.id} className={`flex items-end gap-2 ${align} ${!showAvatar && !isMe ? 'mr-9' : ''}`}>
                                                             {!isMe && showAvatar && (
                                                                 <div className="w-7 h-7 rounded-full overflow-hidden border border-gray-300 bg-white flex-shrink-0">
-                                                                    <Image src={avatarUrl || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt={label} className="w-full h-full object-cover" />
+                                                                    <Image src={avatarUrl || '/images/male-avatar.png'} alt={label} className="w-full h-full object-cover" />
                                                                 </div>
                                                             )}
                                                             <div className={`max-w-[85%] sm:max-w-[70%] p-3 rounded-2xl shadow-sm relative text-sm ${bubbleColor} ${isMe ? 'rounded-br-none' : 'rounded-bl-none'}`}>

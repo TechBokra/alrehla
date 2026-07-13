@@ -49,7 +49,7 @@ const CreativeWritingAboutPage: React.FC = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                         <div className="relative">
                            <Image 
-                                src={content?.heroImageUrl || "https://i.ibb.co/n7ZJv9V/child-learning-online.jpg"}
+                                src={content?.heroImageUrl || "/images/child-learning-online.jpg"}
                                 alt="طفل يشارك في جلسة كتابة إبداعية عبر الإنترنت"
                                 className="rounded-2xl shadow-2xl aspect-square"
                             />

@@ -460,6 +460,7 @@ BEGIN
     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, role = EXCLUDED.role;
 
     INSERT INTO public.publisher_profiles (user_id, store_name, slug, description, logo_url, website)
+    --TODO Remove webwikipedia url
     VALUES (shourouk, 'دار الشروق', 'dar-el-shourouk', 'من أعرق دور النشر في مصر والعالم العربي، تقدم محتوى متميز للأطفال.', 'https://upload.wikimedia.org/wikipedia/ar/7/7a/Dar_El_Shorouk_Logo.png', 'https://shorouk.com')
     ON CONFLICT (user_id) DO UPDATE SET store_name = EXCLUDED.store_name, slug = EXCLUDED.slug, description = EXCLUDED.description, logo_url = EXCLUDED.logo_url, website = EXCLUDED.website;
   END IF;

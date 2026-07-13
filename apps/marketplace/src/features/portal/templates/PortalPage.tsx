@@ -10,17 +10,12 @@ import { publicService } from '@/services/publicService';
 import HeroSection from '../components/HeroSection';
 import ProjectCard from '../components/ProjectCard';
 import HowItWorksStep from '../components/HowItWorksStep';
-import { supabase } from '@/lib/supabaseClient';
 
 const PortalPage = async () => {
   const data = await publicService.getAllPublicData();
-  const { data: siteBranding } = await supabase
-    .from('public_settings')
-    .select('value')
-    .eq('key', 'branding')
-    .single();
 
-  const { blogPosts, siteContent, personalizedProducts = [], publishers = [] } = data || {};
+  const { blogPosts, siteContent, personalizedProducts = [], publishers = [], siteBranding } = data || {};
+  const branding = (siteBranding as any) || {};
 
   // Get project images from personalized products to guarantee sync
   const customStoryImg = personalizedProducts.find((p) => p.key === 'custom_story')?.image_url;
@@ -29,10 +24,9 @@ const PortalPage = async () => {
   const publishedPosts = blogPosts || [];
   const content = siteContent?.portalPage;
 
-  console.log({ siteBranding });
   return (
     <div className="bg-background animate-fadeIn">
-      <HeroSection backgroundUrl={siteBranding?.value?.heroImageUrl?.url} content={content} />
+      <HeroSection backgroundUrl={branding?.heroImageUrl?.url} content={content} />
 
       {content?.showProjectsSection !== false && (
         <section className="bg-muted/30 py-20 sm:py-24">
@@ -52,7 +46,7 @@ const PortalPage = async () => {
                   content?.enhaLakDescription || 'قصص مخصصة ومنتجات تربوية فريدة تجعل طفلك بطلاً.'
                 }
                 link="/enha-lak"
-                imageUrl={customStoryImg || siteBranding?.enhaLakPortalImageUrl}
+                imageUrl={customStoryImg || branding?.enhaLakPortalImageUrl}
                 icon={<BookOpen size={32} />}
                 btnText={content?.enhaLakBtnText || 'اكتشف القصص'}
                 themeColor="pink"
@@ -64,7 +58,7 @@ const PortalPage = async () => {
                   'برنامج متكامل لتنمية مهارات الكتابة الإبداعية.'
                 }
                 link="/creative-writing"
-                imageUrl={siteBranding?.creativeWritingPortalImageUrl}
+                imageUrl={branding?.creativeWritingPortalImageUrl}
                 icon={<Feather size={32} />}
                 btnText={content?.creativeWritingBtnText || 'ابدأ الرحلة'}
                 themeColor="blue"
@@ -99,13 +93,13 @@ const PortalPage = async () => {
                   href={`/publisher/${publisher.slug}`}
                   className="group flex flex-col items-center gap-4 transition-all duration-300 transform hover:-translate-y-2"
                 >
-                  <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white shadow-lg group-hover:shadow-xl bg-white flex items-center justify-center p-3 overflow-hidden ring-1 ring-gray-100 group-hover:ring-blue-200">
+                  <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white shadow-lg group-hover:shadow-xl bg-white flex items-center justify-center p-3 overflow-hidden ring-1 ring-gray-100 group-hover:ring-blue-200">
                     <Image
-                      src={publisher.logo_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'}
+                      src={publisher.logo_url || '/images/male-avatar.png'}
                       alt={publisher.store_name}
-                      className="w-full h-full"
                       style={{ objectFit: 'contain' }}
                       fill
+                      sizes="144px"
                     />
                   </div>
                   <span className="font-bold text-lg text-gray-700 group-hover:text-primary transition-colors">
@@ -191,12 +185,13 @@ const PortalPage = async () => {
                   </Button>
                 </Link>
               </div>
-              <div className="relative px-4 sm:px-8">
+              <div className="relative aspect-square max-w-md mx-auto w-full">
                 <Image
-                  src={siteBranding?.aboutPortalImageUrl || 'https://placehold.co/600x600'}
+                  src={branding?.aboutPortalImageUrl || 'https://placehold.co/600x600'}
                   alt="عن منصة الرحلة"
                   fill
-                  className="rounded-3xl shadow-2xl aspect-square rotate-3 hover:rotate-0 transition-transform duration-500"
+                  sizes="(max-width: 768px) 100vw, 448px"
+                  className="rounded-3xl shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500 object-cover"
                 />
               </div>
             </div>

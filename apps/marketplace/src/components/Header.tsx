@@ -76,7 +76,7 @@ const Header: React.FC = () => {
                         {/* Fixed width container for logo to prevent layout shifts (CLS Optimization) */}
                         <div className="h-10 w-10 sm:w-28 relative flex items-center justify-start overflow-hidden">
                             <Image 
-                                src={siteBranding?.logoUrl || "https://i.ibb.co/C0bSJJT/favicon.png"} 
+                                src={siteBranding?.logoUrl || "/images/favicon.png"} 
                                 alt="شعار منصة الرحلة" 
                                 className="h-full w-full !bg-transparent object-contain transition-transform group-hover:scale-105" 
                                 objectFit="contain"

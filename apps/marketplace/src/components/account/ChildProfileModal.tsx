@@ -74,7 +74,7 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
             let newAvatarUrl = childToEdit?.avatar_url || null;
             if (avatarFile) {
                 // In a real app, this would be an upload. For mock, we use a placeholder.
-                newAvatarUrl = 'https://i.ibb.co/2S4xT8w/male-avatar.png';
+                newAvatarUrl = '/images/male-avatar.png';
             }
             
             const profileData = {
@@ -116,7 +116,7 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
         >
             <form id="child-profile-form" onSubmit={handleSubmit} className="space-y-6">
                 <div className="flex flex-col items-center gap-4">
-                    <Image src={preview || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} alt="Avatar" className="w-24 h-24 rounded-full" />
+                    <Image src={preview || '/images/male-avatar.png'} alt="Avatar" className="w-24 h-24 rounded-full" />
                     <input type="file" id="avatar-upload" onChange={handleFileChange} accept="image/*" className="hidden"/>
                     <label htmlFor="avatar-upload" className="cursor-pointer flex items-center gap-2 text-sm font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-full">
                         <ImageIcon size={16} /> <span>{preview ? 'تغيير الصورة الرمزية' : 'رفع صورة رمزية'}</span>

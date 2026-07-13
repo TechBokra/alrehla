@@ -16,7 +16,15 @@ const nextConfig = {
     '@alrehla/utils',
   ],
   images: {
-    unoptimized: true,
+    unoptimized: false,
+    remotePatterns: [
+      { protocol: 'https', hostname: '*.supabase.co' },
+      { protocol: 'https', hostname: 'i.ibb.co' },
+      { protocol: 'https', hostname: 'placehold.co' },
+      { protocol: 'https', hostname: 'res.cloudinary.com' },
+      { protocol: 'https', hostname: 'upload.wikimedia.org' },
+      { protocol: 'https', hostname: 'yt3.googleusercontent.com' },
+    ],
   },
   turbopack: {
     root: join(__dirname, '../../'),

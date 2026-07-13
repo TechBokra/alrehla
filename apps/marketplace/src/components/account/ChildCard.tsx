@@ -17,7 +17,7 @@ const ChildCard: React.FC<ChildCardProps> = ({ child, onEdit, onDelete, onCreate
     return (
         <div className="bg-white p-4 rounded-2xl shadow-md border flex flex-col sm:flex-row items-center gap-4">
             <Image 
-                src={child.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'} 
+                src={child.avatar_url || '/images/male-avatar.png'} 
                 alt={child.name} 
                 className="w-20 h-20 rounded-full border-2 border-blue-100"
                 loading="lazy"

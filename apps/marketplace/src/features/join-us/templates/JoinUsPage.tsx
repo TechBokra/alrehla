@@ -73,7 +73,7 @@ const JoinUsPage: React.FC = () => {
                             </p>
                         </div>
                         <div>
-                            <Image src={siteBranding?.joinUsImageUrl || "https://i.ibb.co/L5B6m9f/join-us-hero.jpg"} alt="فريق عمل مبدع" className="rounded-2xl shadow-xl aspect-video" />
+                            <Image src={siteBranding?.joinUsImageUrl || "/images/join-us-hero.jpg"} alt="فريق عمل مبدع" className="rounded-2xl shadow-xl aspect-video" />
                         </div>
                     </div>
                 </section>

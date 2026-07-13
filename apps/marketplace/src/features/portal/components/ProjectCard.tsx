@@ -2,6 +2,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { DEFAULT_COVER_IMAGE } from '@/lib/constants';
 
 const themeClasses: Record<string, { text: string; bg: string }> = {
   pink: { text: 'text-pink-600', bg: 'text-pink-600' },
@@ -37,9 +38,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       {/* Image Container */}
       <div className="relative h-64 sm:h-72 overflow-hidden bg-muted">
         <Image
-          src={imageUrl || 'https://placehold.co/600x400?text=No+Image'}
+          src={imageUrl || DEFAULT_COVER_IMAGE}
           alt={title}
           fill
+          sizes="(max-width: 768px) 100vw, 50vw"
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
         />
 

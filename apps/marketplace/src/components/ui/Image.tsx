@@ -3,12 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '@alrehla/utils/utils';
 import { ImageIcon } from 'lucide-react';
+import NextImage from 'next/image';
+import { AlhrelaImage } from '@alrehla/ui/components/media/alhrela-image';
+import { cloudinaryService } from '../../services/cloudinaryService';
 
-interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+interface ImageProps extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src' | 'width' | 'height'> {
     src?: any;
     objectFit?: 'cover' | 'contain' | 'fill' | 'none';
     fallbackText?: string;
     showSkeleton?: boolean;
+    width?: number | string;
+    height?: number | string;
+    sizes?: string;
+    priority?: boolean;
 }
 
 const resolveSrc = (src: any): string => {
@@ -31,8 +38,8 @@ const resolveSrc = (src: any): string => {
 };
 
 const Image = React.forwardRef<HTMLImageElement, ImageProps>(
-  ({ src, alt, className, objectFit = 'cover', fallbackText, showSkeleton = true, onLoad, onError, ...props }, ref) => {
-    const DEFAULT_PLACEHOLDER = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmM2Y0ZjYiLz48L3N2Zz4=';
+  ({ src, alt, className, objectFit = 'cover', fallbackText, showSkeleton = true, onLoad, onError, width, height, sizes, priority, ...props }, ref) => {
+    const DEFAULT_PLACEHOLDER = '/images/placeholder-image.jpeg';
 
     const resolvedSrc = resolveSrc(src);
     const [prevSrc, setPrevSrc] = useState<string>(resolvedSrc);
@@ -45,20 +52,28 @@ const Image = React.forwardRef<HTMLImageElement, ImageProps>(
         setErrorFallback(false);
     }
 
-    const handleLoad = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const handleLoad = (e: any) => {
         if (resolvedSrc && !errorFallback) {
             setStatus('loaded');
         }
-        if (onLoad) onLoad(e);
+        if (onLoad) onLoad(e as any);
     };
 
-    const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const handleError = (e: any) => {
         setStatus('error');
         setErrorFallback(true);
-        if (onError) onError(e);
+        if (onError) onError(e as any);
     };
 
     const currentSrc = errorFallback || !resolvedSrc ? DEFAULT_PLACEHOLDER : resolvedSrc;
+
+    // Check if it's a Cloudinary asset
+    const isCloudinaryUrl = currentSrc.includes('cloudinary.com');
+    const cloudinaryPublicId = isCloudinaryUrl ? cloudinaryService.getPublicIdFromUrl(currentSrc) : null;
+
+    const objectFitClass = objectFit === 'cover' ? 'object-cover' : objectFit === 'contain' ? 'object-contain' : 'object-fill';
+    const transitionClass = "transition-opacity duration-500 ease-in-out relative z-10 w-full h-full";
+    const opacityClass = status === 'loaded' ? "opacity-100" : "opacity-0";
 
     return (
       <div className={cn("relative overflow-hidden bg-gray-50 flex items-center justify-center isolate", className)}>
@@ -78,21 +93,37 @@ const Image = React.forwardRef<HTMLImageElement, ImageProps>(
             </div>
         )}
 
-        <img
-          ref={ref}
-          src={currentSrc}
-          alt={alt || 'image'}
-          loading="lazy"
-          decoding="async"
-          onLoad={handleLoad}
-          onError={handleError}
-          className={cn(
-            "w-full h-full transition-opacity duration-500 ease-in-out relative z-10",
-            objectFit === 'cover' ? 'object-cover' : objectFit === 'contain' ? 'object-contain' : 'object-fill',
-            status === 'loaded' ? "opacity-100" : "opacity-0"
-          )}
-          {...props}
-        />
+        {isCloudinaryUrl && cloudinaryPublicId ? (
+            <AlhrelaImage
+                publicId={cloudinaryPublicId}
+                alt={alt || 'image'}
+                onLoad={handleLoad}
+                onError={handleError}
+                sizes={sizes || "(max-width: 768px) 100vw, 50vw"}
+                width={typeof width === 'number' ? width : parseInt(width as string) || 800}
+                height={typeof height === 'number' ? height : parseInt(height as string) || 600}
+                className={cn(transitionClass, objectFitClass, opacityClass)}
+                priority={priority}
+                // @ts-ignore
+                ref={ref}
+                {...(props as any)}
+            />
+        ) : (
+            <NextImage
+                src={currentSrc}
+                alt={alt || 'image'}
+                onLoad={handleLoad}
+                onError={handleError}
+                width={typeof width === 'number' ? width : parseInt(width as string) || 800}
+                height={typeof height === 'number' ? height : parseInt(height as string) || 600}
+                sizes={sizes}
+                priority={priority}
+                className={cn(transitionClass, objectFitClass, opacityClass)}
+                // @ts-ignore
+                ref={ref}
+                {...(props as any)}
+            />
+        )}
       </div>
     );
   }

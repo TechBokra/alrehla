@@ -75,7 +75,7 @@ const InstructorProfilePage: React.FC = () => {
                         <Card>
                             <CardContent className="pt-6 flex flex-col md:flex-row items-center gap-8">
                                 <Image
-                                    src={instructor.avatar_url || 'https://i.ibb.co/2S4xT8w/male-avatar.png'}
+                                    src={instructor.avatar_url || '/images/male-avatar.png'}
                                     alt={instructor.name}
                                     className="w-40 h-40 rounded-full flex-shrink-0 object-cover ring-4 ring-primary/10 shadow-lg"
                                 />

@@ -78,7 +78,8 @@ export const mockPublishers: PublisherProfile[] = [
         user_id: 'mock-pub-1',
         store_name: 'دار الشروق',
         slug: 'dar-el-shourouk',
-        logo_url: 'https://upload.wikimedia.org/wikipedia/ar/7/7a/Dar_El_Shorouk_Logo.png',
+        logo_url: '',
+        // logo_url: 'https://upload.wikimedia.org/wikipedia/ar/7/7a/Dar_El_Shorouk_Logo.png',
         description: 'من أعرق دور النشر في العالم العربي، تقدم محتوى متميز للأطفال واليافعين.',
         website: 'https://www.shorouk.com'
     },
