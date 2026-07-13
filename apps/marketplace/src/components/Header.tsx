@@ -2,6 +2,7 @@
 
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { Link } from '@/lib/router-compat';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
@@ -18,7 +19,8 @@ import UserDropdown from './header/UserDropdown';
 import NavItem from './header/NavItem';
 import MobileMenu from './header/MobileMenu';
 import Image from './ui/Image';
-import NotificationListener from './shared/NotificationListener';
+
+const NotificationListener = dynamic(() => import('./shared/NotificationListener'), { ssr: false });
 
 const Header: React.FC = () => {
     const { isLoggedIn, currentUser, hasAdminAccess, signOut } = useAuth();
@@ -67,8 +69,7 @@ const Header: React.FC = () => {
 
     return (
         <header className={`bg-background/80 backdrop-blur-md border-b sticky top-0 z-40 ${headerStyle}`} dir="rtl">
-            {/* تشغيل مستمع الإشعارات في الخلفية */}
-            <NotificationListener />
+            {isLoggedIn && <NotificationListener />}
             
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">

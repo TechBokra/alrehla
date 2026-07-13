@@ -7,4 +7,5 @@ export const publicService = {
   getCreativeWritingData: publicActions.getCreativeWritingData,
   getPublicSettings: publicActions.getPublicSettings,
   getAllPublicData: publicActions.getAllPublicData,
+  getHomePageData: publicActions.getHomePageData,
 };

@@ -2,7 +2,6 @@
 
 
 import React, { createContext, useState, useEffect, useContext, ReactNode, useMemo, useCallback } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 
 export type CartItem = {
     id: string; // Unique ID for the cart item itself
@@ -21,6 +20,13 @@ interface CartContextType {
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
+
+const createCartItemId = () => {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+        return crypto.randomUUID();
+    }
+    return Date.now().toString() + '-' + Math.random().toString(36).slice(2);
+};
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -55,7 +61,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const addItemToCart = useCallback((item: Omit<CartItem, 'timestamp' | 'id'>) => {
         try {
-            const newItem: CartItem = { ...item, id: uuidv4(), timestamp: Date.now() };
+            const newItem: CartItem = { ...item, id: createCartItemId(), timestamp: Date.now() };
             setCart(prevCart => [...prevCart, newItem]);
         } catch (e) {
             console.error("Failed to add item to cart state", e);

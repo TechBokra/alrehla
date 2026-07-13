@@ -25,9 +25,10 @@ export const useUserNotifications = () => {
             if (!currentUser) return [];
             const { data } = await supabase
                 .from('notifications')
-                .select('*')
+                .select('id,user_id,message,type,link,read,created_at')
                 .eq('user_id', currentUser.id)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(20);
             return (data as Notification[]) || [];
         },
         enabled: !!currentUser,

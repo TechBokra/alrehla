@@ -2,10 +2,10 @@
 
 import React from 'react';
 import { MessageCircle, Loader2 } from 'lucide-react';
-import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
+import { usePublicSettings } from '../hooks/queries/public/usePublicDataQuery';
 
 const WhatsAppButton: React.FC = () => {
-    const { data, isLoading } = usePublicData();
+    const { data, isLoading } = usePublicSettings();
     const comms = data?.communicationSettings;
 
     if (isLoading) {

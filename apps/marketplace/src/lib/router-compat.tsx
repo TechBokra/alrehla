@@ -57,13 +57,14 @@ export const useNavigate = () => {
 
 export const useLocation = () => {
   const pathname = usePathname() || '/';
-  const searchParams = useNextSearchParams();
-  const search = searchParams?.toString() ? `?${searchParams.toString()}` : '';
+  const [search, setSearch] = useState('');
   const [state, setState] = useState<NavigationState>(null);
 
   useEffect(() => {
-    setState(readNavigationState(pathname, search));
-  }, [pathname, search]);
+    const currentSearch = typeof window === 'undefined' ? '' : window.location.search;
+    setSearch(currentSearch);
+    setState(readNavigationState(pathname, currentSearch));
+  }, [pathname]);
 
   return useMemo(() => ({ pathname, search, hash: '', state, key: pathname + search }), [pathname, search, state]);
 };

@@ -25,3 +25,7 @@ export const getPublicSettings = async () => {
 export const getAllPublicData = async () => {
   return apiPublicService.getAllPublicData();
 };
+
+export const getHomePageData = async () => {
+  return apiPublicService.getHomePageData();
+};

@@ -3,7 +3,7 @@ import React from 'react';
 import PostCard from '../../../components/shared/PostCard';
 import TestimonialCard from '../../../components/shared/TestimonialCard';
 import { Button } from '../../../components/ui/Button';
-import Image from 'next/image';
+import Image from '@/components/ui/Image';
 import Link from 'next/link';
 import { publicService } from '@/services/publicService';
 
@@ -12,7 +12,7 @@ import ProjectCard from '../components/ProjectCard';
 import HowItWorksStep from '../components/HowItWorksStep';
 
 const PortalPage = async () => {
-  const data = await publicService.getAllPublicData();
+  const data = await publicService.getHomePageData();
 
   const { blogPosts, siteContent, personalizedProducts = [], publishers = [], siteBranding } = data || {};
   const branding = (siteBranding as any) || {};
@@ -21,7 +21,8 @@ const PortalPage = async () => {
   const customStoryImg = personalizedProducts.find((p) => p.key === 'custom_story')?.image_url;
   const subBoxImg = personalizedProducts.find((p) => p.key === 'subscription_box')?.image_url;
 
-  const publishedPosts = blogPosts || [];
+  const publishedPosts = (blogPosts || []).slice(0, 3);
+  const displayPublishers = (publishers || []).slice(0, 8);
   const content = siteContent?.portalPage;
 
   return (
@@ -68,15 +69,9 @@ const PortalPage = async () => {
         </section>
       )}
 
-      {publishers.length > 0 && (
+      {displayPublishers.length > 0 && (
         <section className="py-20 sm:py-24 bg-white relative overflow-hidden">
-          {/* Background Pattern */}
-          <div
-            className="absolute inset-0 opacity-5 pointer-events-none"
-            style={{
-              backgroundImage: "url('https://www.transparenttextures.com/patterns/cubes.png')",
-            }}
-          ></div>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(37,99,235,0.08)_0,transparent_48%)]" />
 
           <div className="container mx-auto px-4 text-center relative z-10">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-6 flex items-center justify-center gap-3">
@@ -87,7 +82,7 @@ const PortalPage = async () => {
             </p>
 
             <div className="flex flex-wrap justify-center gap-10 md:gap-16 items-center">
-              {publishers.map((publisher) => (
+              {displayPublishers.map((publisher) => (
                 <Link
                   key={publisher.id}
                   href={`/publisher/${publisher.slug}`}
@@ -95,11 +90,13 @@ const PortalPage = async () => {
                 >
                   <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white shadow-lg group-hover:shadow-xl bg-white flex items-center justify-center p-3 overflow-hidden ring-1 ring-gray-100 group-hover:ring-blue-200">
                     <Image
-                      src={publisher.logo_url || '/images/male-avatar.png'}
+                      src={publisher.logo_url || '/placeholder-image.jpeg'}
                       alt={publisher.store_name}
-                      style={{ objectFit: 'contain' }}
-                      fill
+                      objectFit="contain"
+                      width={144}
+                      height={144}
                       sizes="144px"
+                      className="h-full w-full"
                     />
                   </div>
                   <span className="font-bold text-lg text-gray-700 group-hover:text-primary transition-colors">
@@ -187,11 +184,13 @@ const PortalPage = async () => {
               </div>
               <div className="relative aspect-square max-w-md mx-auto w-full">
                 <Image
-                  src={branding?.aboutPortalImageUrl || 'https://placehold.co/600x600'}
+                  src={branding?.aboutPortalImageUrl || '/placeholder-image.jpeg'}
                   alt="عن منصة الرحلة"
-                  fill
+                  objectFit="cover"
+                  width={600}
+                  height={600}
                   sizes="(max-width: 768px) 100vw, 448px"
-                  className="rounded-3xl shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500 object-cover"
+                  className="h-full w-full rounded-3xl shadow-2xl rotate-3 transition-transform duration-500 hover:rotate-0"
                 />
               </div>
             </div>
@@ -243,7 +242,7 @@ const PortalPage = async () => {
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-              {publishedPosts.slice(0, 3).map((post) => (
+              {publishedPosts.map((post) => (
                 <PostCard key={post.id} post={post} />
               ))}
             </div>

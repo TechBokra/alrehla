@@ -1,10 +1,8 @@
 import type { Metadata } from 'next';
 import Providers from './providers';
-import MarketplaceShell from '@/features/routing/MarketplaceShell';
+import AppEffects from './app-effects';
 import './globals.css';
-import { Suspense } from 'react';
 import { Cairo } from 'next/font/google';
-import { Loader2Icon } from 'lucide-react';
 
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
@@ -21,17 +19,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className={cairo.className}>
-        <Providers>
-          <Suspense
-            fallback={
-              <div className="flex h-screen items-center justify-center">
-                <Loader2Icon className="animate-spin" size={24} />
-              </div>
-            }
-          >
-            <MarketplaceShell>{children}</MarketplaceShell>
-          </Suspense>
-        </Providers>
+        <Providers>{children}</Providers>
+        <AppEffects />
       </body>
     </html>
   );

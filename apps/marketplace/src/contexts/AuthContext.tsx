@@ -87,22 +87,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     const validateSession = async () => {
       try {
         const response = await authService.getCurrentUser();
-        if (response && response.user) {
+        if (!cancelled && response && response.user) {
           setCurrentUser(response.user);
           // لا ننتظر تحميل بقية البيانات لفتح الواجهة
           fetchUserData(response.user);
         }
       } catch (e) {
-        console.error("Session sync error", e);
+        if (!cancelled) console.error("Session sync error", e);
       } finally {
         // نضمن إنهاء وضع التحميل مهما كانت النتيجة
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-    validateSession();
+
+    const win = window as any;
+    if (typeof win.requestIdleCallback === "function") {
+      const idleId = win.requestIdleCallback(validateSession, { timeout: 1200 });
+      return () => {
+        cancelled = true;
+        win.cancelIdleCallback?.(idleId);
+      };
+    }
+
+    const timer = window.setTimeout(validateSession, 500);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, []);
 
   const signIn = async (

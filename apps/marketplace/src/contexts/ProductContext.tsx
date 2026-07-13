@@ -1,7 +1,7 @@
 "use client";
 
 
-import React, { createContext, useContext, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useMemo, useState } from 'react';
 import type { Prices, SiteBranding, ShippingCosts } from '../lib/database.types';
 import { useToast } from './ToastContext';
 import { usePrices, useSiteBranding, useShippingCosts } from '../hooks/queries/public/useProductDataQuery';
@@ -23,9 +23,22 @@ const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
 export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { addToast } = useToast();
-    const { data: prices, isLoading: pricesLoading } = usePrices();
-    const { data: siteBranding, isLoading: brandingLoading } = useSiteBranding();
-    const { data: shippingCosts, isLoading: shippingLoading } = useShippingCosts();
+    const [queriesEnabled, setQueriesEnabled] = useState(false);
+
+    useEffect(() => {
+        const win = window as any;
+        if (typeof win.requestIdleCallback === 'function') {
+            const idleId = win.requestIdleCallback(() => setQueriesEnabled(true), { timeout: 1500 });
+            return () => win.cancelIdleCallback?.(idleId);
+        }
+
+        const timer = window.setTimeout(() => setQueriesEnabled(true), 600);
+        return () => window.clearTimeout(timer);
+    }, []);
+
+    const { data: prices, isLoading: pricesLoading } = usePrices(queriesEnabled);
+    const { data: siteBranding, isLoading: brandingLoading } = useSiteBranding(queriesEnabled);
+    const { data: shippingCosts, isLoading: shippingLoading } = useShippingCosts(queriesEnabled);
 
     const { updatePrices, updateBranding, updateShippingCosts } = useProductSettingsMutations();
 
@@ -41,7 +54,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         return updateShippingCosts.mutateAsync(newCosts);
     };
 
-    const loading = pricesLoading || brandingLoading || shippingLoading;
+    const loading = queriesEnabled && (pricesLoading || brandingLoading || shippingLoading);
 
     const value = useMemo(() => ({
         prices,

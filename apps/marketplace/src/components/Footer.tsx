@@ -3,10 +3,10 @@
 import { Link } from '@/lib/router-compat';
 import { Facebook, Instagram, Loader2, Twitter } from 'lucide-react';
 import React from 'react';
-import { usePublicData } from '../hooks/queries/public/usePublicDataQuery';
+import { usePublicSettings } from '../hooks/queries/public/usePublicDataQuery';
 
 const Footer: React.FC = () => {
-  const { data, isLoading } = usePublicData();
+  const { data, isLoading } = usePublicSettings();
   const socialLinks = data?.socialLinks;
   const siteContent = data?.siteContent;
 

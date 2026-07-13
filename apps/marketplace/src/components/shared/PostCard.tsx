@@ -18,10 +18,13 @@ const PostCard = React.forwardRef<HTMLAnchorElement, PostCardProps>(({ post }, r
             <Card className="overflow-hidden transition-transform transform hover:-translate-y-2 duration-300 h-full flex flex-col">
                 <div className="h-48 w-full overflow-hidden">
                     <Image 
-                        src={post.image_url || '/images/hero-image-new.jpg'} 
+                        src={post.image_url || '/placeholder-image.jpeg'} 
                         alt={post.title} 
                         className="w-full h-full transition-transform duration-500 group-hover:scale-110" 
                         objectFit="cover"
+                        width={800}
+                        height={450}
+                        sizes="(max-width: 768px) 100vw, 33vw"
                     />
                 </div>
                 <CardHeader>

@@ -111,6 +111,58 @@ export const publicService = {
         };
     },
 
+    async getHomePageData() {
+        const now = new Date().toISOString();
+        const [
+            { data: settingsData },
+            { data: blogPosts },
+            { data: personalizedProducts },
+            { data: publishers }
+        ] = await Promise.all([
+            supabase
+                .from('public_settings')
+                .select('key,value')
+                .in('key', ['global_content', 'branding']),
+            supabase
+                .from('blog_posts')
+                .select('id,slug,title,content,author_name,image_url,status,published_at,created_at,deleted_at')
+                .eq('status', 'published')
+                .lte('published_at', now)
+                .is('deleted_at', null)
+                .order('published_at', { ascending: false })
+                .limit(3),
+            supabase
+                .from('personalized_products')
+                .select('id,key,title,image_url,is_active,sort_order,deleted_at')
+                .is('deleted_at', null)
+                .in('key', ['custom_story', 'subscription_box'])
+                .order('sort_order')
+                .limit(6),
+            supabase
+                .from('publisher_profiles')
+                .select('id,slug,store_name,logo_url')
+                .limit(8)
+        ]);
+
+        const getSetting = (key: string, defaultValue?: any) => {
+            const item = (settingsData as any[])?.find(s => s.key === key);
+            return item ? item.value : defaultValue || null;
+        };
+
+        return {
+            publishers: ((publishers as PublisherProfile[]) || []).slice(0, 8),
+            blogPosts: (blogPosts as BlogPost[]) || [],
+            personalizedProducts: ((personalizedProducts as PersonalizedProduct[]) || [])
+                .filter(p => p.is_active !== false)
+                .map(p => ({
+                    ...p,
+                    publisher: { name: 'الرحلة' }
+                })),
+            siteContent: getSetting('global_content', null),
+            siteBranding: getSetting('branding')
+        };
+    },
+
     async getAllPublicData() {
         const [
             instructors,

@@ -42,3 +42,14 @@ export const usePublicData = () => {
         staleTime: 60 * 1000, 
     });
 };
+
+
+export const usePublicSettings = () => {
+    return useQuery({
+        queryKey: ['publicSettings'],
+        queryFn: async () => {
+            return publicService.getPublicSettings();
+        },
+        staleTime: 1000 * 60 * 10,
+    });
+};

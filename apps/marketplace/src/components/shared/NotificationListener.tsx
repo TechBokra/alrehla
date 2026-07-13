@@ -14,14 +14,13 @@ const NotificationListener: React.FC = () => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
-        // Preload notification sound
-        // استخدام رابط صوت قصير ولطيف للتنبيه
-        audioRef.current = new Audio('https://cdn.freesound.org/previews/536/536108_10672036-lq.mp3');
-        audioRef.current.volume = 0.6;
-    }, []);
-
-    useEffect(() => {
         if (!currentUser) return;
+
+        if (!audioRef.current) {
+            // Load notification audio only for authenticated users.
+            audioRef.current = new Audio('https://cdn.freesound.org/previews/536/536108_10672036-lq.mp3');
+            audioRef.current.volume = 0.6;
+        }
 
         // Unique channel name per user to avoid conflicts across tabs/users
         const channelName = `notifications:user:${currentUser.id}`;
