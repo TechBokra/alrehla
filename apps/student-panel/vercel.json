@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
   "installCommand": "pnpm install --shamefully-hoist",
-  "buildCommand": "pnpm --filter @alrehla/marketplace build",
+  "buildCommand": "pnpm --filter @alrehla/student-panel build",
   "outputDirectory": ".next"
 }
