@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { ArrowLeft, Clock, ShieldCheck } from 'lucide-react';
-import { Button } from '../../ui/Button';
+import { Button } from '@alrehla/ui/button';
 import type { ScheduledSession, CreativeWritingPackage } from '../../../lib/database.types';
-import Image from '../../ui/Image';
+import Image from '@alrehla/ui/image';
 
 interface StudentProfile {
     name: string;
@@ -100,7 +100,7 @@ const InstructorStudentCard: React.FC<{ student: StudentProfile; journeys: Journ
                                 </div>
                                 
                                 {isConfirmed ? (
-                                    <Button as={Link} to={`/journey/${journey.id}`} size="sm" variant="ghost" className="h-7 text-[10px] font-bold text-primary hover:text-primary hover:bg-white px-3 shadow-sm border border-transparent hover:border-primary/20">
+                                    <Button as={Link} href={`/journey/${journey.id}`} size="sm" variant="ghost" className="h-7 text-[10px] font-bold text-primary hover:text-primary hover:bg-white px-3 shadow-sm border border-transparent hover:border-primary/20">
                                         مساحة العمل <ArrowLeft size={10} className="mr-1" />
                                     </Button>
                                 ) : null}

@@ -4,10 +4,10 @@ import { useAdminAllChildProfiles } from '../../hooks/queries/admin/useAdminUser
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
 import { useToast } from '../../contexts/ToastContext';
 import type { UserProfile as User } from '../../contexts/AuthContext';
-import { Button } from '../ui/Button';
-import { Select } from '../ui/Select';
-import FormField from '../ui/FormField';
-import Modal from '../ui/Modal';
+import { Button } from '@alrehla/ui/button';
+import { Select } from '@alrehla/ui/native-select';
+import FormField from '@alrehla/ui/form-field';
+import Modal from '@alrehla/ui/modal';
 
 const LinkStudentModal: React.FC<{
     isOpen: boolean;

@@ -5,8 +5,8 @@ import AdminSection from '../AdminSection';
 import { WeeklyScheduleManager } from '../WeeklyScheduleManager';
 import type { Instructor, ScheduledSession, CreativeWritingPackage, CreativeWritingBooking } from '../../../lib/database.types';
 import { formatDate } from '../../../utils/helpers';
-import Accordion from '../../ui/Accordion';
-import { Button } from '../../ui/Button';
+import Accordion from '@alrehla/ui/accordion';
+import { Button } from '@alrehla/ui/button';
 import RequestSessionChangeModal from './RequestSessionChangeModal';
 import IntroductoryAvailabilityManager from './IntroductoryAvailabilityManager';
 

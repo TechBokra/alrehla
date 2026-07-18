@@ -4,8 +4,8 @@ import { Loader2, Save } from 'lucide-react';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutations';
 import type { Instructor, AvailableSlots } from '../../lib/database.types';
-import { Select } from '../ui/Select';
-import { Button } from '../ui/Button';
+import { Select } from '@alrehla/ui/native-select';
+import { Button } from '@alrehla/ui/button';
 
 // تعديل المواعيد لتكون كل ساعة بدلاً من كل نصف ساعة
 const timeSlots = Array.from({ length: 15 }, (_, i) => {

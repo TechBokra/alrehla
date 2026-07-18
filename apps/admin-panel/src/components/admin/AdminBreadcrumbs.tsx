@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ChevronLeft, Home } from 'lucide-react';
 
 const routeNameMap: Record<string, string> = {
@@ -50,8 +51,8 @@ const routeNameMap: Record<string, string> = {
 };
 
 const AdminBreadcrumbs: React.FC = () => {
-    const location = useLocation();
-    const pathnames = location.pathname.split('/').filter((x) => x);
+    const pathname = usePathname();
+    const pathnames = pathname.split('/').filter((x) => x);
 
     // إذا كنا في الصفحة الرئيسية للوحة التحكم، لا نعرض شيئاً أو نعرض عنواناً ثابتاً
     if (pathnames.length === 1 && pathnames[0] === 'admin') {
@@ -62,7 +63,7 @@ const AdminBreadcrumbs: React.FC = () => {
         <nav aria-label="Breadcrumb" className="hidden sm:flex items-center text-sm text-muted-foreground mb-4 animate-fadeIn">
             <ol className="flex items-center gap-1">
                 <li>
-                    <Link to="" className="flex items-center hover:text-primary transition-colors">
+                    <Link href="/" className="flex items-center hover:text-primary transition-colors">
                         <Home size={14} />
                     </Link>
                 </li>
@@ -84,7 +85,7 @@ const AdminBreadcrumbs: React.FC = () => {
                                     {displayName}
                                 </span>
                             ) : (
-                                <Link to={to} className="hover:text-primary transition-colors">
+                                <Link href={to} className="hover:text-primary transition-colors">
                                     {displayName}
                                 </Link>
                             )}

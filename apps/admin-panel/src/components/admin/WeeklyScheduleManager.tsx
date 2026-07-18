@@ -4,7 +4,7 @@ import { Loader2, Send, Clock, AlertCircle } from 'lucide-react';
 import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutations';
 import type { Instructor, WeeklySchedule } from '../../lib/database.types';
 import { useToast } from '../../contexts/ToastContext';
-import { Button } from '../ui/Button';
+import { Button } from '@alrehla/ui/button';
 
 const daysOfWeek = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
 const dayNames: { [key: string]: string } = {

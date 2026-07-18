@@ -1,5 +1,5 @@
 
-import { supabase, getTemporaryClient } from '../lib/supabaseClient';
+import { supabase, supabaseAuthClient, getTemporaryClient, getCurrentAppProfileId } from '../lib/supabaseClient';
 import { reportingService } from './reportingService';
 import type { UserProfile, ChildProfile, UserRole, PublisherProfile } from '@alrehla/types';
 
@@ -109,7 +109,7 @@ export const userService = {
             throw new Error(`البريد الإلكتروني ${normalizedEmail} مسجل بالفعل لمستخدم آخر.`);
         }
         
-        const { data: authData, error: authError } = await supabase.auth.signUp({
+        const { data: authData, error: authError } = await supabaseAuthClient.auth.signUp({
             email: normalizedEmail,
             password: password || '123456',
             options: {
@@ -172,8 +172,8 @@ export const userService = {
 
     async createAndLinkStudentAccount(payload: { name: string, email: string, password?: string, childProfileId: number }) {
         const normalizedEmail = payload.email.toLowerCase().trim();
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        if (!currentUser) throw new Error("يجب تسجيل الدخول كولي أمر أولاً.");
+        const currentUserId = await getCurrentAppProfileId();
+        if (!currentUserId) throw new Error("يجب تسجيل الدخول كولي أمر أولاً.");
 
         const tempSupabase = getTemporaryClient();
 
@@ -202,11 +202,11 @@ export const userService = {
         
         if (linkError) throw new Error(`فشل ربط الحساب بملف الطفل: ${linkError.message}`);
 
-        const { data: profileData } = await supabase.from('profiles').select('role').eq('id', currentUser.id).single();
+        const { data: profileData } = await supabase.from('profiles').select('role').eq('id', currentUserId).single();
         const parentProfile = profileData as { role: string } | null;
         
         if (parentProfile && parentProfile.role === 'user') {
-            await (supabase.from('profiles') as any).update({ role: 'parent' }).eq('id', currentUser.id);
+            await (supabase.from('profiles') as any).update({ role: 'parent' }).eq('id', currentUserId);
         }
 
         return { success: true, studentId: studentUserId };
@@ -228,21 +228,21 @@ export const userService = {
     },
 
     async createChildProfile(payload: Partial<ChildProfile>) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("جلسة غير صالحة");
+        const ownerId = payload.user_id || await getCurrentAppProfileId();
+        if (!ownerId) throw new Error("جلسة غير صالحة");
 
         const { data, error } = await (supabase.from('child_profiles') as any)
-            .insert([{ ...payload, user_id: user.id }])
+            .insert([{ ...payload, user_id: ownerId }])
             .select()
             .single();
 
         if (error) throw new Error(error.message);
         
-        const { data: profileData } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        const { data: profileData } = await supabase.from('profiles').select('role').eq('id', ownerId).single();
         const parentProfile = profileData as { role: string } | null;
 
         if (parentProfile && parentProfile.role === 'user') {
-             await (supabase.from('profiles') as any).update({ role: 'parent' }).eq('id', user.id);
+             await (supabase.from('profiles') as any).update({ role: 'parent' }).eq('id', ownerId);
         }
 
         return data as ChildProfile;
@@ -278,9 +278,9 @@ export const userService = {
         if (error) throw new Error(error.message);
 
         if (password && password.trim() !== '') {
-            const { data: { user: currentUser } } = await supabase.auth.getUser();
+            const { data: { user: currentUser } } = await supabaseAuthClient.auth.getUser();
             if (currentUser && currentUser.id === id) {
-                const { error: updateError } = await supabase.auth.updateUser({ password: password });
+                const { error: updateError } = await supabaseAuthClient.auth.updateUser({ password: password });
                 if (updateError) throw new Error(`فشل تغيير كلمة المرور: ${updateError.message}`);
             } else {
                  // Fixed: using explicit reference instead of 'this'
@@ -291,9 +291,9 @@ export const userService = {
     },
 
     async updateUserPassword(payload: { userId: string, newPassword: string }) {
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        const { data: { user: currentUser } } = await supabaseAuthClient.auth.getUser();
         if (currentUser && currentUser.id === payload.userId) {
-             const { error } = await supabase.auth.updateUser({ password: payload.newPassword });
+             const { error } = await supabaseAuthClient.auth.updateUser({ password: payload.newPassword });
              if (error) throw new Error(error.message);
         } else {
              // Fixed: using explicit reference instead of 'this'

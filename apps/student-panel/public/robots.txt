@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /student
+Disallow: /session
+Disallow: /journey
+Disallow: /checkout
+Disallow: /cart
+
+Sitemap: https://alrehla.vercel.app/sitemap.xml

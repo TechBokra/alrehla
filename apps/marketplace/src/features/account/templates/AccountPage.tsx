@@ -4,8 +4,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from '@/lib/router-compat';
 import { useAuth } from '../../../contexts/AuthContext';
-import PageLoader from '../../../components/ui/PageLoader';
-import { AuthForm } from '../../../components/auth/AuthForm';
+import PageLoader from '@alrehla/ui/page-loader';
+import Login from '../../../components/auth/login';
 import DashboardPanel from '../../../components/account/DashboardPanel';
 import AccountSettingsPanel from '../../../components/account/AccountSettingsPanel';
 import NotificationPanel from '../../../components/account/NotificationPanel';
@@ -14,21 +14,31 @@ import PortfolioPanel from '../../../components/account/PortfolioPanel';
 import MyLibraryPanel from '../../../components/account/MyLibraryPanel';
 import PaymentModal from '../../../components/PaymentModal';
 import { LayoutDashboard, Settings, Bell, Users, GalleryVertical, BookOpen } from 'lucide-react';
-import { Card } from '../../../components/ui/card';
-import { STAFF_ROLES, CUSTOMER_ROLES } from '../../../lib/roles';
-import { redirectToAdminPanel } from '../../../lib/adminPanelUrl';
+import { Card } from '@alrehla/ui/card';
 
 type AccountTab = 'dashboard' | 'myLibrary' | 'portfolio' | 'familyCenter' | 'settings' | 'notifications';
+
+const ACCOUNT_TABS: AccountTab[] = ['dashboard', 'myLibrary', 'portfolio', 'familyCenter', 'settings', 'notifications'];
+
+const isAccountTab = (tab: string | null): tab is AccountTab => {
+    return !!tab && ACCOUNT_TABS.includes(tab as AccountTab);
+};
 
 const AccountPage: React.FC = () => {
     const { isLoggedIn, loading: authLoading, currentUser, isProfileMandatory } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     
+    const queryTab = useMemo(() => {
+        const params = new URLSearchParams(location.search);
+        const tab = params.get('tab');
+        return isAccountTab(tab) ? tab : null;
+    }, [location.search]);
+
     // Check if redirected due to mandatory profile update OR standard navigation
-    const defaultTab = isProfileMandatory 
+    const defaultTab: AccountTab = isProfileMandatory 
         ? 'settings' 
-        : (location.state as any)?.defaultTab || 'dashboard';
+        : queryTab || (location.state as any)?.defaultTab || 'dashboard';
 
     const [activeTab, setActiveTab] = useState<AccountTab>(defaultTab);
     const [paymentItem, setPaymentItem] = useState<{ id: string; type: 'order' | 'subscription' | 'booking' } | null>(null);
@@ -37,43 +47,23 @@ const AccountPage: React.FC = () => {
     useEffect(() => {
         if (isProfileMandatory) {
             setActiveTab('settings');
-        }
-    }, [isProfileMandatory]);
-
-    // التحقق من حالة التوجيه
-    const shouldRedirect = useMemo(() => {
-        if (!isLoggedIn || !currentUser) return false;
-        
-        // إذا كان طالباً أو موظفاً أو ناشراً، يجب توجيهه للوحة الخاصة به
-        if (currentUser.role === 'student') return '/student/dashboard';
-        
-        // الناشرون والموظفون يذهبون إلى لوحة الإدارة
-        if (STAFF_ROLES.includes(currentUser.role) || currentUser.role === 'publisher') return 'admin-panel';
-        
-        return false;
-    }, [isLoggedIn, currentUser]);
-
-    // توجيه فوري
-    useEffect(() => {
-        if (shouldRedirect === 'admin-panel') {
-            redirectToAdminPanel();
             return;
         }
-        if (shouldRedirect) {
-            navigate(shouldRedirect as string, { replace: true });
-        }
-    }, [shouldRedirect, navigate]);
 
-    // عرض شاشة تحميل إذا كنا نتحقق من الجلسة أو إذا كان هناك توجيه قادم
-    if (authLoading || shouldRedirect) {
-        return <PageLoader text={shouldRedirect ? "جاري التوجيه للوحة التحكم..." : "جاري التحقق من الحساب..."} />;
+        if (queryTab) {
+            setActiveTab(queryTab);
+        }
+    }, [isProfileMandatory, queryTab]);
+
+    if (authLoading) {
+        return <PageLoader text="جاري التحقق من الحساب..." />;
     }
 
     if (!isLoggedIn) {
         return (
             <div className="container mx-auto px-4 py-12 flex justify-center items-center min-h-[60vh]">
                 <div className="w-full max-w-md">
-                    <AuthForm mode="login" allowedRoles={CUSTOMER_ROLES} />
+                    <Login />
                 </div>
             </div>
         );

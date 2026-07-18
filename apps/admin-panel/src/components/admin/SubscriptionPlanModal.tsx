@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 import type { SubscriptionPlan } from '../../lib/database.types';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import FormField from '../ui/FormField';
-import Modal from '../ui/Modal';
+import { Button } from '@alrehla/ui/button';
+import { Input } from '@alrehla/ui/input';
+import FormField from '@alrehla/ui/form-field';
+import Modal from '@alrehla/ui/modal';
 
 interface SubscriptionPlanFormValues {
     id?: number;

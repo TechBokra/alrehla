@@ -2,11 +2,11 @@
 
 import React from 'react';
 import { Send } from 'lucide-react';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { Textarea } from '../ui/Textarea';
-import { Select } from '../ui/Select';
-import FormField from '../ui/FormField';
+import { Button } from '@alrehla/ui/button';
+import { Input } from '@alrehla/ui/input';
+import { Textarea } from '@alrehla/ui/textarea';
+import { Select } from '@alrehla/ui/native-select';
+import FormField from '@alrehla/ui/form-field';
 
 interface SupportFormProps {
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;

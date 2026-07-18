@@ -1,15 +1,6 @@
-export const dynamic = 'force-dynamic';
+import { redirect } from 'next/navigation';
+import { getStudentPanelUrl } from '@/lib/studentPanelUrl';
 
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import StudentLayout from '@/components/student/StudentLayout';
-import StudentPortfolioPage from '@/features/student-portfolio';
-
-export default function Page() {
-  return (
-    <ProtectedRoute studentOnly>
-      <StudentLayout>
-        <StudentPortfolioPage />
-      </StudentLayout>
-    </ProtectedRoute>
-  );
+export default function StudentPanelRedirectPage() {
+  redirect(getStudentPanelUrl('/portfolio'));
 }

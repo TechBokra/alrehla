@@ -1,15 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { Save, Package, Sparkles, AlertCircle, Calculator, Info, MessageSquare } from 'lucide-react';
-import { Button } from '../../ui/Button';
-import FormField from '../../ui/FormField';
-import { Input } from '../../ui/Input';
-import { Textarea } from '../../ui/Textarea';
+import { Button } from '@alrehla/ui/button';
+import FormField from '@alrehla/ui/form-field';
+import { Input } from '@alrehla/ui/input';
+import { Textarea } from '@alrehla/ui/textarea';
 import { useInstructorMutations } from '../../../hooks/mutations/useInstructorMutations';
 import { useAdminCWSettings, useAdminPricingSettings } from '../../../hooks/queries/admin/useAdminSettingsQuery';
 import type { Instructor } from '../../../lib/database.types';
-import PageLoader from '../../ui/PageLoader';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../ui/card';
+import PageLoader from '@alrehla/ui/page-loader';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@alrehla/ui/card';
 import { calculateCustomerPrice } from '../../../utils/pricingCalculator';
 
 interface InstructorPricingPanelProps {

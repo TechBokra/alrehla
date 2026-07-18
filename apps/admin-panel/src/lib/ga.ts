@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 // Google Analytics 4 (GA4) Integration
-const GA_TRACKING_ID = import.meta.env.VITE_GA_TRACKING_ID;
+const GA_TRACKING_ID = process.env.NEXT_PUBLIC_GA_TRACKING_ID;
 
 export const initGA = () => {
     if (!GA_TRACKING_ID) return;

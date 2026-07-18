@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@alrehla/ui/card';
 import { cn } from '../../lib/utils';
 
 interface AdminSectionProps {

@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
+import { Button } from '@alrehla/ui/button';
+import { Input } from '@alrehla/ui/input';
 import { Trash2, Plus } from 'lucide-react';
-import { Select } from '../ui/Select';
-import { Card, CardContent } from '../ui/card';
+import { Select } from '@alrehla/ui/native-select';
+import { Card, CardContent } from '@alrehla/ui/card';
 
 interface FieldDefinition {
     key: string;

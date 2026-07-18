@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Upload, Loader2, Info, X, AlertCircle } from 'lucide-react';
-import { Input } from '../../ui/Input';
-import FormField from '../../ui/FormField';
-import Image from '../../ui/Image';
+import { Input } from '@alrehla/ui/input';
+import FormField from '@alrehla/ui/form-field';
+import Image from '@alrehla/ui/image';
 import { cloudinaryService } from '../../../services/cloudinaryService';
 import { useToast } from '../../../contexts/ToastContext';
 

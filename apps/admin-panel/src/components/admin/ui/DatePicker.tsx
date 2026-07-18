@@ -1,6 +1,6 @@
 import React from 'react';
-import { Input } from '../../ui/Input';
-import FormField from '../../ui/FormField';
+import { Input } from '@alrehla/ui/input';
+import FormField from '@alrehla/ui/form-field';
 
 interface DatePickerProps {
     startDate: string;

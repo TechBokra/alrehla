@@ -1,14 +1,14 @@
 
 import React, { useState } from 'react';
 import { Save, CheckCircle, Star } from 'lucide-react';
-import Modal from '../../ui/Modal';
-import { Button } from '../../ui/Button';
-import { Textarea } from '../../ui/Textarea';
-import FormField from '../../ui/FormField';
+import Modal from '@alrehla/ui/modal';
+import { Button } from '@alrehla/ui/button';
+import { Textarea } from '@alrehla/ui/textarea';
+import FormField from '@alrehla/ui/form-field';
 import { useBookingMutations } from '../../../hooks/mutations/useBookingMutations';
 import { useGamificationMutations } from '../../../hooks/mutations/useGamificationMutations';
 import { usePublicData } from '../../../hooks/queries/public/usePublicDataQuery';
-import { Select } from '../../ui/Select';
+import { Select } from '@alrehla/ui/native-select';
 import { useToast } from '../../../contexts/ToastContext';
 
 interface SessionReportModalProps {

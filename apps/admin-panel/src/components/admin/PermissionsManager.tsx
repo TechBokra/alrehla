@@ -3,12 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { useAdminRolePermissions } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useSettingsMutations } from '../../hooks/mutations/useSettingsMutations';
 import { roleNames, permissionKeys, permissionLabels, UserRole, Permissions, defaultPermissions, permissionsByRole } from '../../lib/roles';
-import PageLoader from '../ui/PageLoader';
-import { Button } from '../ui/Button';
+import PageLoader from '@alrehla/ui/page-loader';
+import { Button } from '@alrehla/ui/button';
 import { Save, ShieldCheck, AlertCircle } from 'lucide-react';
-import { Checkbox } from '../ui/Checkbox';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/Table';
+import { Checkbox } from '@alrehla/ui/checkbox';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@alrehla/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@alrehla/ui/table';
 
 const PermissionsManager: React.FC = () => {
     const { data: initialPermissions, isLoading: permissionsLoading, error } = useAdminRolePermissions();

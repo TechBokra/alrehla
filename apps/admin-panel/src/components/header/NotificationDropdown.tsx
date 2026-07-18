@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Button } from '../ui/Button';
-import { Card, CardContent, CardFooter, CardHeader } from '../ui/card';
+import Link from 'next/link';
+import { Button } from '@alrehla/ui/button';
+import { Card, CardContent, CardFooter, CardHeader } from '@alrehla/ui/card';
 import { formatDate } from '../../utils/helpers';
 import { ShoppingCart, Calendar, Info, Trash2 } from 'lucide-react';
 
@@ -30,9 +30,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notificatio
             {notifications.length > 0 ? notifications.map((notif: any) => (
                 <Link
                     key={notif.id}
-                    to={notif.link}
-                    // إذا كان الرابط هو الحساب، نوجه للصفحة الجديدة لتجنب إعادة التوجيه
-                    state={notif.link === '/account' ? { defaultTab: 'myLibrary' } : undefined}
+                    href={notif.link === '/account' ? '/account?tab=myLibrary' : notif.link}
                     onClick={() => { onClose(); onMarkAsRead(notif.id); }}
                     className={`flex items-start gap-3 p-3 text-sm hover:bg-accent border-b last:border-0 ${!notif.read ? 'bg-blue-50' : ''}`}
                 >
@@ -50,7 +48,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notificatio
             )}
         </CardContent>
         <CardFooter className="p-2 border-t bg-gray-50">
-            <Button as={Link} to="/notifications" onClick={onClose} variant="link" size="sm" className="w-full text-xs font-bold">
+            <Button as={Link} href="/notifications" onClick={onClose} variant="link" size="sm" className="w-full text-xs font-bold">
                 عرض سجل الإشعارات الكامل
             </Button>
         </CardFooter>

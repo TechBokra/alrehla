@@ -4,7 +4,7 @@
 import React from 'react';
 import { Navigate, useLocation } from '@/lib/router-compat';
 import { useAuth } from '../../contexts/AuthContext';
-import PageLoader from '../ui/PageLoader';
+import PageLoader from '@alrehla/ui/page-loader';
 import { getAdminPanelUrl } from '../../lib/adminPanelUrl';
 
 interface ProtectedRouteProps {
@@ -41,20 +41,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminOnly = f
       }
   }
 
-  // 4. حماية مسارات ولي الأمر/العامة من الطلاب
-  // الطلاب يجب أن يبقوا داخل /student أو المسارات المشتركة مثل /journey
-  // إذا حاول الطالب دخول /account (لوحة ولي الأمر)، نرجعه للوحته
-  if (!studentOnly && !adminOnly && currentUser.role === 'student') {
-      // السماح ببعض المسارات المشتركة مثل الجلسات والرحلات والدفع
-      const allowedSharedPaths = ['/journey', '/session', '/checkout', '/payment-status'];
-      const isAllowed = allowedSharedPaths.some(path => location.pathname.startsWith(path));
-      
-      if (!isAllowed) {
-           return <Navigate to="/student/dashboard" replace />;
-      }
-  }
-
-  // 5. السماح بالدخول
+  // 4. السماح بالدخول
   return <>{children}</>;
 };
 

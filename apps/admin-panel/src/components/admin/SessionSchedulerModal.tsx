@@ -3,12 +3,12 @@ import { Save, Calendar } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { useSchedulingMutations } from '../../hooks/mutations/useSchedulingMutations';
 import type { Subscription } from '../../lib/database.types';
-import { Button } from '../ui/Button';
-import FormField from '../ui/FormField';
-import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
-import { Textarea } from '../ui/Textarea';
-import Modal from '../ui/Modal';
+import { Button } from '@alrehla/ui/button';
+import FormField from '@alrehla/ui/form-field';
+import { Input } from '@alrehla/ui/input';
+import { Select } from '@alrehla/ui/native-select';
+import { Textarea } from '@alrehla/ui/textarea';
+import Modal from '@alrehla/ui/modal';
 
 interface SessionSchedulerModalProps {
     isOpen: boolean;

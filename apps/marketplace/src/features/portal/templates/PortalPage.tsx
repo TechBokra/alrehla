@@ -2,8 +2,8 @@ import { ArrowLeft, BookOpen, Building2, Edit, Feather, Gift, Search, Target } f
 import React from 'react';
 import PostCard from '../../../components/shared/PostCard';
 import TestimonialCard from '../../../components/shared/TestimonialCard';
-import { Button } from '../../../components/ui/Button';
-import Image from '@/components/ui/Image';
+import { Button } from '@alrehla/ui/button';
+import Image from '@alrehla/ui/next-image';
 import Link from 'next/link';
 import { publicService } from '@/services/publicService';
 
@@ -90,7 +90,13 @@ const PortalPage = async () => {
                 >
                   <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white shadow-lg group-hover:shadow-xl bg-white flex items-center justify-center p-3 overflow-hidden ring-1 ring-gray-100 group-hover:ring-blue-200">
                     <Image
-                      src={publisher.logo_url || '/placeholder-image.jpeg'}
+                      src={
+                        !publisher.logo_url ||
+                        publisher.logo_url.includes('wikimedia.org') ||
+                        publisher.logo_url.includes('googleusercontent.com')
+                          ? '/placeholder-image.jpeg'
+                          : publisher.logo_url
+                      }
                       alt={publisher.store_name}
                       objectFit="contain"
                       width={144}

@@ -1,10 +1,10 @@
 
 import React, { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { Edit, CheckCircle, FileText } from 'lucide-react';
 import AdminSection from '../AdminSection';
 import StatCard from '../StatCard';
-import { Button } from '../../ui/Button';
+import { Button } from '@alrehla/ui/button';
 import type { BlogPost } from '../../../lib/database.types';
 
 const ContentSummaryWidget = React.forwardRef<HTMLElement, { blogPosts: BlogPost[] } & React.HTMLAttributes<HTMLElement>>(
@@ -34,7 +34,7 @@ const ContentSummaryWidget = React.forwardRef<HTMLElement, { blogPosts: BlogPost
                         {recentDrafts.map(post => (
                             <div key={post.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
                                 <p className="text-sm font-medium truncate pr-2">{post.title}</p>
-                                <Button as={Link} to="/blog" variant="ghost" size="sm">
+                                <Button as={Link} href="/blog" variant="ghost" size="sm">
                                     تعديل
                                 </Button>
                             </div>
@@ -42,7 +42,7 @@ const ContentSummaryWidget = React.forwardRef<HTMLElement, { blogPosts: BlogPost
                         </div>
                     </div>
                 )}
-                 <Button as={Link} to="/blog" variant="outline" className="w-full mt-4">
+                 <Button as={Link} href="/blog" variant="outline" className="w-full mt-4">
                     إدارة كل المقالات
                 </Button>
             </div>

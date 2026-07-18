@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { ShoppingBag, BookOpen, UserPlus, MessageSquare, Clock } from 'lucide-react';
 import AdminSection from '../AdminSection';
 
@@ -91,7 +91,7 @@ const RecentActivityWidget = React.forwardRef<HTMLElement, { data: any } & React
                                                     <p className="text-xs text-gray-500">{formatTimeAgo(activity.date)}</p>
                                                 </div>
                                                 <div className="text-right text-sm whitespace-nowrap text-gray-500">
-                                                    <Link to={config.link} className="font-medium text-blue-600 hover:text-blue-800">
+                                                    <Link href={config.link} className="font-medium text-blue-600 hover:text-blue-800">
                                                         {config.actionText}
                                                     </Link>
                                                 </div>

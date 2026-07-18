@@ -5,10 +5,10 @@ import { useOrderMutations } from '../../hooks/mutations/useOrderMutations';
 import { useAdminPersonalizedProducts } from '../../hooks/queries/admin/useAdminEnhaLakQuery';
 import type { Order, OrderStatus } from '../../lib/database.types';
 import { formatDate, getStatusColor, calculateAge } from '../../utils/helpers';
-import Modal from '../ui/Modal';
-import { Button } from '../ui/Button';
-import { Select } from '../ui/Select';
-import { Textarea } from '../ui/Textarea';
+import Modal from '@alrehla/ui/modal';
+import { Button } from '@alrehla/ui/button';
+import { Select } from '@alrehla/ui/native-select';
+import { Textarea } from '@alrehla/ui/textarea';
 import DetailRow from '../shared/DetailRow';
 
 type OrderWithRelations = Order & { child_profiles: { name: string } | null; users: { name: string, email: string } | null };

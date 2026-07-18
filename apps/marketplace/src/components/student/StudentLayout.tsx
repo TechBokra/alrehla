@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, NavLink, Outlet } from '@/lib/router-compat';
 import { LogOut, LayoutDashboard, GalleryVertical } from 'lucide-react';
 import { useStudentDashboardData } from '../../hooks/queries/user/useJourneyDataQuery';
-import Image from '../ui/Image';
+import Image from '@alrehla/ui/next-image';
 
 const StudentLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
     const { currentChildProfile, currentUser, signOut } = useAuth();

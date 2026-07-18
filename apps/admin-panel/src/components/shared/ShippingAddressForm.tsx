@@ -1,10 +1,10 @@
 
 import React, { useEffect } from 'react';
 import { EGYPTIAN_GOVERNORATES } from '../../utils/governorates';
-import FormField from '../ui/FormField';
-import { Select } from '../ui/Select';
-import { Input } from '../ui/Input';
-import { Textarea } from '../ui/Textarea';
+import FormField from '@alrehla/ui/form-field';
+import { Select } from '@alrehla/ui/native-select';
+import { Input } from '@alrehla/ui/input';
+import { Textarea } from '@alrehla/ui/textarea';
 import { useFormContext } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
 

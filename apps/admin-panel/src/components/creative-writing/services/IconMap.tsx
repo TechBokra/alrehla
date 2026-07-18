@@ -1,1 +1,1 @@
-export * from '@alrehla/ui/IconMap';
+export * from '@alrehla/ui/icon-map';

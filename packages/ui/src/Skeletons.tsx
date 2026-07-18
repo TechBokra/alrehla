@@ -1,7 +1,7 @@
 import React from 'react';
-import { Skeleton } from './Skeleton';
-import { Card, CardContent, CardFooter, CardHeader } from './card';
-import { TableCell, TableRow } from './Table';
+import { Skeleton } from './components/ui/skeleton';
+import { Card, CardContent, CardFooter, CardHeader } from './components/ui/card';
+import { TableCell, TableRow } from './components/ui/table';
 
 // 1. Product Card Skeleton
 export const ProductCardSkeleton = () => (

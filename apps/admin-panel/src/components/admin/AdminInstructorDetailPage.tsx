@@ -1,21 +1,36 @@
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter, useParams } from 'next/navigation';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import { useAdminCWSettings } from '../../hooks/queries/admin/useAdminSettingsQuery';
 import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutations';
-import PageLoader from '../../components/ui/PageLoader';
-import { Button } from '../../components/ui/Button';
-import FormField from '../../components/ui/FormField';
-import { Input } from '../../components/ui/Input';
-import { Textarea } from '../../components/ui/Textarea';
+import PageLoader from '@alrehla/ui/page-loader';
+import { Button } from '@alrehla/ui/button';
+import FormField from '@alrehla/ui/form-field';
+import { Input } from '@alrehla/ui/input';
+import { Textarea } from '@alrehla/ui/textarea';
 import { ArrowLeft, Save, User, FileEdit, Clock, Check, XCircle, ArrowRightCircle, Calendar } from 'lucide-react';
 import type { Instructor } from '../../lib/database.types';
-import ErrorState from '../../components/ui/ErrorState';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
-import Image from '../ui/Image';
+import ErrorState from '@alrehla/ui/error-state';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@alrehla/ui/card';
+import Image from '@alrehla/ui/image';
 import { formatDate } from '../../utils/helpers';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@alrehla/ui/table';
+
+const createNavigate = (router: ReturnType<typeof useRouter>) => (
+    href: string | number,
+    options?: { replace?: boolean },
+) => {
+    if (typeof href === 'number') {
+        router.back();
+        return;
+    }
+
+    const target = href || '/';
+    if (options?.replace) router.replace(target);
+    else router.push(target);
+};
 
 const ORDERED_DAYS = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
 
@@ -75,7 +90,8 @@ const ScheduleViewer: React.FC<{ schedule: any, isEmptyMessage?: string, title: 
 
 const AdminInstructorDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
+    const router = useRouter();
+    const navigate = createNavigate(router);
     const isNew = id === 'new';
 
     const { data: instructors = [], isLoading: instructorsLoading } = useAdminInstructors();
@@ -213,7 +229,7 @@ const AdminInstructorDetailPage: React.FC = () => {
 
     return (
         <div className="animate-fadeIn space-y-8 max-w-5xl mx-auto pb-20">
-            <Link to="/instructors" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-semibold">
+            <Link href="/instructors" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-semibold">
                 <ArrowLeft size={16} /> العودة لقائمة المدربين
             </Link>
 

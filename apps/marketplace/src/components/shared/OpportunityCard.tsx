@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent } from '../ui/card';
+import { Card, CardContent } from '@alrehla/ui/card';
 
 interface OpportunityCardProps { 
     icon: React.ReactNode; 

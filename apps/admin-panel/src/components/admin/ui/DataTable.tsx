@@ -1,9 +1,9 @@
 
 import React, { useState, useMemo } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/Table';
-import { Checkbox } from '../../ui/Checkbox';
-import Dropdown from '../../ui/Dropdown';
-import { Button } from '../../ui/Button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@alrehla/ui/table';
+import { Checkbox } from '@alrehla/ui/checkbox';
+import Dropdown from '@alrehla/ui/dropdown-wrapper';
+import { Button } from '@alrehla/ui/button';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown, Hand, Inbox } from 'lucide-react';
 
 interface ColumnDef<T> {

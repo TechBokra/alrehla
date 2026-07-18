@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Search } from 'lucide-react';
-import { Input, type InputProps } from '../ui/input';
+import { Input } from '../ui/input';
 import { cn } from '../../lib/utils';
 
-export interface SearchInputProps extends InputProps {
+export interface SearchInputProps extends React.ComponentProps<"input"> {
   containerClassName?: string;
 }
 

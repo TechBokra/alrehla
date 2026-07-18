@@ -1,13 +1,27 @@
 
 import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { CalendarDays, Clock, CheckCircle2, AlertCircle, Calendar, Globe, ExternalLink, Plus, MapPin } from 'lucide-react';
-import { Card, CardContent } from '../../ui/card';
-import { Button } from '../../ui/Button';
+import { Card, CardContent } from '@alrehla/ui/card';
+import { Button } from '@alrehla/ui/button';
 import { formatDate, formatTime, generateGoogleCalendarUrl } from '../../../utils/helpers';
 import RequestSessionChangeModal from './RequestSessionChangeModal';
 import GoogleCalendarSyncModal from './GoogleCalendarSyncModal';
 import { ScheduledSession } from '../../../lib/database.types';
+
+const createNavigate = (router: ReturnType<typeof useRouter>) => (
+    href: string | number,
+    options?: { replace?: boolean },
+) => {
+    if (typeof href === 'number') {
+        router.back();
+        return;
+    }
+
+    const target = href || '/';
+    if (options?.replace) router.replace(target);
+    else router.push(target);
+};
 
 // Define the shape of session objects passed to this widget
 export interface WidgetSession extends ScheduledSession {
@@ -21,7 +35,8 @@ interface WeeklySessionsWidgetProps {
 }
 
 const WeeklySessionsWidget: React.FC<WeeklySessionsWidgetProps> = ({ sessions, instructorName }) => {
-    const navigate = useNavigate();
+    const router = useRouter();
+    const navigate = createNavigate(router);
     const [rescheduleModalSession, setRescheduleModalSession] = useState<WidgetSession | null>(null);
     const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
 

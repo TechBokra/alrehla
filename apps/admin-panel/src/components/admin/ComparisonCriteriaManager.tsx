@@ -2,10 +2,10 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, Edit2, Check, X, GripVertical } from 'lucide-react';
 import type { ComparisonItem } from '../../lib/database.types';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../ui/card';
+import { Button } from '@alrehla/ui/button';
+import { Input } from '@alrehla/ui/input';
+import { Select } from '@alrehla/ui/native-select';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@alrehla/ui/card';
 import { useCreativeWritingSettingsMutations } from '../../hooks/mutations/useCreativeWritingSettingsMutations';
 
 interface ComparisonCriteriaManagerProps {

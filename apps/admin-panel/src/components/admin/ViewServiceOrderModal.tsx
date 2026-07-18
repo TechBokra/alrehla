@@ -4,9 +4,9 @@ import { useOrderMutations } from '../../hooks/mutations/useOrderMutations';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
 import type { ServiceOrderWithRelations, OrderStatus } from '../../lib/database.types';
 import { formatDate, getStatusColor } from '../../utils/helpers';
-import { Select } from '../ui/Select';
-import { Button } from '../ui/Button';
-import Modal from '../ui/Modal';
+import { Select } from '@alrehla/ui/native-select';
+import { Button } from '@alrehla/ui/button';
+import Modal from '@alrehla/ui/modal';
 
 const DetailRow: React.FC<{ label: string; value: React.ReactNode; isTextArea?: boolean }> = ({ label, value, isTextArea = false }) => (
     <div className="py-2 border-b">

@@ -4,8 +4,8 @@ import { Link as LinkIcon } from 'lucide-react';
 import { useBookingMutations } from '../../hooks/mutations/useBookingMutations';
 import type { CreativeWritingBooking, BookingStatus } from '../../lib/database.types';
 import { formatDate, getStatusColor } from '../../utils/helpers';
-import Modal from '../ui/Modal';
-import { Button } from '../ui/Button';
+import Modal from '@alrehla/ui/modal';
+import { Button } from '@alrehla/ui/button';
 import DetailRow from '../shared/DetailRow';
 
 type BookingWithRelations = CreativeWritingBooking & { 

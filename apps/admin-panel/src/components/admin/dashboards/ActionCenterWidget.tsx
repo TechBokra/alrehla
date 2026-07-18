@@ -1,18 +1,18 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { ShieldQuestion, ShoppingBag, BookOpen, CalendarCheck, MessageSquare, UserPlus, ArrowLeft, FileEdit, Clock, CheckCircle } from 'lucide-react';
 import AdminSection from '../AdminSection';
-import { Button } from '../../ui/Button';
+import { Button } from '@alrehla/ui/button';
 import { formatDate } from '../../../utils/helpers';
 
-const ActionItem: React.FC<{ title: string; subtitle?: string; border?: string; to: string; state?: any; }> = ({ title, subtitle, border, to, state }) => (
+const ActionItem: React.FC<{ title: string; subtitle?: string; border?: string; href: string; }> = ({ title, subtitle, border, href }) => (
     <div className={`flex items-center justify-between p-3 bg-background hover:bg-muted/50 rounded-lg border-l-4 ${border || 'border-l-primary/30'} border-t border-b border-r shadow-sm transition-all`}>
         <div className="min-w-0 flex-1">
             <p className="font-semibold text-sm truncate">{title}</p>
             {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
         </div>
-        <Button as={Link} to={to} state={state} variant="ghost" size="sm" className="ml-2 flex-shrink-0">
+        <Button as={Link} href={href} variant="ghost" size="sm" className="ml-2 flex-shrink-0">
             <span className="hidden sm:inline">عرض</span>
             <ArrowLeft size={14} className="sm:mr-1 transform rotate-180" />
         </Button>
@@ -65,7 +65,7 @@ const ActionCenterWidget = React.forwardRef<HTMLElement, { data: any; permission
             render: (item: any) => `حجز ${item.package_name} لـ ${item.child_profiles?.name}`,
             permission: permissions.canManageCreativeWritingBookings,
             to: '/creative-writing',
-            state: { statusFilter: 'بانتظار الدفع' },
+            href: '/creative-writing?status=payment-pending',
             icon: <CalendarCheck className="text-purple-500" />,
             border: 'border-l-purple-500'
         }
@@ -91,8 +91,7 @@ const ActionCenterWidget = React.forwardRef<HTMLElement, { data: any; permission
                                         title={group.render(item)}
                                         subtitle={formatDate(item.order_date || item.created_at || item.pending_profile_data?.requested_at)}
                                         border={group.border}
-                                        to={group.to}
-                                        state={group.state}
+                                        href={group.href || group.to}
                                     />
                                 ))}
                             </div>

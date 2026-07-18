@@ -1,7 +1,7 @@
-import Image from '@/components/ui/Image';
+import Image from '@alrehla/ui/next-image';
 import React from 'react';
 import Link from 'next/link';
-import { Button } from '../../../components/ui/Button';
+import { Button } from '@alrehla/ui/button';
 
 const HERO_FALLBACK_IMAGE = '/placeholder-image.jpeg';
 
@@ -22,7 +22,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ backgroundUrl, content }) => 
           alt=""
           aria-hidden="true"
           className="h-full w-full"
-          objectFit="fill"
+          objectFit="cover"
           priority
           showSkeleton={false}
           fetchPriority="high"

@@ -4,11 +4,11 @@ import { useBookingMutations } from '../../hooks/mutations/useBookingMutations';
 import type { CreativeWritingBooking } from '../../lib/database.types';
 import { useToast } from '../../contexts/ToastContext';
 import { formatDate } from '../../utils/helpers';
-import Modal from '../ui/Modal';
-import { Button } from '../ui/Button';
-import { Textarea } from '../ui/Textarea';
-import FormField from '../ui/FormField';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import Modal from '@alrehla/ui/modal';
+import { Button } from '@alrehla/ui/button';
+import { Textarea } from '@alrehla/ui/textarea';
+import FormField from '@alrehla/ui/form-field';
+import { Card, CardContent, CardHeader, CardTitle } from '@alrehla/ui/card';
 
 interface Student {
     id: number;

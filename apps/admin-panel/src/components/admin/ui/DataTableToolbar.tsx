@@ -1,6 +1,6 @@
 import React from 'react';
-import { Input } from '../../ui/Input';
-import { Button } from '../../ui/Button';
+import { Input } from '@alrehla/ui/input';
+import { Button } from '@alrehla/ui/button';
 
 // This is a placeholder for a data table toolbar.
 // It would typically include filtering, column visibility, etc.

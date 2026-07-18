@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { Save, Plus, Trash2 } from 'lucide-react';
 import type { Instructor, PublishedWork } from '../../../lib/database.types';
 import { useInstructorMutations } from '../../../hooks/mutations/useInstructorMutations';
-import { Button } from '../../ui/Button';
-import { Input } from '../../ui/Input';
-import { Textarea } from '../../ui/Textarea';
-import FormField from '../../ui/FormField';
-import { Card, CardHeader, CardTitle, CardContent } from '../../ui/card';
+import { Button } from '@alrehla/ui/button';
+import { Input } from '@alrehla/ui/input';
+import { Textarea } from '@alrehla/ui/textarea';
+import FormField from '@alrehla/ui/form-field';
+import { Card, CardHeader, CardTitle, CardContent } from '@alrehla/ui/card';
 import ImageUploadField from '../ui/ImageUploadField';
 import { cloudinaryService } from '../../../services/cloudinaryService';
 

@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import type { BlogPost } from '../../lib/database.types';
-import Modal from '../ui/Modal';
-import { Button } from '../ui/Button';
-import FormField from '../ui/FormField';
-import { Input } from '../ui/Input';
-import { Textarea } from '../ui/Textarea';
-import { Select } from '../ui/Select';
+import Modal from '@alrehla/ui/modal';
+import { Button } from '@alrehla/ui/button';
+import FormField from '@alrehla/ui/form-field';
+import { Input } from '@alrehla/ui/input';
+import { Textarea } from '@alrehla/ui/textarea';
+import { Select } from '@alrehla/ui/native-select';
 import { compressImage } from '../../utils/imageCompression';
 import { useToast } from '../../contexts/ToastContext';
 import { Loader2 } from 'lucide-react';

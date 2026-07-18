@@ -14,7 +14,10 @@
     "typecheck": "turbo run typecheck",
     "start": "turbo run start",
     "build:marketplace": "pnpm --filter @alrehla/marketplace build",
-    "build:admin": "pnpm --filter @alrehla/admin-panel build"
+    "build:admin": "pnpm --filter @alrehla/admin-panel build",
+    "dev:student": "pnpm --filter @alrehla/student-panel dev",
+    "build:student": "pnpm --filter @alrehla/student-panel build",
+    "start:student": "pnpm --filter @alrehla/student-panel start"
   },
   "devDependencies": {
     "@types/react": "^18.3.5",

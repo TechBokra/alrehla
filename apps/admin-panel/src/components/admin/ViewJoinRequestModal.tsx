@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link as LinkIcon } from 'lucide-react';
 import type { JoinRequest } from '../../lib/database.types';
-import Modal from '../ui/Modal';
-import { Button } from '../ui/Button';
+import Modal from '@alrehla/ui/modal';
+import { Button } from '@alrehla/ui/button';
 
 const ViewJoinRequestModal: React.FC<{
     request: JoinRequest | null;

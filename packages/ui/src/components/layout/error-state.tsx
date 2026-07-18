@@ -20,7 +20,7 @@ const ErrorState = React.forwardRef<HTMLDivElement, ErrorStateProps>(({ classNam
     <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{message}</p>
     {(onRetry || action) && (
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-        {onRetry && <Button type="button" variant="outline" onClick={onRetry} icon={<RefreshCw />}>{retryLabel}</Button>}
+        {onRetry && <Button type="button" variant="outline" onClick={onRetry}><RefreshCw className="me-2 h-4 w-4" />{retryLabel}</Button>}
         {action}
       </div>
     )}

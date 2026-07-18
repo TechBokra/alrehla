@@ -1,11 +1,10 @@
 
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { usePathname } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 
 export const useHeaderNavigation = () => {
-    const location = useLocation();
-    const path = location.pathname;
+    const path = usePathname();
 
     const mainNavLinks = [
         { key: 'home', to: '/', text: 'الرئيسية' },

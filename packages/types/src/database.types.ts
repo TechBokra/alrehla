@@ -3,6 +3,7 @@ export type UserRole = 'user' | 'parent' | 'student' | 'instructor' | 'super_adm
 
 export interface UserProfile {
     id: string;
+    clerk_user_id?: string | null;
     email: string;
     name: string;
     role: UserRole;

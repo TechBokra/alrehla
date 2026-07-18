@@ -1,6 +1,6 @@
 import React from 'react';
-import Modal from '../ui/Modal';
-import { Button } from '../ui/Button';
+import Modal from '@alrehla/ui/modal';
+import { Button } from '@alrehla/ui/button';
 import { formatDate } from '../../utils/helpers';
 
 const PayoutDetailsModal: React.FC<{

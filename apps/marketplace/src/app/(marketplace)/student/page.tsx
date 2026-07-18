@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
+import { getStudentPanelUrl } from '@/lib/studentPanelUrl';
 
-export default function StudentIndexPage() {
-  redirect('/student/dashboard');
+export default function StudentPanelRedirectPage() {
+  redirect(getStudentPanelUrl('/dashboard'));
 }

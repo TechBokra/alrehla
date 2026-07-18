@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Save, AlertCircle } from 'lucide-react';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
 import type { ChildProfile } from '../../lib/database.types';
-import { Button } from '../ui/Button';
-import FormField from '../ui/FormField';
-import { Input } from '../ui/Input';
-import Modal from '../ui/Modal';
+import { Button } from '@alrehla/ui/button';
+import FormField from '@alrehla/ui/form-field';
+import { Input } from '@alrehla/ui/input';
+import Modal from '@alrehla/ui/modal';
 
 interface CreateStudentAccountModalProps {
     isOpen: boolean;

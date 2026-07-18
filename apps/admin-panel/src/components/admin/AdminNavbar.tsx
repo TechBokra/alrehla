@@ -4,11 +4,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useUserNotifications } from '../../hooks/queries/user/useUserDataQuery';
 import { useNotificationMutations } from '../../hooks/mutations/useNotificationMutations';
 import { useProduct } from '../../contexts/ProductContext';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { Menu, LogOut, PanelRightOpen, PanelRightClose, User, Settings, Bell } from 'lucide-react';
-import { Card, CardContent, CardFooter } from '../ui/card';
-import { Button } from '../ui/Button';
-import Image from '../ui/Image';
+import { Card, CardContent, CardFooter } from '@alrehla/ui/card';
+import { Button } from '@alrehla/ui/button';
+import Image from '@alrehla/ui/image';
 import AdminBreadcrumbs from './AdminBreadcrumbs';
 import NotificationDropdown from '../header/NotificationDropdown';
 
@@ -120,11 +120,11 @@ const AdminNavbar: React.FC<AdminNavbarProps> = ({ onMobileMenuToggle, isSidebar
                         {isMenuOpen && (
                             <Card className="absolute left-0 mt-2 w-56 origin-top-left animate-fadeIn z-50 shadow-xl border-t-2 border-t-primary">
                                 <CardContent className="p-1">
-                                    <Link to="/my-profile" onClick={() => setIsMenuOpen(false)} className="block w-full text-right px-3 py-2 text-sm rounded-md hover:bg-accent flex items-center gap-2">
+                                    <Link href="/my-profile" onClick={() => setIsMenuOpen(false)} className="block w-full text-right px-3 py-2 text-sm rounded-md hover:bg-accent flex items-center gap-2">
                                         <Settings size={16} />
                                         إعدادات الحساب
                                     </Link>
-                                    <Link to="/" className="block w-full text-right px-3 py-2 text-sm rounded-md hover:bg-accent flex items-center gap-2">
+                                    <Link href="/" className="block w-full text-right px-3 py-2 text-sm rounded-md hover:bg-accent flex items-center gap-2">
                                         <PanelRightOpen size={16} />
                                         العودة للموقع
                                     </Link>

@@ -2,11 +2,11 @@
 import React, { useMemo } from 'react';
 import { DollarSign, Landmark, TrendingUp, ArrowUpRight, Wallet, History, AlertCircle } from 'lucide-react';
 import AdminSection from '../AdminSection';
-import { Button } from '../../ui/Button';
+import { Button } from '@alrehla/ui/button';
 import type { Instructor, CreativeWritingBooking, ServiceOrder, InstructorPayout } from '../../../lib/database.types';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/Table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@alrehla/ui/table';
 import { formatDate } from '../../../utils/helpers';
-import { Card, CardHeader, CardTitle, CardContent } from '../../ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@alrehla/ui/card';
 
 // Define strict types for props instead of any[]
 interface InstructorFinancialsPanelProps {

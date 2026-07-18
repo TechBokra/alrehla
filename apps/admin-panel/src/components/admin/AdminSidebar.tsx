@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProduct } from '../../contexts/ProductContext';
 import {
@@ -9,8 +10,8 @@ import {
     Globe, Home, Info, HelpCircle, Shield, Server, Library, Wallet
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import Image from '../ui/Image';
-import { Button } from '../ui/Button';
+import Image from '@alrehla/ui/image';
+import { Button } from '@alrehla/ui/button';
 
 interface NavItemProps {
     to: string;
@@ -31,12 +32,14 @@ interface NavGroup {
 }
 
 const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isCollapsed, onClick }) => {
+    const pathname = usePathname();
+    const isActive = to === '/' ? pathname === '/' : pathname.startsWith(to);
+
     return (
-        <NavLink
-            to={to}
-            end={to === '/'}
+        <Link
+            href={to}
             onClick={onClick}
-            className={({ isActive }) => cn(
+            className={cn(
                 "flex items-center p-3 rounded-lg text-sm font-semibold transition-colors",
                 isActive ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted/50",
                 isCollapsed ? "justify-center" : "gap-4"
@@ -44,7 +47,7 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isCollapsed, onClick
         >
             {icon}
             {!isCollapsed && <span>{label}</span>}
-        </NavLink>
+        </Link>
     );
 };
 
@@ -192,7 +195,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
             isCollapsed ? "md:w-20" : "md:w-64"
         )}>
             <div className="flex items-center justify-between h-16 border-b p-4">
-                <Link to="/" className="flex items-center gap-2" onClick={onMobileClose}>
+                <Link href="/" className="flex items-center gap-2" onClick={onMobileClose}>
                     <div className="h-8 w-8 relative">
                         <Image 
                             src={siteBranding?.logoUrl || "https://i.ibb.co/C0bSJJT/favicon.png"} 

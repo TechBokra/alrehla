@@ -14,7 +14,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Tables
 -- ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  clerk_user_id TEXT UNIQUE,
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'user' CHECK (
@@ -467,6 +468,7 @@ ALTER TABLE public.creative_writing_packages ADD COLUMN IF NOT EXISTS deleted_at
 -- ---------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
 CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email);
+CREATE INDEX IF NOT EXISTS idx_profiles_clerk_user_id ON public.profiles(clerk_user_id);
 CREATE INDEX IF NOT EXISTS idx_child_profiles_user_id ON public.child_profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_child_profiles_student_user_id ON public.child_profiles(student_user_id);
 CREATE INDEX IF NOT EXISTS idx_instructors_user_id ON public.instructors(user_id);
@@ -846,13 +848,20 @@ CREATE POLICY receipts_authenticated_upload_limited ON storage.objects
 FOR INSERT TO authenticated
 WITH CHECK (
   bucket_id = 'receipts'
+  AND (storage.foldername(name))[1] = auth.uid()::text
 );
 CREATE POLICY receipts_related_read ON storage.objects
 FOR SELECT TO authenticated
-USING (bucket_id = 'receipts');
+USING (
+  bucket_id = 'receipts'
+  AND ((storage.foldername(name))[1] = auth.uid()::text OR public.is_admin())
+);
 CREATE POLICY receipts_owner_delete ON storage.objects
 FOR DELETE TO authenticated
-USING (bucket_id = 'receipts' AND owner = auth.uid());
+USING (
+  bucket_id = 'receipts'
+  AND ((storage.foldername(name))[1] = auth.uid()::text OR public.is_admin())
+);
 
 -- ---------------------------------------------------------
 -- RPCs used by the app

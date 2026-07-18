@@ -1,0 +1,191 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 221.2 83.2% 53.3%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 221.2 83.2% 53.3%;
+  --radius: 0.5rem;
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.prose {
+  color: hsl(var(--foreground));
+  max-width: 65ch;
+}
+
+.prose :where(p):not(:where([class~="not-prose"] *)) {
+  margin-bottom: 1.25em;
+  margin-top: 1.25em;
+}
+
+.prose :where(a):not(:where([class~="not-prose"] *)) {
+  color: hsl(var(--primary));
+  text-decoration: none;
+}
+
+.prose :where(a):not(:where([class~="not-prose"] *)):hover {
+  text-decoration: underline;
+}
+
+.prose :where(h2):not(:where([class~="not-prose"] *)) {
+  border-bottom: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+  font-size: 1.5em;
+  font-weight: 800;
+  line-height: 1.3333333;
+  margin-bottom: 1em;
+  margin-top: 2em;
+  padding-bottom: 0.5em;
+}
+
+.prose :where(ul):not(:where([class~="not-prose"] *)) {
+  list-style-type: disc;
+  margin-bottom: 1.25em;
+  margin-top: 1.25em;
+  padding-left: 1.625em;
+}
+
+.prose :where(li):not(:where([class~="not-prose"] *)) {
+  margin-bottom: 0.5em;
+  margin-top: 0.5em;
+}
+
+.prose :where(li):not(:where([class~="not-prose"] *))::marker {
+  color: hsl(var(--muted-foreground));
+}
+
+.prose-lg {
+  font-size: 1.125rem;
+  line-height: 1.7777778;
+}
+
+.prose-lg :where(p):not(:where([class~="not-prose"] *)) {
+  margin-bottom: 1.3333333em;
+  margin-top: 1.3333333em;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.print-only {
+  display: none;
+}
+
+.page-break {
+  page-break-before: always;
+}
+
+@media print {
+  aside,
+  header,
+  footer,
+  button,
+  nav,
+  .no-print,
+  [role="tablist"],
+  .tabs-list {
+    display: none !important;
+  }
+
+  body,
+  #root,
+  main,
+  .container {
+    background: white !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .flex-1 {
+    display: block !important;
+    flex: none !important;
+  }
+
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  th,
+  td {
+    border: 1px solid #ddd !important;
+    color: black !important;
+    padding: 8px !important;
+  }
+
+  .shadow-lg,
+  .shadow-md,
+  .shadow-sm {
+    box-shadow: none !important;
+  }
+
+  .bg-muted\/30,
+  .bg-gray-50,
+  .bg-background {
+    background-color: white !important;
+  }
+
+  .card,
+  .rounded-xl,
+  .rounded-2xl {
+    border: 1px solid #eee !important;
+    border-radius: 0 !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+}

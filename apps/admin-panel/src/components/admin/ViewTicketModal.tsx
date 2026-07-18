@@ -1,7 +1,7 @@
 import React from 'react';
 import type { SupportTicket } from '../../lib/database.types';
-import Modal from '../ui/Modal';
-import { Button } from '../ui/Button';
+import Modal from '@alrehla/ui/modal';
+import { Button } from '@alrehla/ui/button';
 
 const ViewTicketModal: React.FC<{
     ticket: SupportTicket | null;

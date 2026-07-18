@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
-import { Button } from '../ui/Button';
-import FormField from '../ui/FormField';
-import { Textarea } from '../ui/Textarea';
-import Modal from '../ui/Modal';
+import { Button } from '@alrehla/ui/button';
+import FormField from '@alrehla/ui/form-field';
+import { Textarea } from '@alrehla/ui/textarea';
+import Modal from '@alrehla/ui/modal';
 import { useFinancialsMutations } from '../../hooks/mutations/useFinancialsMutations';
-import { Input } from '../ui/Input';
+import { Input } from '@alrehla/ui/input';
 
 interface PayoutModalProps {
     isOpen: boolean;

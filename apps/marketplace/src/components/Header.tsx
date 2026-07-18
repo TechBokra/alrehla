@@ -11,19 +11,20 @@ import { useUserNotifications } from '../hooks/queries/user/useUserDataQuery';
 import { useNotificationMutations } from '../hooks/mutations/useNotificationMutations';
 import { useHeaderNavigation } from '../hooks/useHeaderNavigation'; 
 import { 
-    ShoppingCart, User, Menu, X, Bell
+    ShoppingCart, Menu, X, Bell, LayoutDashboard
 } from 'lucide-react';
-import { Button } from './ui/Button';
+import { Button } from '@alrehla/ui/button';
 import NotificationDropdown from './header/NotificationDropdown';
 import UserDropdown from './header/UserDropdown';
 import NavItem from './header/NavItem';
 import MobileMenu from './header/MobileMenu';
-import Image from './ui/Image';
+import Image from '@alrehla/ui/next-image';
+import { getDashboardDestinationForRole } from '../lib/dashboardRedirect';
 
 const NotificationListener = dynamic(() => import('./shared/NotificationListener'), { ssr: false });
 
 const Header: React.FC = () => {
-    const { isLoggedIn, currentUser, hasAdminAccess, signOut } = useAuth();
+    const { isLoggedIn, currentUser, signOut } = useAuth();
     const { itemCount } = useCart();
     const { siteBranding } = useProduct();
     const { data: notifications = [] } = useUserNotifications();
@@ -38,6 +39,10 @@ const Header: React.FC = () => {
     const menusRef = useRef<{ [key: string]: HTMLElement | null }>({});
 
     const unreadCount = useMemo(() => notifications.filter((n: any) => !n.read).length, [notifications]);
+    const dashboardDestination = useMemo(
+        () => isLoggedIn ? getDashboardDestinationForRole(currentUser?.role) : null,
+        [currentUser?.role, isLoggedIn],
+    );
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -126,19 +131,38 @@ const Header: React.FC = () => {
                                     )}
                                 </div>
                                 
-                                <div ref={(el) => { menusRef.current['user'] = el; }} className="relative">
-                                    <Button variant="ghost" size="icon" onClick={() => toggleMenu('user')} aria-label="User Menu" className="bg-primary/5 hover:bg-primary/10 rounded-full">
-                                        <User className="h-5 w-5 text-primary" />
-                                    </Button>
-                                    {openMenu === 'user' && (
-                                        <UserDropdown 
-                                            currentUser={currentUser}
-                                            hasAdminAccess={hasAdminAccess}
-                                            onSignOut={signOut}
-                                            onClose={closeAllMenus}
-                                        />
-                                    )}
-                                </div>
+                                {dashboardDestination && (
+                                    dashboardDestination.external ? (
+                                        <Button
+                                            as="a"
+                                            href={dashboardDestination.href}
+                                            variant="outline"
+                                            size="sm"
+                                            className="hidden md:inline-flex"
+                                        >
+                                            <LayoutDashboard className="h-4 w-4" />
+                                            {dashboardDestination.label}
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            as={Link}
+                                            to={dashboardDestination.href}
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={closeAllMenus}
+                                            className="hidden md:inline-flex"
+                                        >
+                                            <LayoutDashboard className="h-4 w-4" />
+                                            {dashboardDestination.label}
+                                        </Button>
+                                    )
+                                )}
+
+                                <UserDropdown 
+                                    currentUser={currentUser}
+                                    onSignOut={signOut}
+                                    onClose={closeAllMenus}
+                                />
                             </>
                         ) : (
                             <Button as={Link} to="/account" size="sm" className="hidden lg:inline-flex">تسجيل الدخول</Button>
@@ -163,6 +187,7 @@ const Header: React.FC = () => {
                 <MobileMenu
                     navLinks={currentNavLinks}
                     isLoggedIn={isLoggedIn}
+                    dashboardDestination={dashboardDestination}
                     onClose={closeAllMenus}
                 />
             )}

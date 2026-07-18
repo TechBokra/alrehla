@@ -1,10 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
 import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const useNotificationMutations = () => {
     const queryClient = useQueryClient();
     const { addToast } = useToast();
+    const { currentUser } = useAuth();
 
     const markNotificationAsRead = useMutation({
         mutationFn: async ({ notificationId }: { notificationId: string | number }) => {
@@ -21,8 +23,7 @@ export const useNotificationMutations = () => {
 
     const markAllNotificationsAsRead = useMutation({
         mutationFn: async () => {
-            const { data: userData } = await supabase.auth.getUser();
-            const userId = userData.user?.id;
+            const userId = currentUser?.id;
             if (!userId) throw new Error("User not authenticated");
             
             const { error } = await (supabase.from('notifications') as any)

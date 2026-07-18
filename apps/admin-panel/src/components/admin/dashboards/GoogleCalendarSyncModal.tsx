@@ -1,12 +1,12 @@
 
 import React, { useState, useMemo } from 'react';
 import { Calendar, Copy, Check, Info, Smartphone, Laptop, Download, AlertTriangle } from 'lucide-react';
-import Modal from '../../ui/Modal';
-import { Button } from '../../ui/Button';
+import Modal from '@alrehla/ui/modal';
+import { Button } from '@alrehla/ui/button';
 import { useToast } from '../../../contexts/ToastContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useInstructorData } from '../../../hooks/queries/instructor/useInstructorDataQuery';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../ui/Tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@alrehla/ui/tabs';
 import { DEFAULT_CONFIG } from '../../../lib/config';
 
 interface GoogleCalendarSyncModalProps {

@@ -1,16 +1,16 @@
 
 import React, { useState } from 'react';
 import { Send, Calendar, Clock, AlertTriangle } from 'lucide-react';
-import { Button } from '../../ui/Button';
-import { Textarea } from '../../ui/Textarea';
-import { Input } from '../../ui/Input';
-import FormField from '../../ui/FormField';
+import { Button } from '@alrehla/ui/button';
+import { Textarea } from '@alrehla/ui/textarea';
+import { Input } from '@alrehla/ui/input';
+import FormField from '@alrehla/ui/form-field';
 import { useInstructorMutations } from '../../../hooks/mutations/useInstructorMutations';
 import type { ScheduledSession, Instructor, WeeklySchedule } from '../../../lib/database.types';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useAdminInstructors } from '../../../hooks/queries/admin/useAdminInstructorsQuery';
-import Modal from '../../ui/Modal';
-import { Select } from '../../ui/Select';
+import Modal from '@alrehla/ui/modal';
+import { Select } from '@alrehla/ui/native-select';
 
 interface RequestSessionChangeModalProps {
     isOpen: boolean;

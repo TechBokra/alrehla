@@ -1,21 +1,36 @@
 
 import React, { useMemo, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Users, Plus, UserCog, ArrowUp, ArrowDown, Clock, AlertCircle } from 'lucide-react';
 import { useAdminInstructors } from '../../hooks/queries/admin/useAdminInstructorsQuery';
-import PageLoader from '../../components/ui/PageLoader';
+import PageLoader from '@alrehla/ui/page-loader';
 import AvailabilityManager from '../../components/admin/AvailabilityManager';
-import { Button } from '../../components/ui/Button';
-import ErrorState from '../../components/ui/ErrorState';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
-import Accordion from '../../components/ui/Accordion';
+import { Button } from '@alrehla/ui/button';
+import ErrorState from '@alrehla/ui/error-state';
+import { Card, CardContent, CardHeader, CardTitle } from '@alrehla/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@alrehla/ui/table';
+import Accordion from '@alrehla/ui/accordion';
 import type { Instructor } from '../../lib/database.types';
 
+const createNavigate = (router: ReturnType<typeof useRouter>) => (
+    href: string | number,
+    options?: { replace?: boolean },
+) => {
+    if (typeof href === 'number') {
+        router.back();
+        return;
+    }
+
+    const target = href || '/';
+    if (options?.replace) router.replace(target);
+    else router.push(target);
+};
 
 // Main Page Component
 const AdminInstructorsPage: React.FC = () => {
-    const navigate = useNavigate();
+    const router = useRouter();
+    const navigate = createNavigate(router);
     const { data: instructors = [], isLoading, error, refetch } = useAdminInstructors();
     const [sortConfig, setSortConfig] = useState<{ key: keyof Instructor; direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
 
@@ -96,7 +111,7 @@ const AdminInstructorsPage: React.FC = () => {
                                                 </span>
                                                 <Button 
                                                     as={Link} 
-                                                    to={`/instructors/${instructor.id}`} 
+                                                    href={`/instructors/${instructor.id}`} 
                                                     size="sm" 
                                                     variant="outline" 
                                                     className="h-7 text-xs border-yellow-300 text-yellow-700 hover:bg-yellow-50"
@@ -115,7 +130,7 @@ const AdminInstructorsPage: React.FC = () => {
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        <Button as={Link} to={`/instructors/${instructor.id}`} variant="ghost" size="icon" title="إدارة ملف المدرب">
+                                        <Button as={Link} href={`/instructors/${instructor.id}`} variant="ghost" size="icon" title="إدارة ملف المدرب">
                                             <UserCog size={20} />
                                         </Button>
                                     </TableCell>

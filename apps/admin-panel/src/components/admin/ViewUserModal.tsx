@@ -3,8 +3,8 @@ import { Mail, User, Shield } from 'lucide-react';
 import type { UserProfileWithRelations } from '../../lib/database.types';
 import { roleNames } from '../../lib/roles';
 import { calculateAge } from '../../utils/helpers';
-import Modal from '../ui/Modal';
-import { Button } from '../ui/Button';
+import Modal from '@alrehla/ui/modal';
+import { Button } from '@alrehla/ui/button';
 import DetailRow from '../shared/DetailRow';
 
 interface ViewUserModalProps {

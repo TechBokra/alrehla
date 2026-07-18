@@ -3,10 +3,10 @@ import React, { useState, useMemo } from 'react';
 import { Save, Plus, Trash2, Calendar, Star, Info, CheckCircle } from 'lucide-react';
 import { useInstructorMutations } from '../../../hooks/mutations/useInstructorMutations';
 import type { Instructor, AvailableSlots } from '../../../lib/database.types';
-import { Button } from '../../ui/Button';
-import { Input } from '../../ui/Input';
-import { Select } from '../../ui/Select';
-import { Card, CardContent } from '../../ui/card';
+import { Button } from '@alrehla/ui/button';
+import { Input } from '@alrehla/ui/input';
+import { Select } from '@alrehla/ui/native-select';
+import { Card, CardContent } from '@alrehla/ui/card';
 
 const timeSlots = Array.from({ length: 15 }, (_, i) => {
     const hour = (i + 8).toString().padStart(2, '0');

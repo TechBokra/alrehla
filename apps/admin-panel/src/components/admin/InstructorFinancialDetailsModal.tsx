@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
 import { Download, Calendar, DollarSign, TrendingUp, CheckCircle } from 'lucide-react';
-import Modal from '../ui/Modal';
-import { Button } from '../ui/Button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/Table';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import Modal from '@alrehla/ui/modal';
+import { Button } from '@alrehla/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@alrehla/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@alrehla/ui/card';
 import { formatDate } from '../../utils/helpers';
 
 interface InstructorFinancialDetailsModalProps {

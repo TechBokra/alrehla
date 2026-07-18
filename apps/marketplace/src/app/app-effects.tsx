@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseAuthClient } from '@/lib/supabaseClient';
 import { initGA, pageview } from '@/lib/ga';
 
 export default function AppEffects() {
@@ -18,7 +18,7 @@ export default function AppEffects() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(handleAuthStateChange);
+    } = supabaseAuthClient.auth.onAuthStateChange(handleAuthStateChange);
 
     return () => {
       subscription?.unsubscribe();

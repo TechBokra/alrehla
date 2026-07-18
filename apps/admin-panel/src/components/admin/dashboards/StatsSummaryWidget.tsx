@@ -1,14 +1,29 @@
 import React, { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import StatCard from '../StatCard';
 import { DollarSign, Users, ShoppingBag, Star } from 'lucide-react';
+
+const createNavigate = (router: ReturnType<typeof useRouter>) => (
+    href: string | number,
+    options?: { replace?: boolean },
+) => {
+    if (typeof href === 'number') {
+        router.back();
+        return;
+    }
+
+    const target = href || '/';
+    if (options?.replace) router.replace(target);
+    else router.push(target);
+};
 
 interface StatsSummaryWidgetProps {
     data: any;
 }
 
 const StatsSummaryWidget: React.FC<StatsSummaryWidgetProps> = ({ data }) => {
-    const navigate = useNavigate();
+    const router = useRouter();
+    const navigate = createNavigate(router);
     const { users = [], orders = [], bookings = [], subscriptions = [] } = data || {};
 
     const stats = useMemo(() => {

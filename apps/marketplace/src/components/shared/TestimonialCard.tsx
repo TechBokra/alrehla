@@ -1,6 +1,6 @@
 import React from 'react';
 import { Star } from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader } from '../ui/card';
+import { Card, CardContent, CardFooter, CardHeader } from '@alrehla/ui/card';
 
 interface TestimonialCardProps { 
     quote: string; 

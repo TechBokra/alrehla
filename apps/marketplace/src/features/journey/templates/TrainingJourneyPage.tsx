@@ -7,19 +7,19 @@ import { useParams, Link } from '@/lib/router-compat';
 import { useTrainingJourneyData } from '../../../hooks/queries/user/useJourneyDataQuery';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useBookingMutations } from '../../../hooks/mutations/useBookingMutations';
-import PageLoader from '../../../components/ui/PageLoader';
-import ErrorState from '../../../components/ui/ErrorState';
+import PageLoader from '@alrehla/ui/page-loader';
+import ErrorState from '@alrehla/ui/error-state';
 import { 
     MessageSquare, Paperclip, FileText, Send, Upload, 
     ArrowLeft, Download, Loader2, User, GraduationCap, UserCheck, Clock, CheckCircle2, RefreshCw, AlertCircle, Shield, Award
 } from 'lucide-react';
-import { Button } from '../../../components/ui/Button';
-import { Textarea } from '../../../components/ui/Textarea';
+import { Button } from '@alrehla/ui/button';
+import { Textarea } from '@alrehla/ui/textarea';
 import { formatDate } from '../../../utils/helpers';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/Tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@alrehla/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@alrehla/ui/tabs';
 import type { UserRole } from '../../../lib/database.types';
-import Image from '../../../components/ui/Image';
+import Image from '@alrehla/ui/next-image';
 
 const TrainingJourneyPage: React.FC = () => {
     const { journeyId } = useParams<{ journeyId: string }>();

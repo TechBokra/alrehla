@@ -4,9 +4,9 @@
 import React, { useState } from 'react';
 import { ArrowLeft, AlertTriangle, Shield } from 'lucide-react';
 import { AuthForm } from '../../../components/auth/AuthForm';
-import { Button } from '../../../components/ui/Button';
-import { Input } from '../../../components/ui/Input';
-import FormField from '../../../components/ui/FormField';
+import { Button } from '@alrehla/ui/button';
+import { Input } from '@alrehla/ui/input';
+import FormField from '@alrehla/ui/form-field';
 import { CUSTOMER_ROLES } from '../../../lib/roles';
 
 const AgeGate: React.FC<{ onAgeSubmit: (age: number) => void }> = ({ onAgeSubmit }) => {

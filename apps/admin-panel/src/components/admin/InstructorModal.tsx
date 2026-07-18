@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Loader2 } from 'lucide-react';
 import type { Instructor } from '../../lib/database.types';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { Textarea } from '../ui/Textarea';
-import FormField from '../ui/FormField';
-import Modal from '../ui/Modal';
+import { Button } from '@alrehla/ui/button';
+import { Input } from '@alrehla/ui/input';
+import { Textarea } from '@alrehla/ui/textarea';
+import FormField from '@alrehla/ui/form-field';
+import Modal from '@alrehla/ui/modal';
 import { compressImage } from '../../utils/imageCompression';
 import { useToast } from '../../contexts/ToastContext';
 

@@ -4,12 +4,12 @@
 import React, { useMemo } from 'react';
 import { useParams, Link } from '@/lib/router-compat';
 import { usePublicData } from '../../../hooks/queries/public/usePublicDataQuery';
-import PageLoader from '../../../components/ui/PageLoader';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../../components/ui/card';
-import Image from '../../../components/ui/Image';
+import PageLoader from '@alrehla/ui/page-loader';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@alrehla/ui/card';
+import Image from '@alrehla/ui/next-image';
 import { Globe, Facebook, Twitter, Instagram, BookOpen, Library, Building2, ExternalLink } from 'lucide-react';
-import { Button } from '../../../components/ui/Button';
-import ErrorState from '../../../components/ui/ErrorState';
+import { Button } from '@alrehla/ui/button';
+import ErrorState from '@alrehla/ui/error-state';
 import type { PersonalizedProduct } from '../../../lib/database.types';
 
 // Reusing ProductCard style slightly modified
@@ -85,7 +85,13 @@ const PublisherPublicProfilePage: React.FC = () => {
                     {/* Logo */}
                     <div className="w-32 h-32 md:w-40 md:h-40 rounded-2xl bg-white shadow-md border-4 border-white overflow-hidden flex-shrink-0 -mt-16 md:-mt-20">
                         <Image 
-                            src={publisher.logo_url || '/images/male-avatar.png'} 
+                            src={
+                                !publisher.logo_url ||
+                                publisher.logo_url.includes('wikimedia.org') ||
+                                publisher.logo_url.includes('googleusercontent.com')
+                                    ? '/placeholder-image.jpeg'
+                                    : publisher.logo_url
+                            } 
                             alt={publisher.store_name} 
                             className="w-full h-full"
                             objectFit="contain"

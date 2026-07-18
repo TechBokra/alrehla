@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowUp, ArrowDown } from 'lucide-react';
-import { Button } from '../../ui/Button';
-import { TableHead } from '../../ui/Table';
+import { Button } from '@alrehla/ui/button';
+import { TableHead } from '@alrehla/ui/table';
 
 interface SortableTableHeadProps<T> {
     sortKey: keyof T | string;

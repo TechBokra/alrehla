@@ -48,7 +48,7 @@ export default function ErrorPage({
         )}
 
         <div className="flex gap-4 justify-center">
-          <Button onClick={() => reset()} size="lg" variant="primary">
+          <Button onClick={() => reset()} size="lg" variant="default">
             <RefreshCw size={18} />
             المحاولة مجدداً
           </Button>

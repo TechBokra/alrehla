@@ -1,16 +1,31 @@
 
 import React, { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { useInstructorData } from '../../../hooks/queries/instructor/useInstructorDataQuery';
-import PageLoader from '../../ui/PageLoader';
+import PageLoader from '@alrehla/ui/page-loader';
 import StatCard from '../StatCard';
 import { Calendar, BookOpen, Award, Star, AlertCircle, CheckCircle } from 'lucide-react';
 import InstructorJourneysPanel from './InstructorJourneysPanel';
 import WeeklySessionsWidget from './WeeklySessionsWidget';
-import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@alrehla/ui/card';
+
+const createNavigate = (router: ReturnType<typeof useRouter>) => (
+    href: string | number,
+    options?: { replace?: boolean },
+) => {
+    if (typeof href === 'number') {
+        router.back();
+        return;
+    }
+
+    const target = href || '/';
+    if (options?.replace) router.replace(target);
+    else router.push(target);
+};
 
 const InstructorDashboardPage: React.FC = () => {
-    const navigate = useNavigate();
+    const router = useRouter();
+    const navigate = createNavigate(router);
     const { data, isLoading } = useInstructorData();
 
     if (isLoading || !data) {

@@ -1,5 +1,5 @@
 
-import { supabase } from '../lib/supabaseClient';
+import { supabase, getCurrentAppProfileId } from '../lib/supabaseClient';
 import type { Order, CreativeWritingBooking, ServiceOrder, Subscription, Instructor, SubscriptionPlan, PublisherPayout, PersonalizedProduct } from '@alrehla/types';
 import { v4 as uuidv4 } from 'uuid';
 import { calculatePublisherNet } from '../utils/pricingCalculator';
@@ -25,13 +25,12 @@ export const reportingService = {
     // وظيفة توثيق النشاطات الإدارية (نظام هجين)
     async logAction(action: string, targetId: string, targetDesc: string, details: string) {
         try {
-            const { data: userData } = await supabase.auth.getUser();
-            const user = userData.user;
+            const currentProfileId = await getCurrentAppProfileId();
             
             // 1. تجهيز بيانات السجل
             const logEntry = {
                 id: uuidv4(), // إنشاء معرف فريد محلياً
-                user_id: user?.id || null,
+                user_id: currentProfileId || null,
                 action: action,
                 target_description: `${targetDesc} (#${targetId})`,
                 details: details,
