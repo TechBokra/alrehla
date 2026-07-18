@@ -120,5 +120,13 @@ Supabase SQL files live in `supabase/`:
 
 - `00_setup.sql`: reusable schema, functions, policies, and storage setup
 - `01_seed.sql`: reusable seed content and demo data
+- `02_clerk_auth.sql`: Clerk third-party JWT mapping, profile sync, and Clerk-compatible RLS policies
+
+For a Clerk-enabled Supabase project, run `00_setup.sql`, then `01_seed.sql`,
+then `02_clerk_auth.sql`. The last migration is required because Clerk subject
+IDs are strings while Alrehla keeps UUIDs for internal profile relationships.
+Use the same Clerk instance and Supabase project variables in marketplace and
+student-panel; each app has its own `.env.local.example` template.
 
 Do not enforce admin security only in React. Supabase RLS and database policies remain the source of truth for data access.
+# alrehla
