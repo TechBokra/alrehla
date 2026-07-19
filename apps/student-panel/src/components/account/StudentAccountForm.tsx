@@ -43,8 +43,8 @@ const StudentAccountForm: React.FC<StudentAccountFormProps> = ({ childProfile, p
             // Use provided username or fallback to 'child'+ID if empty
             const safeUsername = usernamePart.trim() || `child${childProfile.id}`;
             
-            // Format: name.parent@alrehla.student
-            const generatedEmail = `${safeUsername}.${parentSlug}@alrehla.student`;
+            // Format: name.parent@student.alrehla.com
+            const generatedEmail = `${safeUsername}.${parentSlug}@student.alrehla.com`;
             setEmail(generatedEmail);
         }
     }, [parentEmail, usernamePart, childProfile.id]);

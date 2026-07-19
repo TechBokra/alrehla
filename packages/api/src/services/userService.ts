@@ -1,5 +1,5 @@
 
-import { supabase, supabaseAuthClient, getTemporaryClient, getCurrentAppProfileId } from '../lib/supabaseClient';
+import { supabase, getCurrentAppProfileId } from '../lib/supabaseClient';
 import { reportingService } from './reportingService';
 import type { UserProfile, ChildProfile, UserRole, PublisherProfile } from '@alrehla/types';
 
@@ -10,6 +10,7 @@ export interface CreateUserPayload {
     phone?: string;
     address?: string;
     password?: string;
+    clerkUserId?: string;
 }
 
 export interface UpdateUserPayload {
@@ -101,115 +102,68 @@ export const userService = {
     },
 
     async createUser(payload: CreateUserPayload) {
-        const { name, email, role, phone, address, password } = payload;
+        const { name, email, role, phone, address, clerkUserId } = payload;
         const normalizedEmail = email.toLowerCase().trim();
+        const normalizedClerkUserId = clerkUserId?.trim();
 
         const taken = await checkEmailExists(normalizedEmail);
         if (taken) {
             throw new Error(`البريد الإلكتروني ${normalizedEmail} مسجل بالفعل لمستخدم آخر.`);
         }
-        
-        const { data: authData, error: authError } = await supabaseAuthClient.auth.signUp({
-            email: normalizedEmail,
-            password: password || '123456',
-            options: {
-                data: { name, role }
-            }
-        });
 
-        if (authError) throw new Error(authError.message);
-        if (!authData.user) throw new Error("فشل إنشاء حساب المستخدم.");
-
-        const userId = authData.user.id;
+        if (!normalizedClerkUserId) {
+            throw new Error('Clerk هو مصدر الحسابات الآن. أنشئ المستخدم أو الدعوة في Clerk أولاً ثم اربط profile عبر clerkUserId.');
+        }
 
         const { data: profile, error: pError } = await (supabase.from('profiles') as any)
-            .upsert([{
-                id: userId,
+            .insert({
+                clerk_user_id: normalizedClerkUserId,
                 name,
                 email: normalizedEmail,
                 role,
                 phone,
                 address,
-                created_at: new Date().toISOString()
-            }])
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            })
             .select()
             .single();
 
-        if (pError) {
-             console.error("Profile creation error (ignored if auth succeeded):", pError);
-        }
+        if (pError) throw new Error(pError.message);
+        const userId = profile.id as string;
 
-        // Auto-create related profiles based on role
         if (role === 'instructor') {
              try {
                 const slug = name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.floor(Math.random() * 1000);
                 await (supabase.from('instructors') as any).insert([{
                     user_id: userId,
-                    name: name,
-                    slug: slug,
+                    name,
+                    slug,
                     specialty: 'مدرب جديد',
                     bio: 'يرجى تحديث السيرة الذاتية.',
                     rate_per_session: 150,
                     schedule_status: 'approved',
                     profile_update_status: 'approved'
                 }]);
-             } catch (e) { console.warn("Failed to create instructor record", e); }
+             } catch (e) { console.warn('Failed to create instructor record', e); }
         } else if (role === 'publisher') {
              try {
                 const slug = name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.floor(Math.random() * 1000);
                 await (supabase.from('publisher_profiles') as any).insert([{
                     user_id: userId,
                     store_name: name,
-                    slug: slug,
+                    slug,
                     description: 'يرجى تحديث وصف دار النشر.',
                 }]);
-             } catch (e) { console.warn("Failed to create publisher record", e); }
+             } catch (e) { console.warn('Failed to create publisher record', e); }
         }
 
-        await reportingService.logAction('CREATE_USER', userId, `مستخدم: ${name}`, `إنشاء حساب جديد برتبة: ${role}`);
-        return (profile || { id: userId, name, email, role }) as UserProfile;
+        await reportingService.logAction('CREATE_USER', userId, `مستخدم: ${name}`, `إنشاء ملف مرتبط بـ Clerk برتبة: ${role}`);
+        return profile as UserProfile;
     },
 
     async createAndLinkStudentAccount(payload: { name: string, email: string, password?: string, childProfileId: number }) {
-        const normalizedEmail = payload.email.toLowerCase().trim();
-        const currentUserId = await getCurrentAppProfileId();
-        if (!currentUserId) throw new Error("يجب تسجيل الدخول كولي أمر أولاً.");
-
-        const tempSupabase = getTemporaryClient();
-
-        const { data: authData, error: authError } = await tempSupabase.auth.signUp({
-            email: normalizedEmail,
-            password: payload.password || '123456',
-            options: { data: { name: payload.name, role: 'student' } }
-        });
-
-        if (authError) throw new Error(authError.message);
-        if (!authData.user) throw new Error("فشل إنشاء حساب الطالب في النظام.");
-
-        const studentUserId = authData.user.id;
-
-        await (tempSupabase.from('profiles') as any).insert([{
-            id: studentUserId,
-            name: payload.name,
-            email: normalizedEmail,
-            role: 'student',
-            created_at: new Date().toISOString()
-        }]);
-
-        const { error: linkError } = await (supabase.from('child_profiles') as any)
-            .update({ student_user_id: studentUserId })
-            .eq('id', payload.childProfileId);
-        
-        if (linkError) throw new Error(`فشل ربط الحساب بملف الطفل: ${linkError.message}`);
-
-        const { data: profileData } = await supabase.from('profiles').select('role').eq('id', currentUserId).single();
-        const parentProfile = profileData as { role: string } | null;
-        
-        if (parentProfile && parentProfile.role === 'user') {
-            await (supabase.from('profiles') as any).update({ role: 'parent' }).eq('id', currentUserId);
-        }
-
-        return { success: true, studentId: studentUserId };
+        throw new Error('إنشاء حساب الطالب يتم الآن عبر Clerk فقط. أنشئ حساب الطالب من لوحة الطالب أو Clerk ثم استخدم ربط الطالب بالملف.');
     },
 
     async linkStudentToChildProfile(payload: { studentUserId: string, childProfileId: number }) {
@@ -276,46 +230,18 @@ export const userService = {
         const { id, password, ...updates } = payload;
         const { data, error } = await (supabase.from('profiles') as any).update(updates).eq('id', id).select().single();
         if (error) throw new Error(error.message);
-
         if (password && password.trim() !== '') {
-            const { data: { user: currentUser } } = await supabaseAuthClient.auth.getUser();
-            if (currentUser && currentUser.id === id) {
-                const { error: updateError } = await supabaseAuthClient.auth.updateUser({ password: password });
-                if (updateError) throw new Error(`فشل تغيير كلمة المرور: ${updateError.message}`);
-            } else {
-                 // Fixed: using explicit reference instead of 'this'
-                 await userService.resetStudentPassword({ studentUserId: id, newPassword: password });
-            }
+            throw new Error('تغيير كلمة المرور يتم عبر Clerk فقط، وليس عبر Supabase Auth.');
         }
         return data as UserProfile;
     },
 
     async updateUserPassword(payload: { userId: string, newPassword: string }) {
-        const { data: { user: currentUser } } = await supabaseAuthClient.auth.getUser();
-        if (currentUser && currentUser.id === payload.userId) {
-             const { error } = await supabaseAuthClient.auth.updateUser({ password: payload.newPassword });
-             if (error) throw new Error(error.message);
-        } else {
-             // Fixed: using explicit reference instead of 'this'
-             return userService.resetStudentPassword({ studentUserId: payload.userId, newPassword: payload.newPassword });
-        }
-        return { success: true };
+        throw new Error('تغيير كلمة المرور يتم عبر Clerk فقط. استخدم صفحة استعادة كلمة المرور أو User Profile في Clerk.');
     },
 
     async resetStudentPassword(payload: { studentUserId: string; newPassword: string }) {
-        const { error } = await (supabase.rpc as any)('reset_student_password', {
-            target_student_id: payload.studentUserId,
-            new_password: payload.newPassword
-        });
-
-        if (error) {
-             console.error("Password reset RPC error:", error);
-             if (error.message.includes('Not authorized')) {
-                 throw new Error("غير مصرح لك بتغيير كلمة مرور هذا المستخدم.");
-             }
-             throw new Error("فشل تغيير كلمة المرور: " + error.message);
-        }
-        return { success: true };
+        throw new Error('إعادة تعيين كلمة مرور الطالب تتم عبر Clerk فقط. استخدم Clerk Dashboard أو دع الطالب يستخدم صفحة الاستعادة.');
     },
 
     async bulkDeleteUsers(userIds: string[]) {

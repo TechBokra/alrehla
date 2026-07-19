@@ -103,11 +103,8 @@ const AdminUserFormPage: React.FC = () => {
         e.preventDefault();
         try {
             if (isNew) {
-                // Remove optional password if empty when sending to create (though create usually needs it)
-                // The mutation handles empty password by setting a default if needed
                 await createUser.mutateAsync(formData as any);
             } else {
-                // updateUser now handles password updates internally if provided
                 await updateUser.mutateAsync({ id: id!, ...formData });
             }
             navigate('/users');
@@ -265,12 +262,12 @@ const AdminUserFormPage: React.FC = () => {
                                     value={formData.password || ''} 
                                     onChange={e => setFormData({...formData, password: e.target.value})} 
                                     required 
-                                    placeholder="كلمة المرور للحساب الجديد"
-                                    minLength={6}
+                                    placeholder="8 أحرف على الأقل"
+                                    minLength={8}
                                 />
                                 <div className="mt-2 flex items-start gap-2 text-xs text-blue-700 bg-blue-50 p-2 rounded-md">
                                     <Info size={16} className="flex-shrink-0" />
-                                    <span>سيتم إنشاء هذا الحساب في قاعدة بيانات الدخول فوراً. يرجى حفظ كلمة المرور وإعطائها للمستخدم.</span>
+                                    <span>سيتم إنشاء هذا الحساب في Clerk مع بريد وكلمة مرور. يرجى حفظ كلمة المرور وإعطائها للمستخدم.</span>
                                 </div>
                             </FormField>
                         )}
@@ -296,12 +293,21 @@ const AdminUserFormPage: React.FC = () => {
                             </Select>
                             {enrichedUser && (enrichedUser.totalChildrenCount ?? 0) > 0 && <p className="text-xs text-orange-600 mt-1 italic">لا يمكن تغيير رتبة ولي الأمر لوجود أطفال مرتبطين.</p>}
                         </FormField>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                            <FormField label="رقم الهاتف" htmlFor="phone">
+                                <Input id="phone" name="phone" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="اختياري" />
+                            </FormField>
+                            <FormField label="العنوان" htmlFor="address">
+                                <Input id="address" name="address" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="اختياري" />
+                            </FormField>
+                        </div>
                         
                         {!isNew && (
                             <div className="pt-4 border-t">
                                 <h4 className="font-bold text-sm text-gray-700 mb-2">تحديث الأمان</h4>
                                 <FormField label="كلمة مرور جديدة (اختياري)" htmlFor="password">
-                                    <Input id="password" name="password" type="password" value={formData.password || ''} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="اتركه فارغاً لعدم التغيير" />
+                                    <Input id="password" name="password" type="password" value={formData.password || ''} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="اتركه فارغاً لعدم التغيير" minLength={8} />
                                 </FormField>
                             </div>
                         )}

@@ -31,20 +31,6 @@ if (!hasConfiguredSupabaseCredentials) {
   );
 }
 
-const browserAuthOptions = {
-  persistSession: true,
-  autoRefreshToken: true,
-  detectSessionInUrl: true,
-};
-
-export const supabaseAuthClient = createClient<Database>(
-  EFFECTIVE_SUPABASE_URL,
-  EFFECTIVE_SUPABASE_PUBLISHABLE_KEY,
-  {
-    auth: browserAuthOptions,
-  },
-);
-
 export const setSupabaseAccessTokenProvider = (provider: SupabaseAccessTokenProvider) => {
   externalAccessTokenProvider = provider;
 };
@@ -90,25 +76,6 @@ export const runWithSupabaseAccessTokenProvider = async <T>(
   }
 };
 
-const getStoredAccessToken = () => {
-  if (typeof window === 'undefined') return null;
-
-  try {
-    return window.localStorage.getItem('accessToken');
-  } catch {
-    return null;
-  }
-};
-
-const getSupabaseAuthSessionToken = async () => {
-  try {
-    const { data } = await supabaseAuthClient.auth.getSession();
-    return data.session?.access_token || getStoredAccessToken();
-  } catch {
-    return getStoredAccessToken();
-  }
-};
-
 const getRequestAccessToken = async () => {
   const storage = await getServerAccessTokenStorage();
   const scopedProvider = storage?.getStore();
@@ -124,7 +91,6 @@ const getRequestAccessToken = async () => {
 
   if (typeof window === 'undefined') {
     try {
-      // Use eval-based dynamic import to prevent Webpack/Turbopack from trying to resolve the server-only Clerk package on the client side
       const { auth } = await (0, eval)("import('@clerk/nextjs/server')");
       const session = await auth();
       if (session && typeof session.getToken === 'function') {
@@ -132,30 +98,25 @@ const getRequestAccessToken = async () => {
         if (token) return token;
       }
     } catch {
-      // Ignore context errors outside of Next.js server runtime
+      // Outside a Next.js request, authenticated Supabase calls must use runWithSupabaseAccessTokenProvider.
     }
   }
 
-  return getSupabaseAuthSessionToken();
+  return null;
 };
 
 export const supabase = createClient<Database>(
   EFFECTIVE_SUPABASE_URL,
   EFFECTIVE_SUPABASE_PUBLISHABLE_KEY,
   {
-    accessToken: getRequestAccessToken,
-  },
-);
-
-export const getTemporaryClient = () => {
-  return createClient<Database>(EFFECTIVE_SUPABASE_URL, EFFECTIVE_SUPABASE_PUBLISHABLE_KEY, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
       detectSessionInUrl: false,
     },
-  });
-};
+    accessToken: getRequestAccessToken,
+  },
+);
 
 export const getCurrentAppProfileId = async (): Promise<string | null> => {
   try {
@@ -165,14 +126,7 @@ export const getCurrentAppProfileId = async (): Promise<string | null> => {
     // This helper exists after running the Clerk auth SQL migration.
   }
 
-  try {
-    const {
-      data: { user },
-    } = await supabaseAuthClient.auth.getUser();
-    return user?.id || null;
-  } catch {
-    return null;
-  }
+  return null;
 };
 
 export const hasSupabaseCredentials = () => {

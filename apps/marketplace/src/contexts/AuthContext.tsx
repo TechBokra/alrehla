@@ -21,7 +21,6 @@ import type { ChildProfile, UserProfile } from "../lib/database.types";
 import { useToast } from "./ToastContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { authService } from "../services/authService";
-import { setToken, clearToken } from "../lib/tokenManager";
 import {
   clearSupabaseAccessTokenProvider,
   setSupabaseAccessTokenProvider,
@@ -263,37 +262,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   useEffect(() => {
     if (CLERK_ENABLED) return;
 
-    let cancelled = false;
-
-    const validateSession = async () => {
-      try {
-        const response = await authService.getCurrentUser();
-        if (!cancelled && response && response.user) {
-          setCurrentUser(response.user);
-          fetchUserData(response.user);
-        }
-      } catch (e) {
-        if (!cancelled) console.error("Session sync error", e);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    const win = window as any;
-    if (typeof win.requestIdleCallback === "function") {
-      const idleId = win.requestIdleCallback(validateSession, { timeout: 1200 });
-      return () => {
-        cancelled = true;
-        win.cancelIdleCallback?.(idleId);
-      };
-    }
-
-    const timer = window.setTimeout(validateSession, 500);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [fetchUserData]);
+    setCurrentUser(null);
+    resetSecondaryUserData();
+    setError("Clerk هو مزود المصادقة الوحيد حالياً. أضف NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY لتفعيل تسجيل الدخول.");
+    setLoading(false);
+  }, [resetSecondaryUserData]);
 
   const signIn = async (
     email: string,
@@ -324,13 +297,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         addToast(`مرحباً بك، ${user.name}!`, "success");
         return user;
       }
-
-      const { user, accessToken } = await authService.login(email, password);
-      if (accessToken) setToken(accessToken);
-      setCurrentUser(user);
-      await fetchUserData(user);
-      addToast(`مرحباً بك، ${user.name}!`, "success");
-      return user;
+      throw new Error("Clerk هو مزود تسجيل الدخول الوحيد حالياً. تحقق من إعداد NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.");
     } catch (e: any) {
       const msg = e.message || "بيانات الدخول غير صحيحة";
       setError(msg);
@@ -382,17 +349,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
         throw new Error("لم يكتمل إنشاء الحساب. تحقق من إعدادات Clerk المطلوبة.");
       }
-
-      const { user, accessToken } = await authService.register(
-        email,
-        password,
-        name,
-        role,
-      );
-      if (accessToken) setToken(accessToken);
-      setCurrentUser(user);
-      addToast("تم إنشاء الحساب بنجاح!", "success");
-      return user;
+      throw new Error("Clerk هو مزود إنشاء الحسابات الوحيد حالياً. تحقق من إعداد NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.");
     } catch (e: any) {
       setError(e.message);
       addToast(e.message, "error");
@@ -466,11 +423,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const signOut = async () => {
     try {
       if (CLERK_ENABLED) await clerk.signOut();
-      await authService.logout();
     } finally {
       setCurrentUser(null);
       resetSecondaryUserData();
-      clearToken();
       clearSupabaseAccessTokenProvider();
       queryClient.clear();
       addToast("تم تسجيل الخروج بنجاح.", "info");
@@ -503,8 +458,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
         addToast("تم إرسال رمز التحقق إلى بريدك الإلكتروني.", "info");
       } else {
-        await authService.resetPasswordForEmail(email);
-        addToast("تم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني.", "info");
+        throw new Error("استعادة كلمة المرور تتم عبر Clerk فقط. تحقق من إعداد Clerk في هذا التطبيق.");
       }
     } catch (e: any) {
       const msg = getClerkErrorMessage(e);

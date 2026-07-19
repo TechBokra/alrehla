@@ -1,29 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { supabaseAuthClient } from '@/lib/supabaseClient';
+import { usePathname } from 'next/navigation';
 import { initGA, pageview } from '@/lib/ga';
 
 export default function AppEffects() {
   const pathname = usePathname() || '/';
-  const router = useRouter();
-
-  useEffect(() => {
-    const handleAuthStateChange = async (event: string) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        router.push('/reset-password');
-      }
-    };
-
-    const {
-      data: { subscription },
-    } = supabaseAuthClient.auth.onAuthStateChange(handleAuthStateChange);
-
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, [router]);
 
   useEffect(() => {
     initGA();
