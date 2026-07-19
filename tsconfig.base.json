@@ -2,7 +2,11 @@
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -19,18 +23,51 @@
     "noFallthroughCasesInSwitch": false,
     "baseUrl": ".",
     "paths": {
-      "@alrehla/ui": ["packages/ui/src/index.ts"],
-      "@alrehla/ui/*": ["packages/ui/src/*"],
-      "@alrehla/api": ["packages/api/src/index.ts"],
-      "@alrehla/api/*": ["packages/api/src/*"],
-      "@alrehla/auth": ["packages/auth/src/index.ts"],
-      "@alrehla/auth/*": ["packages/auth/src/*"],
-      "@alrehla/types": ["packages/types/src/index.ts"],
-      "@alrehla/types/*": ["packages/types/src/*"],
-      "@alrehla/config": ["packages/config/src/index.ts"],
-      "@alrehla/config/*": ["packages/config/src/*"],
-      "@alrehla/utils": ["packages/utils/src/index.ts"],
-      "@alrehla/utils/*": ["packages/utils/src/*"]
+      "@alrehla/ui": [
+        "packages/ui/src/index.ts"
+      ],
+      "@alrehla/ui/image": [
+        "packages/ui/src/Image.tsx"
+      ],
+      "@alrehla/ui/modal": [
+        "packages/ui/src/Modal.tsx"
+      ],
+      "@alrehla/ui/skeletons": [
+        "packages/ui/src/Skeletons.tsx"
+      ],
+      "@alrehla/ui/*": [
+        "packages/ui/src/*"
+      ],
+      "@alrehla/api": [
+        "packages/api/src/index.ts"
+      ],
+      "@alrehla/api/*": [
+        "packages/api/src/*"
+      ],
+      "@alrehla/auth": [
+        "packages/auth/src/index.ts"
+      ],
+      "@alrehla/auth/*": [
+        "packages/auth/src/*"
+      ],
+      "@alrehla/types": [
+        "packages/types/src/index.ts"
+      ],
+      "@alrehla/types/*": [
+        "packages/types/src/*"
+      ],
+      "@alrehla/config": [
+        "packages/config/src/index.ts"
+      ],
+      "@alrehla/config/*": [
+        "packages/config/src/*"
+      ],
+      "@alrehla/utils": [
+        "packages/utils/src/index.ts"
+      ],
+      "@alrehla/utils/*": [
+        "packages/utils/src/*"
+      ]
     }
   }
 }
