@@ -76,8 +76,8 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childAct
         e.preventDefault();
         setPasswordError(null);
         
-        if (newPassword.length < 6) {
-             setPasswordError('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
+        if (newPassword.length < 8) {
+             setPasswordError('كلمة المرور يجب أن تكون 8 أحرف على الأقل حتى يقبلها Clerk.');
              return;
         }
 
@@ -192,7 +192,7 @@ const ChildDashboardCard: React.FC<ChildDashboardCardProps> = ({ child, childAct
                                                             onChange={(e) => setNewPassword(e.target.value)} 
                                                             className="h-8 text-sm bg-white"
                                                             placeholder="******"
-                                                            minLength={6}
+                                                            minLength={8}
                                                         />
                                                     </FormField>
                                                     <FormField label="تأكيد الكلمة" htmlFor={`confirm-pass-${child.id}`} className="mb-0">

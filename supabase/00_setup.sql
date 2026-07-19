@@ -1119,14 +1119,14 @@ BEGIN
 END;
 $$;
 
--- Compatibility stub: password resets must use Supabase Admin API in a server/Edge function.
+-- Password resets must use Clerk. Supabase Auth is not the password authority for this project.
 CREATE OR REPLACE FUNCTION public.reset_student_password(target_student_id UUID, new_password TEXT)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  RAISE EXCEPTION 'Not authorized: reset_student_password must be implemented in a secure server function using the Supabase Admin API';
+  RAISE EXCEPTION 'Not authorized: reset_student_password is disabled because Clerk is the password authority';
 END;
 $$;
 

@@ -40,8 +40,8 @@ const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({ isOpen, onC
         e.preventDefault();
         setLocalError(null);
         
-        if (newPassword.length < 6) {
-             setLocalError('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
+        if (newPassword.length < 8) {
+             setLocalError('كلمة المرور يجب أن تكون 8 أحرف على الأقل حتى يقبلها Clerk.');
              return;
         }
 
@@ -118,7 +118,7 @@ const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({ isOpen, onC
                                     value={newPassword} 
                                     onChange={(e) => setNewPassword(e.target.value)} 
                                     required 
-                                    minLength={6}
+                                    minLength={8}
                                     placeholder="******"
                                     disabled={resetStudentPassword.isPending}
                                 />

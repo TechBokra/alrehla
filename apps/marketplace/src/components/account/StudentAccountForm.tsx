@@ -23,7 +23,7 @@ const StudentAccountForm: React.FC<StudentAccountFormProps> = ({ childProfile, p
     // State for the custom english username part
     const [usernamePart, setUsernamePart] = useState('');
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('123456'); // Default easy password
+    const [password, setPassword] = useState(() => `Alr-${Math.random().toString(36).slice(2, 8)}-2026`); // Clerk-compatible default password
 
     // Initial setup: Try to guess english name from arabic name if possible, or leave blank
     useEffect(() => {
@@ -43,8 +43,8 @@ const StudentAccountForm: React.FC<StudentAccountFormProps> = ({ childProfile, p
             // Use provided username or fallback to 'child'+ID if empty
             const safeUsername = usernamePart.trim() || `child${childProfile.id}`;
             
-            // Format: name.parent@alrehla.student
-            const generatedEmail = `${safeUsername}.${parentSlug}@alrehla.student`;
+            // Format: name.parent@student.alrehla.com
+            const generatedEmail = `${safeUsername}.${parentSlug}@student.alrehla.com`;
             setEmail(generatedEmail);
         }
     }, [parentEmail, usernamePart, childProfile.id]);
@@ -86,7 +86,7 @@ const StudentAccountForm: React.FC<StudentAccountFormProps> = ({ childProfile, p
                         <Lock className="w-5 h-5 flex-shrink-0 mt-0.5" />
                         <div className="text-sm">
                             <p className="font-bold mb-1">نظام الحسابات المرتبطة</p>
-                            <p>يتم إنشاء حساب الطالب مرتبطاً ببريدك الإلكتروني لسهولة الإدارة. كلمة المرور الافتراضية هي <b>123456</b> ويمكنك تغييرها لاحقاً.</p>
+                            <p>يتم إنشاء حساب الطالب مرتبطاً ببريدك الإلكتروني لسهولة الإدارة. كلمة المرور الافتراضية آمنة ومتوافقة مع Clerk ويمكنك تغييرها لاحقاً.</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -128,7 +128,7 @@ const StudentAccountForm: React.FC<StudentAccountFormProps> = ({ childProfile, p
                             value={password} 
                             onChange={(e) => setPassword(e.target.value)} 
                             required 
-                            minLength={6}
+                            minLength={8}
                             placeholder="******"
                             className="bg-white font-mono"
                         />

@@ -1,5 +1,5 @@
 
-import { supabase, supabaseAuthClient } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabaseClient';
 import type { UserProfile, ChildProfile, UserRole } from '@alrehla/types';
 
 const USER_ROLES: UserRole[] = [
@@ -101,68 +101,6 @@ const getClerkProfileSyncError = (error: SupabaseRpcError): Error => {
 };
 
 export const authService = {
-    async login(email: string, password: string) {
-        const normalizedEmail = normalizeEmail(email);
-
-        const { data: authData, error: authError } = await supabaseAuthClient.auth.signInWithPassword({
-            email: normalizedEmail,
-            password,
-        });
-
-        if (authError) {
-            console.error("Login Error:", authError);
-            let errorMessage = "فشل تسجيل الدخول.";
-            
-            if (authError.message.includes("Invalid login credentials")) {
-                errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
-            } else if (authError.message.includes("Email not confirmed")) {
-                errorMessage = "البريد الإلكتروني غير مفعل. يرجى التحقق من صندوق الوارد.";
-            } else if (authError.message.includes("Too many requests")) {
-                errorMessage = "تم تجاوز حد المحاولات المسموح به. يرجى الانتظار قليلاً.";
-            }
-
-            throw new Error(errorMessage);
-        }
-
-        const authUser = authData.user;
-        if (!authUser) throw new Error("فشل التعرف على المستخدم.");
-
-        const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', authUser.id)
-            .maybeSingle();
-
-        if (error) {
-            console.error("Database Error:", error);
-            throw new Error("حدث خطأ في الاتصال بقاعدة البيانات.");
-        }
-
-        if (!profile) {
-            throw new Error("عذراً، لم يتم العثور على ملف المستخدم المرتبط بهذا الحساب. يرجى التواصل مع الدعم الفني.");
-        }
-
-        return {
-            user: profile as UserProfile,
-            accessToken: authData.session?.access_token || '',
-        };
-    },
-
-    async getCurrentUser() {
-        const { data: { user: authUser }, error: authError } = await supabaseAuthClient.auth.getUser();
-        if (!authUser || authError) return null;
-
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', authUser.id)
-            .maybeSingle();
-
-        if (!profile) return null;
-
-        return { user: profile as UserProfile };
-    },
-
     async getOrCreateClerkUserProfile(input: ClerkProfileInput) {
         const normalizedEmail = normalizeEmail(input.email);
         const role = normalizeRole(input.role);
@@ -185,6 +123,17 @@ export const authService = {
         return profile as UserProfile;
     },
 
+    async getUserProfileById(userId: string) {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
+
+        if (error) throw new Error('حدث خطأ في قراءة ملف المستخدم.');
+        return (data || null) as UserProfile | null;
+    },
+
     async getStudentProfile(userId: string) {
         try {
             const { data } = await supabase.from('child_profiles').select('*').eq('student_user_id', userId).maybeSingle();
@@ -205,66 +154,6 @@ export const authService = {
         }
     },
 
-    async logout() {
-        await supabaseAuthClient.auth.signOut();
-        localStorage.removeItem('accessToken');
-    },
-
-    async register(email: string, password: string, name: string, role: UserRole) {
-        const normalizedEmail = normalizeEmail(email);
-
-        const { data: existingUser } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('email', normalizedEmail)
-            .maybeSingle();
-
-        if (existingUser) {
-            throw new Error("هذا البريد الإلكتروني مستخدم بالفعل. يرجى استخدام بريد آخر أو تسجيل الدخول.");
-        }
-
-        const { data: authData, error: authError } = await supabaseAuthClient.auth.signUp({
-            email: normalizedEmail,
-            password,
-            options: { data: { name, role } } 
-        });
-        
-        if (authError) {
-             let errorMessage = authError.message;
-             if (errorMessage.includes("User already registered") || errorMessage.includes("already has been taken")) {
-                 errorMessage = "هذا البريد الإلكتروني مسجل بالفعل لمستخدم آخر.";
-             } else if (errorMessage.includes("Password should be at least")) {
-                 errorMessage = "كلمة المرور يجب أن تكون 6 أحرف على الأقل.";
-             }
-             throw new Error(errorMessage);
-        }
-        
-        if (authData.user) {
-             const { error } = await (supabase.from('profiles') as any).insert({
-                id: authData.user.id,
-                email: normalizedEmail,
-                name,
-                role,
-                created_at: new Date().toISOString()
-            });
-            if (error) console.error("Registration DB Error:", error);
-            
-            if (role === 'parent' || role === 'user') {
-                 await (supabase.from('child_profiles') as any).insert({
-                    user_id: authData.user.id,
-                    name: 'طفلي الأول',
-                    birth_date: new Date().toISOString().split('T')[0],
-                    gender: 'ذكر'
-                });
-            }
-        }
-        
-        return {
-            user: { id: authData.user!.id, email: normalizedEmail, name, role, created_at: new Date().toISOString() } as UserProfile,
-            accessToken: authData.session?.access_token || '',
-        };
-    },
-
     async getUserChildren(userId: string) {
         try {
             const { data } = await supabase.from('child_profiles').select('*').eq('user_id', userId);
@@ -273,26 +162,4 @@ export const authService = {
             return [];
         }
     },
-
-    async resetPasswordForEmail(email: string) {
-        const redirectTo = `${window.location.protocol}//${window.location.host}`;
-        
-        const { error } = await supabaseAuthClient.auth.resetPasswordForEmail(email, {
-            redirectTo: redirectTo,
-        });
-
-        if (error) {
-            if (error.message.includes("Too many requests")) {
-                throw new Error("لقد طلبت إعادة تعيين كلمة المرور عدة مرات. يرجى الانتظار قليلاً.");
-            }
-            throw new Error(error.message);
-        }
-        return { success: true };
-    },
-
-    async updatePassword(newPassword: string) {
-        const { error } = await supabaseAuthClient.auth.updateUser({ password: newPassword });
-        if (error) throw new Error("فشل تحديث كلمة المرور. حاول مرة أخرى.");
-        return { success: true };
-    }
 };
