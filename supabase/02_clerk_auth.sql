@@ -242,7 +242,7 @@ DROP POLICY IF EXISTS profiles_insert_self_safe_role ON public.profiles;
 DROP POLICY IF EXISTS profiles_update_self_or_admin ON public.profiles;
 DROP POLICY IF EXISTS profiles_admin_delete ON public.profiles;
 CREATE POLICY profiles_select_own_or_admin ON public.profiles FOR SELECT USING (id = public.current_app_profile_id() OR public.is_admin());
-CREATE POLICY profiles_insert_self_safe_role ON public.profiles FOR INSERT WITH CHECK (id = public.current_app_profile_id() AND role IN ('user', 'parent', 'student'));
+CREATE POLICY profiles_insert_self_safe_role ON public.profiles FOR INSERT WITH CHECK ((id = public.current_app_profile_id() AND role IN ('user', 'parent', 'student')) OR public.is_admin());
 CREATE POLICY profiles_update_self_or_admin ON public.profiles FOR UPDATE USING (id = public.current_app_profile_id() OR public.is_admin()) WITH CHECK (id = public.current_app_profile_id() OR public.is_admin());
 CREATE POLICY profiles_admin_delete ON public.profiles FOR DELETE USING (public.is_admin());
 
