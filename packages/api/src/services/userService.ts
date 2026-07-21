@@ -2,6 +2,7 @@
 import { supabase, getCurrentAppProfileId } from '../lib/supabaseClient';
 import { reportingService } from './reportingService';
 import type { UserProfile, ChildProfile, UserRole, PublisherProfile } from '@alrehla/types';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface CreateUserPayload {
     name: string;
@@ -115,8 +116,10 @@ export const userService = {
             throw new Error('Clerk هو مصدر الحسابات الآن. أنشئ المستخدم أو الدعوة في Clerk أولاً ثم اربط profile عبر clerkUserId.');
         }
 
+        const newProfileId = uuidv4();
         const { data: profile, error: pError } = await (supabase.from('profiles') as any)
             .insert({
+                id: newProfileId,
                 clerk_user_id: normalizedClerkUserId,
                 name,
                 email: normalizedEmail,
