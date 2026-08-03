@@ -36,6 +36,17 @@ const SubscriptionPage: React.FC = () => {
     const { currentUser, childProfiles, isLoggedIn, isProfileComplete, triggerProfileUpdate } = useAuth();
     const { shippingCosts } = useProduct();
 
+    const getOneTimeShippingCost = (governorate?: string): number => {
+        if (!governorate) return 0;
+        const egyptCosts = (shippingCosts?.['مصر'] || shippingCosts || {}) as Record<string, any>;
+        return Number(
+            egyptCosts[governorate] ||
+            egyptCosts['باقي المحافظات'] ||
+            egyptCosts['default'] ||
+            50
+        );
+    };
+
     const [step, setStep] = useState(0);
     const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
     const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
@@ -150,9 +161,8 @@ const SubscriptionPage: React.FC = () => {
 
         // Double check shipping before submitting
         let shippingPrice = 0;
-        if (shippingCosts && formData.governorate) {
-            const egyptCosts = shippingCosts['مصر'] || {};
-            const oneTimeShipping = egyptCosts[formData.governorate] || egyptCosts['باقي المحافظات'] || 0;
+        if (formData.governorate) {
+            const oneTimeShipping = getOneTimeShippingCost(formData.governorate);
             shippingPrice = oneTimeShipping * (selectedPlan?.duration_months || 1);
         }
 
@@ -302,7 +312,7 @@ const SubscriptionPage: React.FC = () => {
                             onSubmit={handleSubmit}
                             step={currentStepKey}
                             features={boxContent?.features}
-                            shippingCost={formData.governorate && shippingCosts ? ((shippingCosts['مصر']?.[formData.governorate] || shippingCosts['مصر']?.['باقي المحافظات'] || 0) * (selectedPlan?.duration_months || 1)) : 0}
+                            shippingCost={formData.governorate ? (getOneTimeShippingCost(formData.governorate) * (selectedPlan?.duration_months || 1)) : 0}
                             addonsCost={selectedAddons.reduce((sum, key) => sum + (addonProducts.find(p => p.key === key)?.price_printed || 0), 0)}
                             selectedAddons={selectedAddons}
                             addonProducts={addonProducts}
