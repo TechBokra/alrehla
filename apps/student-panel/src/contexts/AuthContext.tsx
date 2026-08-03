@@ -177,6 +177,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       name: getClerkName(activeClerkUser, email),
     });
 
+    const clerkRole =
+      activeClerkUser?.publicMetadata?.role ||
+      activeClerkUser?.publicMetadata?.appRole ||
+      activeClerkUser?.publicMetadata?.accountType;
+
+    if (clerkRole === 'student' && user.role !== 'student') {
+      user.role = 'student';
+    }
+
     setCurrentUser(user);
     await fetchUserData(user);
     return user;

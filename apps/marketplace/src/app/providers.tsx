@@ -1,23 +1,25 @@
-"use client";
+'use client';
 
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ProductProvider } from '@/contexts/ProductContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { ErrorBoundary } from '@alrehla/ui/error-boundary';
 
-const createQueryClient = () => new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: true,
-      refetchOnMount: true,
-      retry: 1,
-      staleTime: 1000 * 60 * 10,
-      gcTime: 1000 * 60 * 60,
+const createQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: true,
+        refetchOnMount: true,
+        retry: 1,
+        staleTime: 1000 * 60 * 10,
+        gcTime: 1000 * 60 * 60,
+      },
     },
-  },
-});
+  });
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(createQueryClient);
@@ -30,6 +32,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             <CartProvider>{children}</CartProvider>
           </ProductProvider>
         </ToastProvider>
+        {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
       </QueryClientProvider>
     </ErrorBoundary>
   );
