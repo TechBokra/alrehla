@@ -1,12 +1,9 @@
 export const dynamic = 'force-dynamic';
 
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import NotificationsPage from '@/features/notifications';
+import { requireMarketplaceAuth } from '@/lib/server/requireAuth';
 
-export default function Page() {
-  return (
-    <ProtectedRoute>
-      <NotificationsPage />
-    </ProtectedRoute>
-  );
+export default async function Page() {
+  await requireMarketplaceAuth('/notifications');
+  return <NotificationsPage />;
 }

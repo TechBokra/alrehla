@@ -2,7 +2,7 @@
 
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation, useNavigate } from '@/lib/router-compat';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
 import PageLoader from '@alrehla/ui/page-loader';
 import { AuthForm } from '../../../components/auth/AuthForm';
@@ -22,13 +22,13 @@ type AccountTab = 'dashboard' | 'myLibrary' | 'portfolio' | 'familyCenter' | 'se
 
 const AccountPage: React.FC = () => {
     const { isLoggedIn, loading: authLoading, currentUser, isProfileMandatory } = useAuth();
-    const location = useLocation();
-    const navigate = useNavigate();
-    
+    const searchParams = useSearchParams();
+    const router = useRouter();
+
     // Check if redirected due to mandatory profile update OR standard navigation
-    const defaultTab = isProfileMandatory 
-        ? 'settings' 
-        : (location.state as any)?.defaultTab || 'dashboard';
+    const defaultTab = (isProfileMandatory
+        ? 'settings'
+        : searchParams.get('tab') || 'dashboard') as AccountTab;
 
     const [activeTab, setActiveTab] = useState<AccountTab>(defaultTab);
     const [paymentItem, setPaymentItem] = useState<{ id: string; type: 'order' | 'subscription' | 'booking' } | null>(null);
@@ -43,13 +43,13 @@ const AccountPage: React.FC = () => {
     // التحقق من حالة التوجيه
     const shouldRedirect = useMemo(() => {
         if (!isLoggedIn || !currentUser) return false;
-        
+
         // إذا كان طالباً أو موظفاً أو ناشراً، يجب توجيهه للوحة الخاصة به
         if (currentUser.role === 'student') return '/student/dashboard';
-        
+
         // الناشرون والموظفون يذهبون إلى لوحة الإدارة
         if (STAFF_ROLES.includes(currentUser.role) || currentUser.role === 'publisher') return 'admin-panel';
-        
+
         return false;
     }, [isLoggedIn, currentUser]);
 
@@ -60,9 +60,9 @@ const AccountPage: React.FC = () => {
             return;
         }
         if (shouldRedirect) {
-            navigate(shouldRedirect as string, { replace: true });
+            router.replace(shouldRedirect as string);
         }
-    }, [shouldRedirect, navigate]);
+    }, [shouldRedirect, router]);
 
     // عرض شاشة تحميل إذا كنا نتحقق من الجلسة أو إذا كان هناك توجيه قادم
     if (authLoading || shouldRedirect) {
@@ -99,7 +99,7 @@ const AccountPage: React.FC = () => {
                                 <ul className="space-y-1 p-2">
                                     {availableTabs.map(tab => (
                                         <li key={tab.key}>
-                                            <button 
+                                            <button
                                                 onClick={() => setActiveTab(tab.key as AccountTab)}
                                                 className={`w-full flex items-center gap-3 p-3 rounded-md text-right font-semibold transition-colors text-sm ${activeTab === tab.key ? 'bg-muted text-primary border-r-4 border-primary' : 'text-foreground hover:bg-muted/50'}`}
                                             >

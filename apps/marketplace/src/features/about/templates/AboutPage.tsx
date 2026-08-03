@@ -9,6 +9,7 @@ import PageLoader from '@alrehla/ui/page-loader';
 import ShareButtons from '../../../components/shared/ShareButtons';
 import { Card, CardContent } from '@alrehla/ui/card';
 import Image from '@alrehla/ui/next-image';
+import { resolveStoredImageUrl } from '../../../lib/imageUrl';
 
 const ValueCard: React.FC<{ icon: React.ReactNode; title: string; description: string; }> = ({ icon, title, description }) => (
     <Card className="text-center transform hover:scale-105 transition-transform h-full shadow-lg border-t-4 border-primary/50">
@@ -50,7 +51,7 @@ const TeamMemberCard: React.FC<{ name: string; role: string; imageUrl: string; }
 const AboutPage: React.FC = () => {
     const { siteBranding, loading: isBrandingLoading } = useProduct();
     const { data, isLoading: isPublicDataLoading } = usePublicData();
-    const pageUrl = window.location.href;
+    const pageUrl = typeof window !== 'undefined' ? window.location.href : '';
     const content = data?.siteContent?.aboutPage;
 
     if (isBrandingLoading || isPublicDataLoading) {
@@ -58,13 +59,17 @@ const AboutPage: React.FC = () => {
     }
 
     const teamMembers = content?.teamMembers?.filter(member => member && member.name && member.role) || [];
+    const aboutHeroImageUrl = resolveStoredImageUrl(
+        siteBranding?.aboutHeroImageUrl,
+        '/images/about-us-image.jpg',
+    );
 
     return (
         <div className="bg-background animate-fadeIn">
             {/* Hero Section */}
             <section 
                 className="relative py-24 sm:py-32 text-center text-white bg-cover bg-center" 
-                style={{ backgroundImage: `url(${siteBranding?.aboutHeroImageUrl || "/images/about-us-image.jpg"})`}}
+                style={{ backgroundImage: `url("${aboutHeroImageUrl}")` }}
             >
                 <div className="absolute inset-0 bg-primary/80 backdrop-blur-sm"></div>
                 <div className="container mx-auto px-4 relative z-10">

@@ -22,6 +22,7 @@ const getStatusInfo = (status: Subscription['status']) => {
         case 'paused': return { text: 'متوقف مؤقتاً', color: 'bg-yellow-100 text-yellow-800' };
         case 'cancelled': return { text: 'ملغي', color: 'bg-red-100 text-red-800' };
         case 'pending_payment': return { text: 'بانتظار الدفع', color: 'bg-gray-200 text-gray-800' };
+        case 'pending_review': return { text: 'الإيصال قيد المراجعة', color: 'bg-blue-100 text-blue-800' };
         default: return { text: status, color: 'bg-gray-100 text-gray-800' };
     }
 };
@@ -188,6 +189,11 @@ const AdminSubscriptionsPage: React.FC = () => {
                                                             {sub.status === 'paused' && 
                                                                 <Button variant="ghost" size="sm" icon={<Play size={14}/>} onClick={() => reactivateSubscription.mutate({ subscriptionId: sub.id })}>
                                                                     إعادة تفعيل
+                                                                </Button>
+                                                            }
+                                                            {sub.status === 'pending_review' &&
+                                                                <Button variant="success" size="sm" icon={<Play size={14}/>} onClick={() => reactivateSubscription.mutate({ subscriptionId: sub.id })}>
+                                                                    اعتماد وتفعيل
                                                                 </Button>
                                                             }
                                                             {sub.status !== 'cancelled' &&

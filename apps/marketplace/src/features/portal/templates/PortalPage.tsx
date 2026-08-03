@@ -6,6 +6,7 @@ import { Button } from '@alrehla/ui/button';
 import Image from '@alrehla/ui/next-image';
 import Link from 'next/link';
 import { publicService } from '@/services/publicService';
+import { resolveStoredImageUrl } from '@/lib/imageUrl';
 
 import HeroSection from '../components/HeroSection';
 import ProjectCard from '../components/ProjectCard';
@@ -27,7 +28,10 @@ const PortalPage = async () => {
 
   return (
     <div className="bg-background animate-fadeIn">
-      <HeroSection backgroundUrl={branding?.heroImageUrl?.url} content={content} />
+      <HeroSection
+        backgroundUrl={resolveStoredImageUrl(branding?.heroImageUrl)}
+        content={content}
+      />
 
       {content?.showProjectsSection !== false && (
         <section className="bg-muted/30 py-20 sm:py-24">

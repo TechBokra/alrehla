@@ -1,5 +1,3 @@
-'use client';
-
 import type { UserRole } from '../../lib/database.types';
 import { AuthForm } from './AuthForm';
 

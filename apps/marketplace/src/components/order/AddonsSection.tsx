@@ -1,4 +1,3 @@
-"use client";
 
 import React from 'react';
 import { Check } from 'lucide-react';
@@ -9,16 +8,14 @@ interface AddonsSectionProps {
     addonProducts: PersonalizedProduct[];
     selectedAddons: string[];
     onToggle: (key: string) => void;
+    deliveryType?: 'printed' | 'electronic';
 }
 
-const AddonsSection: React.FC<AddonsSectionProps> = React.memo(({ addonProducts, selectedAddons, onToggle }) => {
+const AddonsSection: React.FC<AddonsSectionProps> = React.memo(({ addonProducts, selectedAddons, onToggle, deliveryType = 'printed' }) => {
     if (addonProducts.length === 0) return null;
 
     const getPrice = (product: PersonalizedProduct): number | null => {
-        if (product.has_printed_version) {
-            return product.price_printed;
-        }
-        return product.price_electronic;
+        return deliveryType === 'electronic' ? product.price_electronic : product.price_printed;
     };
 
     return (

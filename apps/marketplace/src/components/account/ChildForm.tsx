@@ -1,7 +1,7 @@
 "use client";
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Save, Image as ImageIcon, ArrowLeft, Loader2 } from 'lucide-react';
 import { useUserMutations } from '../../hooks/mutations/useUserMutations';
 import type { ChildProfile } from '../../lib/database.types';
@@ -11,7 +11,11 @@ import { Input } from '@alrehla/ui/input';
 import { Select } from '@alrehla/ui/native-select';
 import { Textarea } from '@alrehla/ui/textarea';
 import Image from '@alrehla/ui/next-image';
-import { cloudinaryService } from '../../services/cloudinaryService';
+import {
+    MARKETPLACE_IMAGE_MIME_TYPES,
+    marketplaceCloudinaryUploadService,
+    validateMarketplaceImage,
+} from '../../services/marketplaceCloudinaryUploadService';
 
 interface ChildFormProps {
     childToEdit: ChildProfile | null;
@@ -31,8 +35,17 @@ const ChildForm: React.FC<ChildFormProps> = ({ childToEdit, onCancel, onSuccess 
     const [interests, setInterests] = useState('');
     const [strengths, setStrengths] = useState('');
     const [isUploading, setIsUploading] = useState(false);
+    const previewObjectUrlRef = useRef<string | null>(null);
+
+    const revokePreviewObjectUrl = useCallback(() => {
+        if (previewObjectUrlRef.current) {
+            URL.revokeObjectURL(previewObjectUrlRef.current);
+            previewObjectUrlRef.current = null;
+        }
+    }, []);
 
     useEffect(() => {
+        revokePreviewObjectUrl();
         if (childToEdit) {
             setName(childToEdit.name);
             setBirthDate(childToEdit.birth_date);
@@ -41,13 +54,32 @@ const ChildForm: React.FC<ChildFormProps> = ({ childToEdit, onCancel, onSuccess 
             setInterests((childToEdit.interests || []).join(', '));
             setStrengths((childToEdit.strengths || []).join(', '));
         }
-    }, [childToEdit]);
+    }, [childToEdit, revokePreviewObjectUrl]);
+
+    useEffect(() => revokePreviewObjectUrl, [revokePreviewObjectUrl]);
     
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
+
+        if (file) {
+            try {
+                validateMarketplaceImage(file);
+            } catch (error) {
+                revokePreviewObjectUrl();
+                setAvatarFile(null);
+                setPreview(childToEdit?.avatar_url || null);
+                e.currentTarget.value = '';
+                alert(error instanceof Error ? error.message : 'ملف الصورة غير صالح.');
+                return;
+            }
+        }
+
+        revokePreviewObjectUrl();
         setAvatarFile(file);
         if (file) {
-            setPreview(URL.createObjectURL(file));
+            const objectUrl = URL.createObjectURL(file);
+            previewObjectUrlRef.current = objectUrl;
+            setPreview(objectUrl);
         } else {
             setPreview(childToEdit?.avatar_url || null);
         }
@@ -65,7 +97,7 @@ const ChildForm: React.FC<ChildFormProps> = ({ childToEdit, onCancel, onSuccess 
             
             if (avatarFile) {
                 try {
-                    const asset = await cloudinaryService.uploadImage(avatarFile, 'alrehla_child_profiles');
+                    const asset = await marketplaceCloudinaryUploadService.uploadImage(avatarFile, 'child-profile');
                     newAvatarUrl = JSON.stringify(asset);
                 } catch (uploadError) {
                     console.error("Image upload failed", uploadError);
@@ -123,7 +155,7 @@ const ChildForm: React.FC<ChildFormProps> = ({ childToEdit, onCancel, onSuccess 
                             </div>
                         )}
                     </div>
-                    <input type="file" id="avatar-upload" onChange={handleFileChange} accept="image/*" className="hidden" disabled={isSaving}/>
+                    <input type="file" id="avatar-upload" onChange={handleFileChange} accept={MARKETPLACE_IMAGE_MIME_TYPES.join(',')} className="hidden" disabled={isSaving}/>
                     <label htmlFor="avatar-upload" className={`cursor-pointer flex items-center gap-2 text-sm font-semibold text-blue-600 bg-white border border-blue-100 hover:bg-blue-50 px-4 py-2 rounded-full shadow-sm transition-colors ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}>
                         <ImageIcon size={16} /> <span>{preview ? 'تغيير الصورة' : 'رفع صورة رمزية'}</span>
                     </label>

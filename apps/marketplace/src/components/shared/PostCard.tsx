@@ -1,8 +1,5 @@
-"use client";
-
-
 import React from 'react';
-import { Link } from '@/lib/router-compat';
+import Link from 'next/link';
 import type { BlogPost } from '../../lib/database.types';
 import { formatDate } from '../../utils/helpers';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@alrehla/ui/card';
@@ -14,7 +11,7 @@ interface PostCardProps {
 
 const PostCard = React.forwardRef<HTMLAnchorElement, PostCardProps>(({ post }, ref) => {
     return (
-        <Link to={`/blog/${post.slug}`} ref={ref} className="block h-full group no-underline">
+        <Link href={`/blog/${post.slug}`} ref={ref} className="block h-full group no-underline">
             <Card className="overflow-hidden transition-transform transform hover:-translate-y-2 duration-300 h-full flex flex-col">
                 <div className="h-48 w-full overflow-hidden">
                     <Image 

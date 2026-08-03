@@ -1,4 +1,3 @@
-"use client";
 
 
 import React from 'react';
@@ -35,7 +34,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ navLinks, isLoggedIn, dashboard
                 )
             )}
             {!isLoggedIn && (
-                <Button as={Link} to="/account" onClick={onClose} size="default">تسجيل الدخول</Button>
+                <Button as={Link} to="/login" onClick={onClose} size="default">تسجيل الدخول</Button>
             )}
         </nav>
     </div>

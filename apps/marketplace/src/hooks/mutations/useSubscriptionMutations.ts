@@ -2,13 +2,18 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
 import { orderService } from '../../services/orderService';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const useSubscriptionMutations = () => {
     const queryClient = useQueryClient();
     const { addToast } = useToast();
+    const { currentUser } = useAuth();
 
     const createSubscription = useMutation({
         mutationFn: orderService.createSubscription,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['userAccountData', currentUser?.id] });
+        },
         onError: (error: Error) => {
             addToast(`فشل إنشاء الاشتراك: ${error.message}`, 'error');
         }

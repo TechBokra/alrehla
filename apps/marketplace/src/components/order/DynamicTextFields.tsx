@@ -6,23 +6,28 @@ import FormField from '@alrehla/ui/form-field';
 import { Textarea } from '@alrehla/ui/textarea';
 import { Input } from '@alrehla/ui/input';
 import type { TextFieldConfig } from '../../lib/database.types';
-import { useFormContext } from 'react-hook-form';
+import type { OrderFormApi } from './form-types';
+import { getFieldError } from './form-types';
 
 const DynamicTextFields: React.FC<{
     fields: TextFieldConfig[];
-}> = ({ fields }) => {
-    const { register, formState: { errors } } = useFormContext();
+    form: OrderFormApi;
+}> = ({ fields, form }) => {
 
     return (
         <div className="space-y-6">
             {fields.map(field => (
-                <FormField key={field.id} label={field.label} htmlFor={field.id} error={errors[field.id]?.message as string}>
-                    {field.type === 'textarea' ? (
-                        <Textarea id={field.id} {...register(field.id)} rows={4} placeholder={field.placeholder} />
-                    ) : (
-                        <Input id={field.id} {...register(field.id)} placeholder={field.placeholder} />
+                <form.Field key={field.id} name={field.id}>
+                    {(fieldApi: any) => (
+                        <FormField key={field.id} label={field.label} htmlFor={field.id} error={getFieldError(fieldApi)}>
+                            {field.type === 'textarea' ? (
+                                <Textarea id={field.id} value={fieldApi.state.value || ''} onChange={(event) => fieldApi.handleChange(event.target.value)} onBlur={fieldApi.handleBlur} rows={4} placeholder={field.placeholder} />
+                            ) : (
+                                <Input id={field.id} value={fieldApi.state.value || ''} onChange={(event) => fieldApi.handleChange(event.target.value)} onBlur={fieldApi.handleBlur} placeholder={field.placeholder} />
+                            )}
+                        </FormField>
                     )}
-                </FormField>
+                </form.Field>
             ))}
         </div>
     );

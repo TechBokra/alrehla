@@ -31,20 +31,6 @@ export type { UserProfile, ChildProfile, UserRole };
 const CLERK_ENABLED = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 const CLERK_CALLBACK_PATH = "/sso-callback";
 
-const USER_ROLES: UserRole[] = [
-  "user",
-  "parent",
-  "student",
-  "instructor",
-  "super_admin",
-  "general_supervisor",
-  "enha_lak_supervisor",
-  "creative_writing_supervisor",
-  "content_editor",
-  "support_agent",
-  "publisher",
-];
-
 interface AuthContextType {
   currentUser: UserProfile | null;
   currentChildProfile: ChildProfile | null;
@@ -58,7 +44,6 @@ interface AuthContextType {
     role: UserRole,
   ) => Promise<UserProfile | null>;
   signInWithGoogle: (redirectUrl?: string) => Promise<void>;
-  verifySignUpEmail: (code: string) => Promise<UserProfile | null>;
   updateCurrentUser: (updatedData: Partial<UserProfile>) => void;
   loading: boolean;
   error: string | null;
@@ -76,12 +61,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const normalizeRole = (role: unknown, fallback: UserRole = "user"): UserRole => {
-  return typeof role === "string" && USER_ROLES.includes(role as UserRole)
-    ? (role as UserRole)
-    : fallback;
-};
 
 const getClerkEmail = (clerkUser: any) => {
   return (
@@ -101,13 +80,6 @@ const getClerkName = (clerkUser: any, email: string) => {
     .trim();
 
   return parts || email.split("@")[0] || "مستخدم الرحلة";
-};
-
-const getClerkRole = (clerkUser: any, fallback: UserRole = "user") => {
-  return normalizeRole(
-    clerkUser?.publicMetadata?.role || clerkUser?.unsafeMetadata?.role,
-    fallback,
-  );
 };
 
 const getClerkErrorMessage = (error: any) => {
@@ -189,7 +161,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [resetSecondaryUserData]);
 
-  const syncClerkProfile = useCallback(async (activeClerkUser: any, fallbackRole: UserRole = "user") => {
+  const syncClerkProfile = useCallback(async (activeClerkUser: any) => {
     const email = getClerkEmail(activeClerkUser);
     if (!email) throw new Error("لم نتمكن من قراءة البريد الإلكتروني من Clerk.");
 
@@ -201,10 +173,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
 
     const user = await authService.getOrCreateClerkUserProfile({
-      clerkUserId: activeClerkUser.id,
       email,
       name: getClerkName(activeClerkUser, email),
-      role: getClerkRole(activeClerkUser, fallbackRole),
     });
 
     setCurrentUser(user);
@@ -212,11 +182,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     return user;
   }, [fetchUserData, getClerkAccessToken]);
 
-  const syncActiveClerkUser = useCallback(async (fallbackRole: UserRole = "student") => {
+  const syncActiveClerkUser = useCallback(async () => {
     await (clerk as any)?.load?.();
     const activeClerkUser = (clerk as any)?.user || clerkUser;
     if (!activeClerkUser) throw new Error("تم تسجيل الدخول، لكن جلسة Clerk لم تجهز بعد.");
-    return syncClerkProfile(activeClerkUser, fallbackRole);
+    return syncClerkProfile(activeClerkUser);
   }, [clerk, clerkUser, syncClerkProfile]);
 
   useEffect(() => {
@@ -236,7 +206,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           return;
         }
 
-        const user = await syncClerkProfile(clerkUser, "student");
+        const user = await syncClerkProfile(clerkUser);
         if (cancelled) return;
         setCurrentUser(user);
       } catch (e: any) {
@@ -312,6 +282,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     name: string,
     role: UserRole,
   ): Promise<UserProfile | null> => {
+    void role;
     setLoading(true);
     setError(null);
     setPendingEmailVerification(false);
@@ -324,7 +295,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           emailAddress: email.toLowerCase().trim(),
           password,
           firstName: name,
-          unsafeMetadata: { name, role },
+          unsafeMetadata: { name },
         });
 
         if (clerkError) throw new Error(getClerkErrorMessage(clerkError));
@@ -332,16 +303,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         if (clerkSignUp.status === "complete") {
           const { error: finalizeError } = await clerkSignUp.finalize();
           if (finalizeError) throw new Error(getClerkErrorMessage(finalizeError));
-          const user = await syncActiveClerkUser(role);
+          const user = await syncActiveClerkUser();
           addToast("تم إنشاء الحساب بنجاح!", "success");
           return user;
         }
 
         if (clerkSignUp.unverifiedFields.includes("email_address" as any)) {
-          const { error: sendError } = await clerkSignUp.verifications.sendEmailCode();
+          const { error: sendError } = await clerkSignUp.verifications.sendEmailLink({
+            verificationUrl: `${window.location.origin}/auth/verify-email`,
+          });
           if (sendError) throw new Error(getClerkErrorMessage(sendError));
           setPendingEmailVerification(true);
-          addToast("تم إرسال رمز التحقق إلى بريدك الإلكتروني.", "info");
+          addToast("تم إرسال رابط التحقق إلى بريدك الإلكتروني.", "info");
           return null;
         }
 
@@ -351,40 +324,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     } catch (e: any) {
       setError(e.message);
       addToast(e.message, "error");
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const verifySignUpEmail = async (code: string): Promise<UserProfile | null> => {
-    if (!CLERK_ENABLED || !clerkSignUp) return null;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { error: verifyError } = await clerkSignUp.verifications.verifyEmailCode({
-        code: code.trim(),
-      });
-
-      if (verifyError) throw new Error(getClerkErrorMessage(verifyError));
-
-      if (clerkSignUp.status !== "complete") {
-        throw new Error("رمز التحقق صحيح لكن الحساب لم يكتمل بعد.");
-      }
-
-      const { error: finalizeError } = await clerkSignUp.finalize();
-      if (finalizeError) throw new Error(getClerkErrorMessage(finalizeError));
-
-      setPendingEmailVerification(false);
-      const user = await syncActiveClerkUser(getClerkRole((clerk as any)?.user));
-      addToast("تم تأكيد البريد وإنشاء الحساب بنجاح!", "success");
-      return user;
-    } catch (e: any) {
-      const msg = e.message || "فشل التحقق من الرمز.";
-      setError(msg);
-      addToast(msg, "error");
       return null;
     } finally {
       setLoading(false);
@@ -478,7 +417,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       signIn,
       signUp,
       signInWithGoogle,
-      verifySignUpEmail,
       updateCurrentUser,
       loading: loading || clerkSignInFetchStatus === "fetching" || clerkSignUpFetchStatus === "fetching",
       error,

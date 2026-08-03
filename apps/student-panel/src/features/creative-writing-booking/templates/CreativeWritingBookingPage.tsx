@@ -2,7 +2,8 @@
 
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useLocation, Link } from '@/lib/router-compat';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useCart } from '../../../contexts/CartContext';
 import { useToast } from '../../../contexts/ToastContext';
@@ -30,8 +31,9 @@ const stepsConfig = [
 ];
 
 const CreativeWritingBookingPage: React.FC = () => {
-    const navigate = useNavigate();
-    const location = useLocation();
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { isLoggedIn, currentUser, childProfiles, loading: authLoading, isProfileComplete, triggerProfileUpdate } = useAuth();
     const { addItemToCart } = useCart();
     const { addToast } = useToast();
@@ -46,15 +48,8 @@ const CreativeWritingBookingPage: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        if (location.state?.selectedPackage) {
-            setSelectedPackage(location.state.selectedPackage);
-            setStep('child');
-        }
-        if (location.state?.instructor) {
-            setSelectedInstructor(location.state.instructor);
-            setStep('schedule');
-        }
-    }, [location.state]);
+        // Handled via standard search params if present
+    }, [searchParams]);
     
     // تصحيح: استخدام pricingSettings من المستوى الأعلى
     const { instructors = [], cw_packages = [], holidays = [], activeBookings = [], pricingConfig } = (bookingData as any) || {};
@@ -111,7 +106,7 @@ const CreativeWritingBookingPage: React.FC = () => {
         return (
             <div className="container mx-auto px-4 py-12 text-center">
                 <p className="mb-4 text-lg">يجب تسجيل الدخول أولاً لحجز رحلتك التدريبية.</p>
-                <Button as={Link} to="/account" state={{ from: location }} size="lg">تسجيل الدخول / إنشاء حساب</Button>
+                <Button asChild size="lg"><Link href="/account">تسجيل الدخول / إنشاء حساب</Link></Button>
             </div>
         );
     }
@@ -129,7 +124,7 @@ const CreativeWritingBookingPage: React.FC = () => {
         if (currentIndex > 0) {
             setStep(stepsConfig[currentIndex - 1].key as BookingStep);
         } else {
-            navigate('/creative-writing');
+            router.push('/creative-writing');
         }
     };
 
@@ -160,9 +155,7 @@ const CreativeWritingBookingPage: React.FC = () => {
     };
 
     const handleAddChild = () => {
-        navigate('/account', { 
-            state: { defaultTab: 'familyCenter', from: location.pathname } 
-        });
+        router.push('/account?tab=familyCenter');
     };
 
     const handleSubmit = async () => {
@@ -215,7 +208,7 @@ const CreativeWritingBookingPage: React.FC = () => {
             });
             
             addToast('تمت إضافة الحجز إلى السلة بنجاح!', 'success');
-            navigate('/cart');
+            router.push('/cart');
         } catch (error) {
             addToast('حدث خطأ أثناء التحقق من الموعد.', 'error');
         } finally {

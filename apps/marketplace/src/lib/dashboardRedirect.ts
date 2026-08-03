@@ -4,7 +4,7 @@ import { getAdminPanelUrl } from './adminPanelUrl';
 import { getStudentPanelUrl } from './studentPanelUrl';
 
 const AUTH_REDIRECT_PATH = '/auth/redirect';
-const ACCOUNT_DASHBOARD_PATH = '/account';
+const ACCOUNT_DASHBOARD_PATH = '/';
 
 export interface DashboardDestination {
   href: string;
@@ -16,7 +16,27 @@ export interface DashboardDestination {
 export const isExternalUrl = (value: string) => /^https?:\/\//i.test(value);
 
 export const normalizeInternalRedirect = (value?: string | null) => {
-  if (!value || !value.startsWith('/') || value.startsWith('//') || isExternalUrl(value)) {
+  if (
+    !value ||
+    !value.startsWith('/') ||
+    value.startsWith('//') ||
+    isExternalUrl(value) ||
+    /[\u0000-\u001f\u007f\\]/.test(value) ||
+    /%(?:2f|5c)/i.test(value)
+  ) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(value, 'https://marketplace.invalid');
+    if (
+      parsed.origin !== 'https://marketplace.invalid' ||
+      parsed.username ||
+      parsed.password
+    ) {
+      return null;
+    }
+  } catch {
     return null;
   }
 

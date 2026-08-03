@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../../../lib/supabaseClient';
-import { mockJitsiSettings } from '../../../data/mockData';
+import { supabase } from '../../../lib/supabase/client';
 
 const fetchJitsiSettings = async () => {
   const { data, error } = await supabase

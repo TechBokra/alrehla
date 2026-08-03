@@ -31,6 +31,16 @@ type AdminUpdateUserPayload = {
 
 const normalizeEmail = (email: string) => email.toLowerCase().trim();
 
+const getRoleMetadata = (role: UserRole) => ({
+  accountType: role === 'student' ? 'student' : 'parent',
+  globalRole:
+    role === 'super_admin'
+      ? 'super_admin'
+      : role === 'support_agent'
+        ? 'support_admin'
+        : null,
+});
+
 const getClerkErrorMessage = (error: any) => {
   return (
     error?.errors?.[0]?.longMessage ||
@@ -57,8 +67,11 @@ const getDatabaseErrorMessage = (error: any) => {
 
 const assertPassword = (password: string, required = true) => {
   if (!password && !required) return;
-  if (!password || password.length < 8) {
-    throw new Error('كلمة المرور يجب أن تكون 8 أحرف على الأقل حتى يقبلها Clerk.');
+  if (!password || password.trim().length === 0) {
+    throw new Error('كلمة المرور مطلوب إدخالها.');
+  }
+  if (password.length < 8) {
+    throw new Error('كلمة المرور يجب أن تتكون من 8 أحرف على الأقل حتى يقبلها نظام Clerk.');
   }
 };
 
@@ -116,17 +129,19 @@ export const createUser = async (payload: AdminCreateUserPayload) => {
   try {
     const clerkUser = await clerk.users.createUser({
       emailAddress: [normalizedEmail],
+      emailAddressIdentificationStatus: ['reserved'],
       password,
       firstName: name,
       publicMetadata: {
         role,
         appRole: role,
+        ...getRoleMetadata(role),
       },
       unsafeMetadata: {
         role,
         name,
       },
-    });
+    } as any);
 
     clerkUserId = clerkUser.id;
 
@@ -157,11 +172,12 @@ export const updateUser = async (payload: AdminUpdateUserPayload) => {
 
   const beforeProfile = await getProfileForAdmin(id);
 
-  const updatedProfile = await withClerkSupabaseSession(async () => {
+  let updatedProfile = await withClerkSupabaseSession(async () => {
     const updates = {
-      ...profileUpdates,
-      ...(role ? { role } : {}),
-      updated_at: new Date().toISOString(),
+      ...(() => {
+        const { email: _email, ...safeProfileUpdates } = profileUpdates;
+        return safeProfileUpdates;
+      })(),
     } as any;
 
     delete updates.password;
@@ -176,6 +192,17 @@ export const updateUser = async (payload: AdminUpdateUserPayload) => {
     if (error) throw new Error(getDatabaseErrorMessage(error));
     return data as any;
   });
+
+  if (role) {
+    updatedProfile = await withClerkSupabaseSession(async () => {
+      const { data, error } = await (supabase.rpc as any)('change_user_role', {
+        p_target_profile_id: id,
+        p_role: role,
+      });
+      if (error) throw new Error(getDatabaseErrorMessage(error));
+      return data as any;
+    });
+  }
 
   const clerkUserId = beforeProfile.clerk_user_id;
   if (clerkUserId) {
@@ -192,6 +219,7 @@ export const updateUser = async (payload: AdminUpdateUserPayload) => {
           ...(clerkUser.publicMetadata || {}),
           role: nextRole,
           appRole: nextRole,
+          ...getRoleMetadata(nextRole),
         },
         unsafeMetadata: {
           ...(clerkUser.unsafeMetadata || {}),

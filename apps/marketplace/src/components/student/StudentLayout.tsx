@@ -3,19 +3,21 @@
 
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate, NavLink, Outlet } from '@/lib/router-compat';
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { LogOut, LayoutDashboard, GalleryVertical } from 'lucide-react';
 import { useStudentDashboardData } from '../../hooks/queries/user/useJourneyDataQuery';
 import Image from '@alrehla/ui/next-image';
 
 const StudentLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
     const { currentChildProfile, currentUser, signOut } = useAuth();
-    const navigate = useNavigate();
+    const router = useRouter();
+    const pathname = usePathname() || '';
     const { data, isLoading } = useStudentDashboardData();
 
     const handleSignOut = async () => {
         await signOut();
-        navigate('/');
+        router.push('/');
     };
 
     // Fallbacks for display
@@ -24,7 +26,7 @@ const StudentLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) =
 
     return (
         <div className="flex flex-col min-h-screen bg-gray-100" dir="rtl">
-            {/* 
+            {/*
                Header offset: top-16 (4rem/64px) to account for the Main Site Header height.
                Z-index set to 30 to sit below Main Header (z-40) but above content.
             */}
@@ -33,9 +35,9 @@ const StudentLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) =
                     <div className="flex justify-between items-center h-20">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full border-2 border-blue-200 overflow-hidden">
-                                <Image 
-                                    src={avatarUrl} 
-                                    alt={displayName} 
+                                <Image
+                                    src={avatarUrl}
+                                    alt={displayName}
                                     className="w-full h-full"
                                 />
                             </div>
@@ -57,31 +59,30 @@ const StudentLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) =
                     </div>
                 </div>
             </header>
-            
-            {/* 
-                Nav offset: top-36 (16 + 20 = 36). 
+
+            {/*
+                Nav offset: top-36 (16 + 20 = 36).
                 Main Header (h-16) + Student Header (h-20) = 9rem offset.
             */}
             <div className="bg-white border-b sticky top-36 z-20 transition-all">
                 <nav className="container mx-auto px-4 sm:px-6 lg:px-8 flex space-x-6 rtl:space-x-reverse">
-                    <NavLink 
-                        to="/student/dashboard" 
-                        end 
-                        className={({ isActive }) => `whitespace-nowrap flex items-center gap-2 py-3 px-1 border-b-2 font-semibold text-sm ${isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                    <Link
+                        href="/student/dashboard"
+                        className={`whitespace-nowrap flex items-center gap-2 py-3 px-1 border-b-2 font-semibold text-sm ${pathname === '/student/dashboard' || pathname === '/student' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                     >
                         <LayoutDashboard size={16} /> لوحة التحكم
-                    </NavLink>
-                    <NavLink 
-                        to="/student/portfolio" 
-                        className={({ isActive }) => `whitespace-nowrap flex items-center gap-2 py-3 px-1 border-b-2 font-semibold text-sm ${isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+                    </Link>
+                    <Link
+                        href="/student/portfolio"
+                        className={`whitespace-nowrap flex items-center gap-2 py-3 px-1 border-b-2 font-semibold text-sm ${pathname.startsWith('/student/portfolio') ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                     >
                         <GalleryVertical size={16} /> معرض أعمالي
-                    </NavLink>
+                    </Link>
                 </nav>
             </div>
-            
+
             <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
-                {children ?? <Outlet />}
+                {children}
             </main>
         </div>
     );

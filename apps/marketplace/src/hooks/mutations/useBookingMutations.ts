@@ -3,13 +3,19 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
 import { bookingService } from '../../services/bookingService';
 import type { BookingStatus } from '../../lib/database.types';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const useBookingMutations = () => {
     const queryClient = useQueryClient();
     const { addToast } = useToast();
+    const { currentUser } = useAuth();
 
     const createBooking = useMutation({
         mutationFn: bookingService.createBooking,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['userAccountData', currentUser?.id] });
+            queryClient.invalidateQueries({ queryKey: ['studentDashboardData', currentUser?.id] });
+        },
          onError: (error: Error) => {
             addToast(`فشل إنشاء الحجز: ${error.message}`, 'error');
         }
@@ -30,7 +36,9 @@ export const useBookingMutations = () => {
         mutationFn: (payload: { bookingId: string, notes: string }) => bookingService.updateBookingProgressNotes(payload.bookingId, payload.notes),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['adminRawCwBookings'] });
-            queryClient.invalidateQueries({ queryKey: ['trainingJourney', variables.bookingId] });
+            queryClient.invalidateQueries({
+                queryKey: ['trainingJourney', currentUser?.id, variables.bookingId],
+            });
             addToast('تم حفظ ملاحظات التقدم بنجاح.', 'success');
         },
          onError: (error: Error) => {
@@ -55,7 +63,9 @@ export const useBookingMutations = () => {
         mutationFn: (payload: { bookingId: string, draft: string }) => bookingService.saveBookingDraft(payload.bookingId, payload.draft),
         onSuccess: (_, variables) => {
             // تحديث بيانات الرحلة فوراً لتظهر المسودة عند الجميع (تحديث الكاش)
-            queryClient.invalidateQueries({ queryKey: ['trainingJourney', variables.bookingId] });
+            queryClient.invalidateQueries({
+                queryKey: ['trainingJourney', currentUser?.id, variables.bookingId],
+            });
             // تحديث الاستعلامات الأخرى ذات الصلة لضمان التزامن
             queryClient.invalidateQueries({ queryKey: ['studentDashboardData'] });
             addToast('تم حفظ المسودة بنجاح.', 'success');
@@ -72,7 +82,9 @@ export const useBookingMutations = () => {
     const sendSessionMessage = useMutation({
         mutationFn: bookingService.sendSessionMessage,
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['trainingJourney', variables.bookingId] });
+            queryClient.invalidateQueries({
+                queryKey: ['trainingJourney', currentUser?.id, variables.bookingId],
+            });
         },
         onError: (error: Error) => {
             addToast(`فشل إرسال الرسالة: ${error.message}`, 'error');
@@ -82,7 +94,9 @@ export const useBookingMutations = () => {
     const uploadSessionAttachment = useMutation({
         mutationFn: bookingService.uploadSessionAttachment,
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['trainingJourney', variables.bookingId] });
+            queryClient.invalidateQueries({
+                queryKey: ['trainingJourney', currentUser?.id, variables.bookingId],
+            });
             addToast('تم رفع الملف بنجاح.', 'success');
         },
         onError: (error: Error) => {

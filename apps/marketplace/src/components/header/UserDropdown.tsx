@@ -7,6 +7,7 @@ import { Button } from '@alrehla/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@alrehla/ui/components/ui/popover';
 import { Separator } from '@alrehla/ui/components/ui/separator';
 import { getDashboardDestinationForRole } from '../../lib/dashboardRedirect';
+import { resolveStoredImageUrl } from '../../lib/imageUrl';
 import type { UserProfile } from '../../lib/database.types';
 import { LayoutDashboard, LogOut, Moon, Settings, Sun } from 'lucide-react';
 
@@ -42,7 +43,6 @@ interface UserDropdownProps {
 const UserDropdown: React.FC<UserDropdownProps> = ({ currentUser, onSignOut, onClose }) => {
     const [open, setOpen] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(false);
-
     const dashboardDestination = useMemo(
         () => getDashboardDestinationForRole(currentUser?.role),
         [currentUser?.role],
@@ -51,7 +51,9 @@ const UserDropdown: React.FC<UserDropdownProps> = ({ currentUser, onSignOut, onC
         () => getInitials(currentUser?.name, currentUser?.email),
         [currentUser?.email, currentUser?.name],
     );
-    const avatarUrl = (currentUser as any)?.avatar_url || (currentUser as any)?.imageUrl || null;
+    const avatarUrl = resolveStoredImageUrl(
+        (currentUser as any)?.avatar_url || (currentUser as any)?.imageUrl,
+    );
 
     useEffect(() => {
         const nextIsDark = getStoredDarkMode();

@@ -1,6 +1,15 @@
 
-import type { UserRole } from '@alrehla/types';
+import type { AccountType, GlobalRole, OrganizationRole, UserRole } from '@alrehla/types';
 export type { UserRole };
+export type { AccountType, GlobalRole, OrganizationRole };
+
+export const ACCOUNT_TYPES = ['parent', 'student'] as const;
+export const GLOBAL_ROLES = ['super_admin', 'support_admin'] as const;
+export const ORGANIZATION_ROLES = [
+  'org:general_supervisor',
+  'org:instructor',
+  'org:publisher',
+] as const;
 
 export const roleNames: Record<UserRole, string> = {
   user: 'مستخدم عادي',

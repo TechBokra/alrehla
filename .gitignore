@@ -73,11 +73,14 @@ web_modules/
 # Local env files
 .env
 .env.local
+.env.development
+.env.production
 .env.development.local
 .env.test.local
 .env.production.local
-.env.production
-.env.development
+*.env
+*.env.production
+*.env.development
 !.env.example
 !.env.local.example
 
@@ -99,3 +102,14 @@ backups/
 sql/
 
 reports/
+
+# Keep generated/private documentation ignored, but version this review artifact.
+docs/*
+!docs/architecture/
+docs/architecture/*
+!docs/architecture/marketplace-architecture-review.md
+
+# Agent & AI tool configurations
+.agents/
+.gemini/
+skills-lock.json

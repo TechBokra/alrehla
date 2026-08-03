@@ -12,6 +12,8 @@ export const orderService = {
   assignInstructorToServiceOrder: orderActions.assignInstructorToServiceOrder,
   updateOrderComment: orderActions.updateOrderComment,
   uploadReceipt: orderActions.uploadReceipt,
+  uploadCheckoutFile: orderActions.uploadCheckoutFile,
+  cleanupCheckoutFiles: orderActions.cleanupCheckoutFiles,
   bulkUpdateOrderStatus: orderActions.bulkUpdateOrderStatus,
   bulkDeleteOrders: orderActions.bulkDeleteOrders,
   createSubscriptionPlan: orderActions.createSubscriptionPlan,

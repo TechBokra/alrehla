@@ -15,6 +15,72 @@ import type {
 } from '@alrehla/types';
 import { supabase } from '../lib/supabaseClient';
 
+const PUBLIC_INSTRUCTOR_COLUMNS = [
+    'id',
+    'name',
+    'slug',
+    'specialty',
+    'bio',
+    'avatar_url',
+    'service_rates',
+    'package_rates',
+    'weekly_schedule',
+    'availability',
+    'intro_availability',
+    'teaching_philosophy',
+    'expertise_areas',
+    'intro_video_url',
+    'published_works',
+].join(',');
+
+const PUBLIC_PACKAGE_COLUMNS = [
+    'id',
+    'name',
+    'sessions',
+    'price',
+    'features',
+    'description',
+    'detailed_description',
+    'target_age',
+    'level',
+    'icon_name',
+    'popular',
+    'includes_digital_portfolio',
+    'includes_certificate',
+    'includes_publication',
+    'includes_extra_mentoring',
+    'comparison_values',
+].join(',');
+
+const PUBLIC_SERVICE_COLUMNS =
+    'id,name,price,description,category,icon_name,requires_file_upload,provider_type';
+const PUBLIC_PLAN_COLUMNS =
+    'id,name,duration_months,price,price_per_month,savings_text,is_best_value';
+const PUBLIC_PUBLISHER_COLUMNS =
+    'id,slug,store_name,logo_url,cover_url,description,website,social_links,created_at';
+const PUBLIC_PRODUCT_COLUMNS = [
+    'id',
+    'key',
+    'title',
+    'product_type',
+    'description',
+    'image_url',
+    'features',
+    'sort_order',
+    'is_featured',
+    'is_addon',
+    'is_active',
+    'has_printed_version',
+    'price_printed',
+    'price_electronic',
+    'image_slots',
+    'text_fields',
+    'goal_config',
+    'story_goals',
+    'component_keys',
+    'publisher:public_profiles(name)',
+].join(',');
+
 interface PublicData {
     instructors: Instructor[];
     publishers: PublisherProfile[];
@@ -46,12 +112,13 @@ export const publicService = {
     async getPersonalizedProducts() {
         const { data } = await supabase
             .from('personalized_products')
-            .select('*, publisher:public_profiles(name)')
+            .select(PUBLIC_PRODUCT_COLUMNS)
             .is('deleted_at', null)
+            .eq('is_active', true)
+            .eq('approval_status', 'approved')
             .order('sort_order');
         
         return (data as PersonalizedProduct[] || [])
-            .filter(p => p.is_active !== false)
             .map(p => ({
                 ...p,
                 publisher: p.publisher ? p.publisher : { name: 'الرحلة' }
@@ -61,7 +128,7 @@ export const publicService = {
     async getSubscriptionPlans() {
         const { data } = await supabase
             .from('subscription_plans')
-            .select('*')
+            .select(PUBLIC_PLAN_COLUMNS)
             .is('deleted_at', null)
             .order('price');
         return (data as SubscriptionPlan[]) || [];
@@ -74,10 +141,10 @@ export const publicService = {
             { data: services },
             { data: settings }
         ] = await Promise.all([
-            supabase.from('instructors').select('*').is('deleted_at', null),
-            supabase.from('creative_writing_packages').select('*'),
-            supabase.from('standalone_services').select('*'),
-            supabase.from('public_settings').select('*')
+            supabase.from('instructors').select(PUBLIC_INSTRUCTOR_COLUMNS).is('deleted_at', null),
+            supabase.from('creative_writing_packages').select(PUBLIC_PACKAGE_COLUMNS),
+            supabase.from('standalone_services').select(PUBLIC_SERVICE_COLUMNS),
+            supabase.from('public_settings').select('key,value')
         ]);
 
         const getSetting = (key: string, defaultValue?: any) => {
@@ -95,7 +162,7 @@ export const publicService = {
     },
 
     async getPublicSettings() {
-        const { data: settingsData } = await supabase.from('public_settings').select('*');
+        const { data: settingsData } = await supabase.from('public_settings').select('key,value');
         const getSetting = (key: string, defaultValue?: any) => {
             const item = (settingsData as any[])?.find(s => s.key === key);
             return item ? item.value : defaultValue || null;
@@ -176,16 +243,36 @@ export const publicService = {
             comparisonItems,
             publishers
         ] = await Promise.all([
-            supabase.from('instructors').select('*').is('deleted_at', null).then(r => r.data || []),
+            supabase
+                .from('instructors')
+                .select(PUBLIC_INSTRUCTOR_COLUMNS)
+                .is('deleted_at', null)
+                .then(r => r.data || []),
             this.getBlogPosts(),
             this.getPersonalizedProducts(),
-            supabase.from('creative_writing_packages').select('*').then(r => r.data || []),
+            supabase
+                .from('creative_writing_packages')
+                .select(PUBLIC_PACKAGE_COLUMNS)
+                .then(r => r.data || []),
             this.getSubscriptionPlans(),
-            supabase.from('standalone_services').select('*').then(r => r.data || []),
-            supabase.from('public_settings').select('*').then(r => r.data || []),
-            supabase.from('badges').select('*').then(r => r.data || []),
-            supabase.from('comparison_items').select('*').order('sort_order').then(r => r.data || []),
-            supabase.from('publisher_profiles').select('*').then(r => r.data || [])
+            supabase
+                .from('standalone_services')
+                .select(PUBLIC_SERVICE_COLUMNS)
+                .then(r => r.data || []),
+            supabase.from('public_settings').select('key,value').then(r => r.data || []),
+            supabase
+                .from('badges')
+                .select('id,name,description,icon_name')
+                .then(r => r.data || []),
+            supabase
+                .from('comparison_items')
+                .select('id,label,type,sort_order')
+                .order('sort_order')
+                .then(r => r.data || []),
+            supabase
+                .from('publisher_profiles')
+                .select(PUBLIC_PUBLISHER_COLUMNS)
+                .then(r => r.data || [])
         ]);
 
         const getSetting = (key: string, defaultValue?: any) => {

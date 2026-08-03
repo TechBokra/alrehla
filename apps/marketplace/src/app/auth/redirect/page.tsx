@@ -1,40 +1,31 @@
-"use client";
+import type { Metadata } from 'next';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import { syncCurrentClerkProfile } from '@/actions/userActions';
+import { getPostAuthRedirectPath } from '@/lib/dashboardRedirect';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import PageLoader from '@alrehla/ui/page-loader';
-import { useAuth } from '@/contexts/AuthContext';
-import { getPostAuthRedirectPath, isExternalUrl } from '@/lib/dashboardRedirect';
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
-export default function AuthRedirectPage() {
-  const router = useRouter();
-  const { currentUser, isLoggedIn, loading } = useAuth();
-  const [nextPath, setNextPath] = useState<string | null>(null);
-  const [queryReady, setQueryReady] = useState(false);
+type AuthRedirectPageProps = {
+  searchParams: Promise<{ next?: string | string[] }>;
+};
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setNextPath(params.get('next'));
-    setQueryReady(true);
-  }, []);
+export default async function AuthRedirectPage({
+  searchParams,
+}: AuthRedirectPageProps) {
+  const { userId } = await auth();
+  if (!userId) {
+    redirect('/login');
+  }
 
-  useEffect(() => {
-    if (loading || !queryReady) return;
-
-    if (!isLoggedIn || !currentUser) {
-      router.replace('/login');
-      return;
-    }
-
-    const target = getPostAuthRedirectPath(currentUser, nextPath);
-
-    if (isExternalUrl(target)) {
-      window.location.replace(target);
-      return;
-    }
-
-    router.replace(target);
-  }, [currentUser, isLoggedIn, loading, nextPath, queryReady, router]);
-
-  return <PageLoader text="جاري تجهيز حسابك..." />;
+  const params = await searchParams;
+  const requestedPath =
+    typeof params.next === 'string' ? params.next : undefined;
+  const currentUser = await syncCurrentClerkProfile();
+  redirect(getPostAuthRedirectPath(currentUser, requestedPath));
 }

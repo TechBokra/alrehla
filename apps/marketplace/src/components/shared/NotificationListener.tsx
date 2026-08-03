@@ -4,7 +4,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../../lib/supabaseClient';
+import { supabase } from '../../lib/supabase/client';
 import { useToast } from '../../contexts/ToastContext';
 
 const NotificationListener: React.FC = () => {

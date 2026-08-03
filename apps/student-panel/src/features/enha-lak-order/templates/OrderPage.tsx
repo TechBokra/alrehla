@@ -1,10 +1,10 @@
 "use client";
 
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useParams, Link, useLocation } from '@/lib/router-compat';
-import { useForm, FormProvider } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
+import { useForm } from '@tanstack/react-form';
 import { useOrderData } from '../../../hooks/queries/public/usePageDataQuery';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useCart } from '../../../contexts/CartContext';
@@ -23,11 +23,55 @@ import InteractivePreview from '../../../components/order/InteractivePreview';
 import { Card, CardContent } from '@alrehla/ui/card';
 import { ArrowLeft, ArrowRight, Library, LogIn } from 'lucide-react';
 import { EGYPTIAN_GOVERNORATES } from '../../../utils/governorates';
+import type { OrderFormApi } from '../../../components/order/form-types';
+
+interface OrderPreviewValuesProps {
+    values: OrderFormValues;
+    product: any;
+    form: OrderFormApi;
+    basePrice: number;
+    addons: { key: string; title: string; price: number }[];
+    totalPrice: number;
+    shippingPrice: number;
+}
+
+const OrderPreviewValues: React.FC<OrderPreviewValuesProps> = ({ values, product, form, basePrice, addons, totalPrice, shippingPrice }) => {
+    const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        const imageFile = product?.image_slots?.map((slot: any) => values[slot.id]).find((value: unknown) => typeof File !== 'undefined' && value instanceof File) as File | undefined;
+        if (!imageFile) {
+            setImagePreviewUrl(null);
+            return;
+        }
+        const objectUrl = URL.createObjectURL(imageFile);
+        setImagePreviewUrl(objectUrl);
+        return () => URL.revokeObjectURL(objectUrl);
+    }, [product, values]);
+
+    return (
+        <InteractivePreview
+            formData={{ ...values, childName: values.childName || '', childTraits: values.childTraits || '', storyValue: values.storyValue || '', customGoal: values.customGoal || '' }}
+            product={product}
+            basePrice={basePrice}
+            addons={addons}
+            totalPrice={totalPrice}
+            shippingPrice={shippingPrice}
+            imagePreviewUrl={imagePreviewUrl}
+            storyGoals={product?.story_goals || []}
+        />
+    );
+};
+
+const OrderPreview: React.FC<Omit<OrderPreviewValuesProps, 'values'>> = (props) => (
+    <props.form.Subscribe selector={(state: any) => state.values}>
+        {(values: OrderFormValues) => <OrderPreviewValues {...props} values={values} />}
+    </props.form.Subscribe>
+);
 
 const OrderPage: React.FC = () => {
     const { productKey } = useParams<{ productKey: string }>();
-    const navigate = useNavigate();
-    const location = useLocation();
+    const router = useRouter();
     const { addItemToCart } = useCart();
     const { addToast } = useToast();
     const { isLoggedIn, currentUser, childProfiles, isProfileComplete, triggerProfileUpdate } = useAuth();
@@ -39,9 +83,6 @@ const OrderPage: React.FC = () => {
     const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
-    // State for Image Preview
-    const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-
     // Get current product
     const product = useMemo(() => 
         data?.personalizedProducts.find(p => p.key === productKey), 
@@ -51,10 +92,16 @@ const OrderPage: React.FC = () => {
         data?.personalizedProducts.filter(p => p.is_addon) || [],
     [data]);
 
-    // Setup Form
-    const methods = useForm<OrderFormValues>({
-        resolver: zodResolver(createOrderSchema(product)),
-        mode: 'onChange',
+    const submitRef = useRef<(data: OrderFormValues) => Promise<void>>();
+    const invalidSubmitRef = useRef<(formApi: any) => void>();
+    const orderSchema = useMemo(() => createOrderSchema(product), [product]);
+    const form = useForm<OrderFormValues, any, any, any, any, any, any, any, any, any, any, any>({
+        validators: {
+            onChange: orderSchema,
+            onSubmit: orderSchema,
+        },
+        onSubmit: async ({ value }) => submitRef.current?.(value),
+        onSubmitInvalid: ({ formApi }) => invalidSubmitRef.current?.(formApi),
         defaultValues: {
             childName: '',
             childBirthDate: '',
@@ -64,8 +111,7 @@ const OrderPage: React.FC = () => {
         }
     });
 
-    const { handleSubmit, watch, setValue, trigger, reset, getValues, formState: { errors } } = methods;
-    const formData = watch() as OrderFormValues;
+    const formData = form.state.values as OrderFormValues;
 
     // --- Dynamic Steps Logic ---
     const isLibraryBook = product?.product_type === 'library_book';
@@ -87,44 +133,24 @@ const OrderPage: React.FC = () => {
         if (selectedChildId) {
             const child = childProfiles.find(c => c.id === selectedChildId);
             if (child) {
-                setValue('childName', child.name);
-                setValue('childBirthDate', child.birth_date);
-                setValue('childGender', child.gender);
+                form.setFieldValue('childName', child.name);
+                form.setFieldValue('childBirthDate', child.birth_date);
+                form.setFieldValue('childGender', child.gender);
             }
         }
-    }, [selectedChildId, childProfiles, setValue]);
+    }, [selectedChildId, childProfiles, form]);
     
     // Auto-fill shipping if user is logged in
     useEffect(() => {
-        if (isLoggedIn && currentUser && formData.shippingOption === 'my_address') {
-            setValue('recipientName', currentUser.name || '');
-            setValue('recipientAddress', currentUser.address || '');
-            setValue('recipientPhone', currentUser.phone || '');
-            setValue('recipientEmail', currentUser.email || '');
+        if (isLoggedIn && currentUser && form.getFieldValue('shippingOption') === 'my_address') {
+            form.setFieldValue('recipientName', currentUser.name || '');
+            form.setFieldValue('recipientAddress', currentUser.address || '');
+            form.setFieldValue('recipientPhone', currentUser.phone || '');
+            form.setFieldValue('recipientEmail', currentUser.email || '');
             const gov = currentUser.governorate || (currentUser.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city) ? currentUser.city : '');
-            setValue('governorate', gov);
+            form.setFieldValue('governorate', gov);
         }
-    }, [isLoggedIn, currentUser, formData.shippingOption, setValue]);
-
-    // --- Image Preview Logic ---
-    useEffect(() => {
-        // Watch for file changes in image slots
-        if (product?.image_slots) {
-            let foundFile = false;
-            for (const slot of product.image_slots) {
-                const file = formData[slot.id];
-                if (file instanceof File) {
-                    const url = URL.createObjectURL(file);
-                    setImagePreviewUrl(url);
-                    foundFile = true;
-                    
-                    // Cleanup function
-                    return () => URL.revokeObjectURL(url);
-                }
-            }
-            if (!foundFile) setImagePreviewUrl(null);
-        }
-    }, [formData, product]);
+    }, [isLoggedIn, currentUser, form]);
 
     if (isLoading) return <PageLoader text="جاري تحميل المنتج..." />;
     if (!product) return <div className="text-center py-20">المنتج غير موجود</div>;
@@ -153,6 +179,7 @@ const OrderPage: React.FC = () => {
     const currentStepKey = steps[step].key;
 
     const handleNext = async () => {
+        const currentFormData = form.state.values as OrderFormValues;
         let fieldsToValidate: any[] = [];
         
         if (currentStepKey === 'child') {
@@ -177,12 +204,15 @@ const OrderPage: React.FC = () => {
             }
         }
         
-        if (currentStepKey === 'delivery' && formData.deliveryType === 'printed') {
-             fieldsToValidate = ['recipientName', 'recipientAddress', 'recipientPhone', 'governorate'];
-             if(formData.sendDigitalCard) fieldsToValidate.push('recipientEmail');
+        if (currentStepKey === 'delivery' && currentFormData.deliveryType === 'printed') {
+            fieldsToValidate = ['recipientName', 'recipientAddress', 'recipientPhone', 'governorate'];
+            if(currentFormData.sendDigitalCard) fieldsToValidate.push('recipientEmail');
         }
 
-        const isValid = await trigger(fieldsToValidate);
+        const validationErrors = await form.validate('change', {
+            filterFieldNames: (fieldName: string) => fieldsToValidate.includes(fieldName),
+        });
+        const isValid = Object.keys(validationErrors).length === 0;
         if (isValid) {
             setStep(prev => prev + 1);
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -190,8 +220,7 @@ const OrderPage: React.FC = () => {
              // Optional: visual feedback if validation fails silently (though fields usually turn red)
              if (!isLibraryBook && currentStepKey === 'story' || isLibraryBook && currentStepKey === 'child') {
                  // Check if image errors exist
-                 const errors = methods.formState.errors;
-                 if (product.image_slots?.some(slot => errors[slot.id])) {
+                 if (product.image_slots?.some(slot => form.getFieldMeta(slot.id)?.errors?.length)) {
                      addToast("يرجى رفع الصور المطلوبة للمتابعة.", "error");
                  }
              }
@@ -205,14 +234,18 @@ const OrderPage: React.FC = () => {
     
     // Redirect to Family Center
     const handleAddChild = () => {
-        navigate('/account', { 
-            state: { defaultTab: 'familyCenter', from: location.pathname } 
-        });
+        router.push('/account?tab=familyCenter');
     };
 
-    const onError = (errors: any) => {
+    const onError = (formApi: any) => {
+        const fieldMeta = formApi.state.fieldMeta || {};
+        const errors = Object.entries(fieldMeta).reduce((result: Record<string, any>, [fieldName, meta]: [string, any]) => {
+            const error = meta?.errors?.[0];
+            if (error) result[fieldName] = typeof error === 'string' ? error : error.message;
+            return result;
+        }, {});
         console.error("Form Validation Errors:", errors);
-        const errorMessages = Object.values(errors).map((e: any) => e.message).join('، ');
+        const errorMessages = Object.values(errors).join('، ');
         addToast(`عذراً، يوجد بيانات ناقصة: ${errorMessages.substring(0, 50)}...`, "error");
         
         // محاولة العودة للخطوة التي تحتوي على الخطأ (بسيط)
@@ -229,7 +262,7 @@ const OrderPage: React.FC = () => {
         // 1. Strict Login Check
         if (!isLoggedIn) {
             addToast('يجب تسجيل الدخول لإتمام الطلب وإضافته للسلة.', 'info');
-            navigate('/account', { state: { from: location.pathname } });
+            router.push('/account');
             return;
         }
 
@@ -288,7 +321,14 @@ const OrderPage: React.FC = () => {
                  finalShippingPrice = egyptCosts[data.governorate || ''] || egyptCosts['باقي المحافظات'] || 0;
             }
 
-            const finalTotal = totalPrice; 
+            const currentBasePrice = (data.deliveryType === 'electronic' ? product.price_electronic : product.price_printed) || 0;
+            const currentAddonsPrice = selectedAddons.reduce((sum, addonKey) => {
+                const addon = addonProducts.find(p => p.key === addonKey);
+                if (!addon) return sum;
+                const price = data.deliveryType === 'electronic' ? addon.price_electronic : addon.price_printed;
+                return sum + (price || 0);
+            }, 0);
+            const finalTotal = currentBasePrice + currentAddonsPrice;
 
             addItemToCart({
                 type: 'order',
@@ -313,7 +353,7 @@ const OrderPage: React.FC = () => {
             });
 
             addToast('تمت إضافة الطلب للسلة بنجاح!', 'success');
-            navigate('/cart');
+            router.push('/cart');
         } catch (error) {
             console.error("Cart Error", error);
             addToast('حدث خطأ أثناء الإضافة للسلة. يرجى المحاولة مرة أخرى.', 'error');
@@ -322,9 +362,28 @@ const OrderPage: React.FC = () => {
         }
     };
 
+    submitRef.current = onSubmit;
+    invalidSubmitRef.current = onError;
+
     return (
-        <FormProvider {...methods}>
-            <div className="bg-muted/30 py-12 sm:py-16 min-h-screen">
+        <form.Subscribe selector={(state: any) => state.values}>
+            {(values: OrderFormValues) => {
+                const formData = values;
+                const basePrice = (formData.deliveryType === 'electronic' ? product.price_electronic : product.price_printed) || 0;
+                const addonsPrice = selectedAddons.reduce((sum, addonKey) => {
+                    const addon = addonProducts.find(p => p.key === addonKey);
+                    if (!addon) return sum;
+                    const price = formData.deliveryType === 'electronic' ? addon.price_electronic : addon.price_printed;
+                    return sum + (price || 0);
+                }, 0);
+                const totalPrice = basePrice + addonsPrice;
+                let shippingPrice = 0;
+                if (formData.deliveryType === 'printed' && shippingCosts && formData.governorate) {
+                    const egyptCosts = shippingCosts['مصر'] || {};
+                    shippingPrice = egyptCosts[formData.governorate] || egyptCosts['باقي المحافظات'] || 0;
+                }
+
+                return <div className="bg-muted/30 py-12 sm:py-16 min-h-screen">
                 <div className="container mx-auto px-4">
                     <div className="max-w-6xl mx-auto">
                         <div className="mb-8">
@@ -341,7 +400,8 @@ const OrderPage: React.FC = () => {
                                     <CardContent className="pt-6">
                                         {currentStepKey === 'child' && (
                                             <>
-                                            <ChildDetailsSection 
+                                            <ChildDetailsSection
+                                                form={form}
                                                 childProfiles={childProfiles}
                                                 onSelectChild={(child) => setSelectedChildId(child ? child.id : null)}
                                                 selectedChildId={selectedChildId}
@@ -352,20 +412,21 @@ const OrderPage: React.FC = () => {
                                             {isLibraryBook && (
                                                 <div className="mt-8 border-t pt-6">
                                                     <h4 className="text-lg font-bold text-gray-800 mb-4">تخصيص الغلاف</h4>
-                                                    <ImageUploadSection imageSlots={product.image_slots || []} />
+                                                <ImageUploadSection form={form} imageSlots={product.image_slots || []} />
                                                 </div>
                                             )}
                                             </>
                                         )}
                                         {currentStepKey === 'story' && !isLibraryBook && (
                                             <>
-                                                <StoryCustomizationSection 
+                                                <StoryCustomizationSection
+                                                    form={form}
                                                     textFields={product.text_fields || []}
                                                     goalConfig={product.goal_config}
                                                     storyGoals={product.story_goals || []}
                                                 />
                                                 <div className="mt-8 border-t pt-6">
-                                                    <ImageUploadSection imageSlots={product.image_slots || []} />
+                                                    <ImageUploadSection form={form} imageSlots={product.image_slots || []} />
                                                 </div>
                                             </>
                                         )}
@@ -377,7 +438,7 @@ const OrderPage: React.FC = () => {
                                             />
                                         )}
                                         {currentStepKey === 'delivery' && (
-                                            <DeliverySection product={product} />
+                                            <DeliverySection form={form} product={product} />
                                         )}
                                         {currentStepKey === 'review' && (
                                             <div className="space-y-4">
@@ -390,9 +451,7 @@ const OrderPage: React.FC = () => {
                                                             <p className="font-bold">تنبيه: يجب تسجيل الدخول للمتابعة</p>
                                                             <p className="text-sm">لن تتمكن من إضافة الطلب للسلة دون تسجيل الدخول.</p>
                                                         </div>
-                                                        <Button as={Link} to="/account" state={{ from: location.pathname }} size="sm" variant="outline" className="mr-auto bg-white">
-                                                            تسجيل الدخول
-                                                        </Button>
+                                                        <Button asChild size="sm" variant="outline" className="mr-auto bg-white"><Link href="/account">تسجيل الدخول / إنشاء حساب</Link></Button>
                                                     </div>
                                                 )}
 
@@ -422,7 +481,7 @@ const OrderPage: React.FC = () => {
                                     
                                     {step === steps.length - 1 ? (
                                         <Button 
-                                            onClick={handleSubmit(onSubmit, onError)} 
+                                            onClick={() => form.handleSubmit()}
                                             loading={isSubmitting} 
                                             icon={<ArrowLeft size={16} />}
                                             variant="success"
@@ -444,25 +503,17 @@ const OrderPage: React.FC = () => {
                             </div>
 
                             <div className="lg:col-span-1 sticky top-24">
-                                <InteractivePreview 
-                                    formData={formData as any}
-                                    product={product}
-                                    basePrice={basePrice}
-                                    addons={selectedAddons.map(key => {
+                                <OrderPreview form={form} product={product} basePrice={basePrice} addons={selectedAddons.map(key => {
                                         const p = addonProducts.find(ap => ap.key === key);
                                         return { key, title: p?.title || '', price: (formData.deliveryType === 'electronic' ? p?.price_electronic : p?.price_printed) || 0 };
-                                    })}
-                                    totalPrice={totalPrice}
-                                    shippingPrice={shippingPrice}
-                                    imagePreviewUrl={imagePreviewUrl} 
-                                    storyGoals={product.story_goals || []}
-                                />
+                                    })} totalPrice={totalPrice} shippingPrice={shippingPrice} />
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </FormProvider>
+            </div>;
+            }}
+        </form.Subscribe>
     );
 };
 

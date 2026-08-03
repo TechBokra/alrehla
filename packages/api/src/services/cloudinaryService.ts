@@ -1,7 +1,11 @@
 
 import { DEFAULT_CONFIG } from '../lib/config';
 import { supabase } from '../lib/supabaseClient';
-import { compressImage } from '@alrehla/utils';
+import {
+    captureApiError,
+    compressImage,
+    shouldIgnoreError,
+} from '@alrehla/utils';
 
 export interface CloudinaryAsset {
     url: string;
@@ -66,18 +70,31 @@ export const cloudinaryService = {
         formData.append('upload_preset', UPLOAD_PRESET);
         formData.append('folder', folder);
 
+        const startedAt = Date.now();
+        let statusCode: number | undefined;
+        let captured = false;
+
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 body: formData,
             });
+            statusCode = response.status;
 
             const data = await response.json();
 
             if (!response.ok) {
-                console.error('Cloudinary Error Details:', data);
                 const errorMsg = data.error?.message || 'فشل رفع الصورة إلى Cloudinary';
-                throw new Error(errorMsg);
+                const uploadError = new Error(errorMsg);
+                captureApiError(uploadError, {
+                    url,
+                    method: 'POST',
+                    statusCode: response.status,
+                    durationMs: Date.now() - startedAt,
+                    metadata: { provider: 'cloudinary' },
+                });
+                captured = true;
+                throw uploadError;
             }
 
             return {
@@ -88,7 +105,15 @@ export const cloudinaryService = {
                 format: data.format
             };
         } catch (error: any) {
-            console.error('Cloudinary Upload Error:', error);
+            if (!captured && !shouldIgnoreError(error)) {
+                captureApiError(error, {
+                    url,
+                    method: 'POST',
+                    statusCode,
+                    durationMs: Date.now() - startedAt,
+                    metadata: { provider: 'cloudinary' },
+                });
+            }
             throw error;
         }
     },
@@ -174,4 +199,3 @@ export const cloudinaryService = {
         return `${parts[0]}/upload/${transformations.join(',')}/${parts[1]}`;
     }
 };
-

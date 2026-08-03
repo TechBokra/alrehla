@@ -2,14 +2,14 @@
 
 
 import React from 'react';
-import { useLocation, Link } from '@/lib/router-compat';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { CheckCircle, AlertCircle, Clock, Send } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@alrehla/ui/card';
 import { Button } from '@alrehla/ui/button';
 
 const PaymentStatusPage: React.FC = () => {
-    const location = useLocation();
-    const searchParams = new URLSearchParams(location.search);
+    const searchParams = useSearchParams();
     const status = searchParams.get('status');
     
     const statusConfig = {
@@ -48,8 +48,8 @@ const PaymentStatusPage: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                     <CardDescription className="text-base leading-relaxed">{currentStatus.message}</CardDescription>
-                    <Button as={Link} to="/account" className="mt-8">
-                        الذهاب إلى حسابي
+                    <Button asChild className="mt-8">
+                        <Link href="/account">الذهاب إلى حسابي</Link>
                     </Button>
                 </CardContent>
             </Card>

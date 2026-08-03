@@ -141,7 +141,7 @@ const Header: React.FC = () => {
                                 </div>
                             </>
                         ) : (
-                            <Button as={Link} to="/account" size="sm" className="hidden lg:inline-flex">تسجيل الدخول</Button>
+                            <Button as={Link} to="/login" size="sm" className="hidden lg:inline-flex">تسجيل الدخول</Button>
                         )}
 
                         <Button

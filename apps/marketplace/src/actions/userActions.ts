@@ -1,237 +1,591 @@
 "use server";
 
-import { auth, clerkClient } from '@clerk/nextjs/server';
-import { runWithSupabaseAccessTokenProvider, supabase } from '@alrehla/api/lib/supabaseClient';
+import { clerkClient } from '@clerk/nextjs/server';
 import { userService as apiUserService } from '@alrehla/api/services/userService';
+import type { UserProfile, UserRole } from '@alrehla/types';
+import {
+  createChildProfileSchema,
+  createUserSchema,
+  emailSchema,
+  idListSchema,
+  linkStudentSchema,
+  listOptionsSchema,
+  managedStudentAccountSchema,
+  numericIdSchema,
+  passwordUpdateSchema,
+  publisherProfileSchema,
+  resetStudentPasswordSchema,
+  resourceIdSchema,
+  updateChildProfileSchema,
+  updateCurrentUserSchema,
+} from '../lib/server/actionSchemas';
+import {
+  MARKETPLACE_ROLES,
+  MarketplaceActionError,
+  actionError,
+  isDatabaseAdmin,
+  parseActionInput,
+  requireChildAccess,
+  revalidateMarketplaceTags,
+  withClerkSessionAction,
+  withMarketplaceAction,
+} from '../lib/server/actionSecurity';
+import { normalizeSignedChildAvatar } from '../lib/server/childAvatar';
 
+const SELF_MANAGED_ROLES = [
+  'user',
+  'parent',
+  'student',
+  'instructor',
+  'super_admin',
+  'general_supervisor',
+  'enha_lak_supervisor',
+  'creative_writing_supervisor',
+  'content_editor',
+  'support_agent',
+  'publisher',
+] as const satisfies readonly UserRole[];
 
-type CreateStudentAccountPayload = {
-  name: string;
-  email: string;
-  password?: string;
-  childProfileId: number;
+const PARENT_ROLES = [
+  'user',
+  'parent',
+  ...MARKETPLACE_ROLES.databaseAdmins,
+] as const satisfies readonly UserRole[];
+
+const PUBLISHER_ROLES = [
+  'publisher',
+  ...MARKETPLACE_ROLES.databaseAdmins,
+] as const satisfies readonly UserRole[];
+
+const getClerkErrorMessage = (error: unknown) => {
+  const clerkCode =
+    error && typeof error === 'object'
+      ? (error as any)?.errors?.[0]?.code || (error as any)?.code
+      : undefined;
+
+  if (clerkCode === 'form_identifier_exists') {
+    return 'البريد الإلكتروني مستخدم بالفعل في حساب آخر.';
+  }
+  if (clerkCode === 'form_password_pwned') {
+    return 'كلمة المرور غير آمنة. اختر كلمة مرور مختلفة.';
+  }
+  if (clerkCode === 'form_password_length_too_short') {
+    return 'كلمة المرور أقصر من الحد المسموح.';
+  }
+  if (
+    clerkCode === 'form_password_incorrect' ||
+    clerkCode === 'verification_failed'
+  ) {
+    return 'كلمة المرور الحالية غير صحيحة.';
+  }
+
+  return 'تعذر تنفيذ عملية الحساب لدى مزود تسجيل الدخول. حاول مرة أخرى.';
 };
 
-type ResetStudentPasswordPayload = {
-  studentUserId: string;
-  newPassword: string;
-};
-
-const normalizeEmail = (email: string) => email.toLowerCase().trim();
-
-const getClerkErrorMessage = (error: any) => {
-  return (
-    error?.errors?.[0]?.longMessage ||
-    error?.errors?.[0]?.message ||
-    error?.longMessage ||
-    error?.message ||
-    'تعذر تنفيذ عملية Clerk. تحقق من إعدادات Clerk وحاول مرة أخرى.'
-  );
-};
-
-const getDatabaseErrorMessage = (error: any) => {
-  const message = error?.message || '';
+const getDatabaseErrorMessage = (error: unknown) => {
+  const message =
+    error && typeof error === 'object' && 'message' in error
+      ? String((error as { message?: unknown }).message || '')
+      : '';
+  const code =
+    error && typeof error === 'object' && 'code' in error
+      ? String((error as { code?: unknown }).code || '')
+      : '';
 
   if (message.includes('already has a linked student account')) {
     return 'هذا الطفل مرتبط بالفعل بحساب طالب.';
   }
-
   if (message.includes('not owned by current parent')) {
-    return 'لا يمكنك إنشاء حساب طالب لهذا الملف لأنه غير مرتبط بحسابك.';
+    return 'لا يمكنك إدارة حساب طالب لهذا الملف.';
+  }
+  if (message.includes('Student email already exists') || code === '23505') {
+    return 'البريد الإلكتروني المقترح مستخدم بالفعل.';
+  }
+  if (message.includes('Not authenticated')) {
+    return 'تعذر التحقق من جلسة التسجيل. يرجى إعادة تسجيل الدخول.';
+  }
+  if (message.includes('Invalid student email')) {
+    return 'صيغة البريد الإلكتروني للطفل غير صحيحة.';
+  }
+  if (message.includes('Clerk user is already linked')) {
+    return 'حساب الدخول مرتبط بالفعل ببروفايل آخر.';
+  }
+  if (
+    code === 'PGRST301' ||
+    message.includes('no suitable key') ||
+    message.includes('wrong key type') ||
+    message.includes('jwt')
+  ) {
+    return 'تعذر التحقق من جلسة Clerk عبر Supabase. تحقق من إعداد Clerk Third-Party Auth في مشروع Supabase نفسه ثم أعد المحاولة.';
+  }
+  if (code === 'PGRST202' || code === '42883') {
+    return 'تعذر إكمال ربط حساب الطالب حالياً.';
   }
 
-  if (message.includes('Student email already exists')) {
-    return 'البريد الإلكتروني المقترح مستخدم بالفعل. غيّر اسم الطالب الإنجليزي ثم حاول مرة أخرى.';
-  }
-
-  if (message.includes('function') || error?.code === 'PGRST202') {
-    return 'قاعدة البيانات لا تحتوي بعد على دوال ربط حسابات الطلاب مع Clerk. شغّل supabase/02_clerk_auth.sql أو supabase/02_clerk_auth_minimal.sql ثم أعد المحاولة.';
-  }
-
-  return message || 'تعذر ربط حساب الطالب بقاعدة البيانات.';
+  return 'تعذر حفظ بيانات حساب الطالب.';
 };
 
-const assertStudentPassword = (password: string) => {
-  if (!password || password.length < 8) {
-    throw new Error('كلمة مرور الطالب يجب أن تكون 8 أحرف على الأقل حتى يقبلها Clerk.');
-  }
-};
+const toSafeProfile = (profile: Record<string, any>): UserProfile => ({
+  id: String(profile.id),
+  clerk_user_id: profile.clerk_user_id || null,
+  email: String(profile.email || ''),
+  email_verified: profile.email_verified ?? null,
+  name: String(profile.name || ''),
+  role: profile.role as UserRole,
+  account_type: profile.account_type || undefined,
+  global_role: profile.global_role || null,
+  phone: profile.phone || undefined,
+  address: profile.address || undefined,
+  city: profile.city || undefined,
+  country: profile.country || undefined,
+  governorate: profile.governorate || undefined,
+  timezone: profile.timezone || undefined,
+  currency: profile.currency || undefined,
+  created_at: String(profile.created_at || ''),
+});
 
-const withClerkSupabaseSession = async <T>(operation: () => Promise<T>) => {
-  const session = await auth();
+const definedEntries = <T extends Record<string, unknown>>(value: T) =>
+  Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined),
+  ) as Partial<T>;
 
-  if (!session.userId) {
-    throw new Error('جلسة غير صالحة');
-  }
+/**
+ * Establishes the Supabase profile from authoritative Clerk server data.
+ * The browser supplies no identity, email, name, or role input.
+ */
+export const syncCurrentClerkProfile = async () =>
+  withClerkSessionAction('user.syncCurrentClerkProfile', async ({ clerkUserId, supabase }) => {
+    const clerk = await clerkClient();
+    const clerkUser = await clerk.users.getUser(clerkUserId);
+    const email = (
+      clerkUser.primaryEmailAddress?.emailAddress ||
+      clerkUser.emailAddresses[0]?.emailAddress ||
+      ''
+    )
+      .trim()
+      .toLowerCase();
 
-  return runWithSupabaseAccessTokenProvider(async () => {
-    const token = await session.getToken();
-    if (!token) {
-      throw new Error('تعذر قراءة جلسة Clerk الحالية. أعد تسجيل الدخول ثم حاول مرة أخرى.');
+    if (!emailSchema.safeParse(email).success) {
+      actionError('لم نتمكن من قراءة بريد إلكتروني صالح من حساب Clerk.');
     }
 
-    return token;
-  }, operation);
-};
+    const name =
+      [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ').trim() ||
+      clerkUser.username?.trim() ||
+      email.split('@')[0] ||
+      'مستخدم الرحلة';
+
+    const { data, error } = await (supabase.rpc as any)('ensure_clerk_profile', {
+      p_email: email,
+      p_name: name.slice(0, 120),
+    });
+
+    if (error) {
+      actionError(getDatabaseErrorMessage(error));
+    }
+
+    const profile = (Array.isArray(data) ? data[0] : data) as Record<string, any> | null;
+    if (!profile?.id) {
+      actionError('تم تسجيل الدخول، لكن تعذر إعداد ملف المستخدم.');
+    }
+
+    return toSafeProfile(profile);
+  });
 
 export const getAllUsers = async (options?: any) => {
-  return withClerkSupabaseSession(() => apiUserService.getAllUsers(options));
+  const input = parseActionInput(listOptionsSchema, options || {});
+  return withMarketplaceAction(
+    'user.getAllUsers',
+    () => apiUserService.getAllUsers(input),
+    MARKETPLACE_ROLES.databaseAdmins,
+  );
 };
 
 export const isEmailTaken = async (email: string) => {
-  return apiUserService.isEmailTaken(email);
+  const input = parseActionInput(emailSchema, email);
+  return withMarketplaceAction(
+    'user.isEmailTaken',
+    () => apiUserService.isEmailTaken(input),
+    MARKETPLACE_ROLES.databaseAdmins,
+  );
 };
 
 export const createUser = async (payload: any) => {
-  return withClerkSupabaseSession(() => apiUserService.createUser(payload));
+  const input = parseActionInput(createUserSchema, payload) as {
+    name: string;
+    email: string;
+    role: UserRole;
+    phone?: string;
+    address?: string;
+    clerkUserId: string;
+  };
+  return withMarketplaceAction(
+    'user.createUser',
+    async () => {
+      const result = await apiUserService.createUser(input);
+      revalidateMarketplaceTags('marketplace:users');
+      return result;
+    },
+    MARKETPLACE_ROLES.databaseAdmins,
+  );
 };
 
-export const createAndLinkStudentAccount = async (payload: CreateStudentAccountPayload) => {
-  const normalizedEmail = normalizeEmail(payload.email || '');
-  const password = payload.password || '';
-  const name = payload.name?.trim() || normalizedEmail.split('@')[0] || 'طالب الرحلة';
+export const createAndLinkStudentAccount = async (payload: {
+  name: string;
+  email: string;
+  password?: string;
+  childProfileId: number;
+}) => {
+  const input = parseActionInput(managedStudentAccountSchema, payload);
 
-  if (!normalizedEmail) throw new Error('البريد الإلكتروني مطلوب لإنشاء حساب الطالب.');
-  if (!payload.childProfileId) throw new Error('ملف الطفل غير محدد.');
-  assertStudentPassword(password);
-
-  await withClerkSupabaseSession(async () => {
-    const { data: child, error } = await supabase
-      .from('child_profiles')
-      .select('id, student_user_id')
-      .eq('id', payload.childProfileId)
-      .maybeSingle();
-
-    if (error) throw new Error(error.message);
-    if (!child) throw new Error('لا يمكنك إنشاء حساب طالب لهذا الملف لأنه غير مرتبط بحسابك.');
-    if ((child as any).student_user_id) throw new Error('هذا الطفل مرتبط بالفعل بحساب طالب.');
-  });
-
-  const clerk = await clerkClient();
-  let clerkUserId: string | null = null;
-
-  try {
-    const clerkUser = await clerk.users.createUser({
-      emailAddress: [normalizedEmail],
-      emailAddressIdentificationStatus: ['reserved'],
-      password,
-      firstName: name,
-      publicMetadata: {
-        role: 'student',
-        appRole: 'student',
-        managedBy: 'parent',
-        childProfileId: String(payload.childProfileId),
-      },
-      unsafeMetadata: {
-        role: 'student',
-        name,
-        childProfileId: payload.childProfileId,
-      },
-    } as any);
-
-    clerkUserId = clerkUser.id;
-
-    const profile = await withClerkSupabaseSession(async () => {
-      const { data, error } = await (supabase.rpc as any)('create_parent_managed_student_profile', {
-        p_child_profile_id: payload.childProfileId,
-        p_clerk_user_id: clerkUser.id,
-        p_email: normalizedEmail,
-        p_name: name,
-      });
-
-      if (error) throw new Error(getDatabaseErrorMessage(error));
-      if (!data?.id) throw new Error('تم إنشاء مستخدم Clerk لكن لم يرجع Supabase ملف الطالب.');
-      return data;
-    });
-
-    return profile;
-  } catch (error: any) {
-    if (clerkUserId) {
-      try {
-        await clerk.users.deleteUser(clerkUserId);
-      } catch (cleanupError) {
-        console.error('Failed to clean up orphan Clerk student user', cleanupError);
+  return withMarketplaceAction(
+    'user.createAndLinkStudentAccount',
+    async (context) => {
+      const child = await requireChildAccess(context, input.childProfileId);
+      if (child.student_user_id) {
+        actionError('هذا الطفل مرتبط بالفعل بحساب طالب.');
       }
-    }
 
-    throw new Error(getClerkErrorMessage(error));
-  }
+      const clerk = await clerkClient();
+      let createdClerkUserId: string | null = null;
+
+      try {
+        const clerkUser = await clerk.users.createUser({
+          emailAddress: [input.email],
+          emailAddressIdentificationStatus: ['reserved'],
+          password: input.password,
+          firstName: input.name,
+          publicMetadata: {
+            role: 'student',
+            appRole: 'student',
+            accountType: 'student',
+            globalRole: null,
+            managedBy: 'parent',
+            childProfileId: String(input.childProfileId),
+          },
+          unsafeMetadata: {
+            name: input.name,
+            childProfileId: input.childProfileId,
+          },
+        } as any);
+
+        createdClerkUserId = clerkUser.id;
+
+        const { data, error } = await (context.supabase.rpc as any)(
+          'create_parent_managed_student_profile',
+          {
+            p_child_profile_id: input.childProfileId,
+            p_clerk_user_id: clerkUser.id,
+            p_email: input.email,
+            p_name: input.name,
+          },
+        );
+
+        if (error) {
+          console.error('[marketplace-action:user.createAndLinkStudentAccount] DB error:', error);
+          actionError(getDatabaseErrorMessage(error));
+        }
+        if (!data?.id) {
+          actionError('تم إنشاء حساب الدخول لكن تعذر ربط ملف الطالب.');
+        }
+
+        revalidateMarketplaceTags(
+          `marketplace:account:${context.actor.id}`,
+          'marketplace:users',
+        );
+        return data;
+      } catch (error) {
+        if (createdClerkUserId) {
+          try {
+            await clerk.users.deleteUser(createdClerkUserId);
+          } catch {
+            console.error('[marketplace-action:user.createAndLinkStudentAccount] orphan cleanup failed');
+          }
+        }
+
+        if (error instanceof MarketplaceActionError) throw error;
+        actionError(getClerkErrorMessage(error));
+      }
+    },
+    PARENT_ROLES,
+  );
 };
 
 export const linkStudentToChildProfile = async (payload: any) => {
-  return withClerkSupabaseSession(() => apiUserService.linkStudentToChildProfile(payload));
+  const input = parseActionInput(linkStudentSchema, payload) as {
+    studentUserId: string;
+    childProfileId: number;
+  };
+  return withMarketplaceAction(
+    'user.linkStudentToChildProfile',
+    async (context) => {
+      await requireChildAccess(context, input.childProfileId);
+
+      const { data: student, error } = await context.supabase
+        .from('profiles')
+        .select('id, role')
+        .eq('id', input.studentUserId)
+        .maybeSingle();
+
+      if (error || !student || (student as any).role !== 'student') {
+        actionError('حساب الطالب غير موجود أو غير صالح للربط.');
+      }
+
+      const result = await apiUserService.linkStudentToChildProfile(input);
+      revalidateMarketplaceTags('marketplace:users');
+      return result;
+    },
+    MARKETPLACE_ROLES.databaseAdmins,
+  );
 };
 
 export const unlinkStudentFromChildProfile = async (childProfileId: number) => {
-  return withClerkSupabaseSession(() => apiUserService.unlinkStudentFromChildProfile(childProfileId));
+  const childId = parseActionInput(numericIdSchema, childProfileId);
+  return withMarketplaceAction(
+    'user.unlinkStudentFromChildProfile',
+    async (context) => {
+      await requireChildAccess(context, childId);
+      const result = await apiUserService.unlinkStudentFromChildProfile(childId);
+      revalidateMarketplaceTags(
+        `marketplace:account:${context.actor.id}`,
+        'marketplace:users',
+      );
+      return result;
+    },
+    PARENT_ROLES,
+  );
 };
 
 export const createChildProfile = async (payload: any) => {
-  return withClerkSupabaseSession(() => apiUserService.createChildProfile(payload));
+  const input = parseActionInput(createChildProfileSchema, payload);
+  return withMarketplaceAction(
+    'user.createChildProfile',
+    async (context) => {
+      const avatarUrl = normalizeSignedChildAvatar(
+        input.avatar_url,
+        context.actor.id,
+      );
+      const result = await apiUserService.createChildProfile({
+        ...input,
+        avatar_url: avatarUrl,
+        user_id: context.actor.id,
+      });
+      revalidateMarketplaceTags(
+        `marketplace:account:${context.actor.id}`,
+        'marketplace:children',
+      );
+      return result;
+    },
+    PARENT_ROLES,
+  );
 };
 
 export const updateChildProfile = async (payload: any) => {
-  return withClerkSupabaseSession(() => apiUserService.updateChildProfile(payload));
+  const input = parseActionInput(updateChildProfileSchema, payload) as {
+    id: number;
+    name?: string;
+    birth_date?: string;
+    gender?: 'ذكر' | 'أنثى';
+    avatar_url?: string | null;
+    interests?: string[] | null;
+    strengths?: string[] | null;
+  };
+  return withMarketplaceAction(
+    'user.updateChildProfile',
+    async (context) => {
+      const child = await requireChildAccess(context, input.id);
+      const hasAvatarUpdate = Object.prototype.hasOwnProperty.call(
+        input,
+        'avatar_url',
+      );
+      let avatarUrl = input.avatar_url;
+
+      if (hasAvatarUpdate && avatarUrl !== child.avatar_url) {
+        avatarUrl = normalizeSignedChildAvatar(
+          avatarUrl,
+          context.actor.id,
+        );
+      }
+
+      const result = await apiUserService.updateChildProfile({
+        ...input,
+        ...(hasAvatarUpdate ? { avatar_url: avatarUrl } : {}),
+      });
+      revalidateMarketplaceTags(
+        `marketplace:account:${context.actor.id}`,
+        `marketplace:child:${input.id}`,
+      );
+      return result;
+    },
+    PARENT_ROLES,
+  );
 };
 
 export const deleteChildProfile = async (childId: number) => {
-  return withClerkSupabaseSession(() => apiUserService.deleteChildProfile(childId));
+  const input = parseActionInput(numericIdSchema, childId);
+  return withMarketplaceAction(
+    'user.deleteChildProfile',
+    async (context) => {
+      await requireChildAccess(context, input);
+      const result = await apiUserService.deleteChildProfile(input);
+      revalidateMarketplaceTags(
+        `marketplace:account:${context.actor.id}`,
+        'marketplace:children',
+      );
+      return result;
+    },
+    PARENT_ROLES,
+  );
 };
 
 export const getAllChildProfiles = async (userIds?: string[]) => {
-  return withClerkSupabaseSession(() => apiUserService.getAllChildProfiles(userIds));
+  const input = userIds ? parseActionInput(idListSchema, userIds) : undefined;
+  return withMarketplaceAction(
+    'user.getAllChildProfiles',
+    () => apiUserService.getAllChildProfiles(input),
+    MARKETPLACE_ROLES.databaseAdmins,
+  );
 };
 
 export const updateUser = async (payload: any) => {
-  return withClerkSupabaseSession(() => apiUserService.updateUser(payload));
+  const input = parseActionInput(updateCurrentUserSchema, payload);
+  return withMarketplaceAction(
+    'user.updateUser',
+    async (context) => {
+      const { id: _ignoredClientId, ...requestedUpdates } = input;
+      const updates = definedEntries(requestedUpdates);
+      const result = await apiUserService.updateUser({
+        ...updates,
+        id: context.actor.id,
+      });
+      revalidateMarketplaceTags(`marketplace:account:${context.actor.id}`);
+      return result;
+    },
+    SELF_MANAGED_ROLES,
+  );
 };
 
 export const updateUserPassword = async (payload: any) => {
-  return withClerkSupabaseSession(() => apiUserService.updateUserPassword(payload));
+  const input = parseActionInput(passwordUpdateSchema, payload) as {
+    currentPassword: string;
+    newPassword: string;
+  };
+  return withMarketplaceAction(
+    'user.updateUserPassword',
+    async (context) => {
+      if (input.currentPassword === input.newPassword) {
+        actionError('يجب أن تختلف كلمة المرور الجديدة عن الحالية.');
+      }
+
+      try {
+        const clerk = await clerkClient();
+        await clerk.users.verifyPassword({
+          userId: context.clerkUserId,
+          password: input.currentPassword,
+        });
+        await clerk.users.updateUser(context.clerkUserId, {
+          password: input.newPassword,
+          signOutOfOtherSessions: true,
+        });
+        return { success: true };
+      } catch (error) {
+        actionError(getClerkErrorMessage(error));
+      }
+    },
+    SELF_MANAGED_ROLES,
+  );
 };
 
-export const resetStudentPassword = async (payload: ResetStudentPasswordPayload) => {
-  const studentUserId = payload.studentUserId?.trim();
-  const newPassword = payload.newPassword || '';
+export const resetStudentPassword = async (payload: {
+  studentUserId: string;
+  newPassword: string;
+}) => {
+  const input = parseActionInput(resetStudentPasswordSchema, payload);
 
-  if (!studentUserId) throw new Error('حساب الطالب غير محدد.');
-  assertStudentPassword(newPassword);
+  return withMarketplaceAction(
+    'user.resetStudentPassword',
+    async (context) => {
+      const { data, error } = await (context.supabase.rpc as any)(
+        'get_parent_managed_student_clerk_user_id',
+        {
+          p_student_profile_id: input.studentUserId,
+        },
+      );
 
-  const clerkUserId = await withClerkSupabaseSession(async () => {
-    const { data, error } = await (supabase.rpc as any)('get_parent_managed_student_clerk_user_id', {
-      p_student_profile_id: studentUserId,
-    });
+      if (error || !data) {
+        actionError(getDatabaseErrorMessage(error));
+      }
 
-    if (error) throw new Error(getDatabaseErrorMessage(error));
-    if (!data) throw new Error('لم يتم العثور على حساب Clerk المرتبط بهذا الطالب.');
-    return data as string;
-  });
-
-  try {
-    const clerk = await clerkClient();
-    await clerk.users.updateUser(clerkUserId, {
-      password: newPassword,
-      signOutOfOtherSessions: true,
-    });
-
-    return { success: true };
-  } catch (error: any) {
-    throw new Error(getClerkErrorMessage(error));
-  }
+      try {
+        const clerk = await clerkClient();
+        await clerk.users.updateUser(data as string, {
+          password: input.newPassword,
+          signOutOfOtherSessions: true,
+        });
+        return { success: true };
+      } catch (error) {
+        actionError(getClerkErrorMessage(error));
+      }
+    },
+    ['parent', ...MARKETPLACE_ROLES.databaseAdmins],
+  );
 };
 
 export const bulkDeleteUsers = async (userIds: string[]) => {
-  return withClerkSupabaseSession(() => apiUserService.bulkDeleteUsers(userIds));
+  const input = parseActionInput(idListSchema, userIds);
+  return withMarketplaceAction(
+    'user.bulkDeleteUsers',
+    async (context) => {
+      if (input.includes(context.actor.id)) {
+        actionError('لا يمكنك حذف حسابك من هذه العملية.');
+      }
+      const result = await apiUserService.bulkDeleteUsers(input);
+      revalidateMarketplaceTags('marketplace:users');
+      return result;
+    },
+    MARKETPLACE_ROLES.databaseAdmins,
+  );
 };
 
 export const getPublisherProfile = async (userId: string) => {
-  return apiUserService.getPublisherProfile(userId);
+  const input = parseActionInput(resourceIdSchema, userId);
+  return withMarketplaceAction(
+    'user.getPublisherProfile',
+    (context) =>
+      apiUserService.getPublisherProfile(
+        isDatabaseAdmin(context.actor) ? input : context.actor.id,
+      ),
+    PUBLISHER_ROLES,
+  );
 };
 
 export const updatePublisherProfile = async (payload: any) => {
-  return withClerkSupabaseSession(() => apiUserService.updatePublisherProfile(payload));
+  const input = parseActionInput(publisherProfileSchema, payload);
+  return withMarketplaceAction(
+    'user.updatePublisherProfile',
+    async (context) => {
+      const { user_id: _ignoredClientId, ...profile } = input;
+      const result = await apiUserService.updatePublisherProfile({
+        ...profile,
+        user_id: context.actor.id,
+      });
+      revalidateMarketplaceTags(
+        `marketplace:publisher:${context.actor.id}`,
+        'marketplace:products',
+      );
+      return result;
+    },
+    PUBLISHER_ROLES,
+  );
 };
 
-export const mergeDuplicateChildren = async () => {
-  return withClerkSupabaseSession(() => apiUserService.mergeDuplicateChildren());
-};
+export const mergeDuplicateChildren = async () =>
+  withMarketplaceAction(
+    'user.mergeDuplicateChildren',
+    async () => {
+      const result = await apiUserService.mergeDuplicateChildren();
+      revalidateMarketplaceTags('marketplace:children');
+      return result;
+    },
+    MARKETPLACE_ROLES.databaseAdmins,
+  );

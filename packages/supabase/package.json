@@ -1,0 +1,25 @@
+{
+  "name": "@alrehla/supabase",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    "./public": "./src/public.ts",
+    "./server": "./src/server.ts",
+    "./admin": "./src/admin.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@alrehla/types": "workspace:*",
+    "@clerk/nextjs": "^7.5.17",
+    "@supabase/supabase-js": "^2.45.0",
+    "server-only": "0.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3"
+  }
+}

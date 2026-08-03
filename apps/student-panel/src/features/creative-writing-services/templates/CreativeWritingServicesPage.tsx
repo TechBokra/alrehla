@@ -7,12 +7,13 @@ import PageLoader from '@alrehla/ui/page-loader';
 import { Sparkles, ArrowLeft } from 'lucide-react';
 import { ServiceCard } from '../../../components/creative-writing/services/ServiceCard';
 import type { StandaloneService, Instructor } from '../../../lib/database.types';
-import { Link, useNavigate } from '@/lib/router-compat';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { calculateCustomerPrice } from '../../../utils/pricingCalculator';
 
 const CreativeWritingServicesPage: React.FC = () => {
     const { data, isLoading } = usePublicData();
-    const navigate = useNavigate();
+    const router = useRouter();
 
     const services = data?.standaloneServices || [];
     const instructors = data?.instructors || [];
@@ -54,11 +55,11 @@ const CreativeWritingServicesPage: React.FC = () => {
     };
 
     const handleServiceSelection = (service: StandaloneService) => {
-        navigate(`/creative-writing/services/${service.id}/providers`);
+        router.push(`/creative-writing/services/${service.id}/providers`);
     };
 
     const handleOrderCompanyService = (service: StandaloneService) => {
-        navigate(`/creative-writing/services/${service.id}/order`);
+        router.push(`/creative-writing/services/${service.id}/order`);
     };
     
     if (isLoading) {
@@ -102,7 +103,7 @@ const CreativeWritingServicesPage: React.FC = () => {
                 ))}
 
                 <div className="mt-16 text-center">
-                    <Link to="/creative-writing" className="inline-flex items-center font-semibold text-lg text-blue-600 hover:text-blue-800 group">
+                    <Link href="/creative-writing" className="inline-flex items-center font-semibold text-lg text-blue-600 hover:text-blue-800 group">
                         <ArrowLeft size={22} className="ms-2 transition-transform group-hover:-translate-x-1 rtl:group-hover:translate-x-1" />
                         <span>العودة إلى صفحة "بداية الرحلة"</span>
                     </Link>

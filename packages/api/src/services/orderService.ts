@@ -1,6 +1,5 @@
 
 import { supabase } from '../lib/supabaseClient';
-import { v4 as uuidv4 } from 'uuid';
 import { storageService } from './storageService';
 import { communicationService } from './communicationService';
 import type { 
@@ -41,10 +40,10 @@ const executeWithRetry = async <T>(operation: () => Promise<{ data: T | null; er
     const errorMsg = error.message || '';
     if (error.code === 'PGRST204' || errorMsg.includes('schema cache') || errorMsg.includes('Could not find the')) {
         console.warn("⚠️ Stale Cache detected. Attempting to reload and retry...");
-        
+
         // Try calling the RPC to reload cache (requires the RPC to be created in SQL)
         try { await supabase.rpc('reload_schema_cache'); } catch (e) { console.log("RPC reload_schema_cache not found, skipping."); }
-        
+
         // Wait a moment for the cache to refresh
         await new Promise(r => setTimeout(r, 1000));
         
@@ -110,7 +109,14 @@ export const orderService = {
             p_child_id: payload.childId,
             p_cart_items: [cartItem],
             p_receipt_url: payload.receiptUrl || null,
-            p_shipping_address: payload.details?.shippingAddress || {}
+            p_shipping_address: payload.details?.shippingAddress || {
+                governorate: payload.details?.governorate || null,
+                city: payload.details?.city || null,
+                country: payload.details?.country || null,
+                recipientName: payload.details?.recipientName || null,
+                recipientAddress: payload.details?.recipientAddress || null,
+                recipientPhone: payload.details?.recipientPhone || null,
+            }
         });
 
         if (error) {
@@ -135,23 +141,12 @@ export const orderService = {
     },
 
     async createSubscription(payload: { userId: string, childId: number, planName: string, durationMonths: number }) {
-        const startDate = new Date();
-        const endDate = new Date();
-        endDate.setMonth(startDate.getMonth() + payload.durationMonths);
-        const nextRenewal = new Date();
-        nextRenewal.setMonth(startDate.getMonth() + 1);
-
         return await executeWithRetry(async () => {
-             return await (supabase.from('subscriptions') as any).insert([{
-                id: uuidv4(),
-                user_id: payload.userId,
-                child_id: payload.childId,
-                plan_name: payload.planName,
-                start_date: startDate.toISOString(),
-                end_date: endDate.toISOString(),
-                next_renewal_date: nextRenewal.toISOString(),
-                status: 'pending_payment'
-            }]).select().single();
+             return await (supabase.rpc as any)('create_subscription_secure', {
+                p_user_id: payload.userId,
+                p_child_id: payload.childId,
+                p_plan_name: payload.planName,
+            });
         }) as Subscription;
     },
 
@@ -180,11 +175,10 @@ export const orderService = {
         if (action === 'cancel') status = 'cancelled';
         
         return await executeWithRetry(async () => {
-             return await (supabase.from('subscriptions') as any)
-                .update({ status })
-                .eq('id', subscriptionId)
-                .select('user_id, plan_name')
-                .single();
+             return await (supabase.rpc as any)('update_subscription_status_secure', {
+                p_subscription_id: subscriptionId,
+                p_action: action,
+            });
         }).then((data: any) => {
              // Notify User
             communicationService.sendNotification(
@@ -258,33 +252,55 @@ export const orderService = {
 
     async uploadReceipt(itemId: string, itemType: 'order' | 'booking' | 'subscription', receiptFile: File) {
         const folder = `receipts/${itemType}`;
-        const url = await storageService.uploadFile(receiptFile, 'receipts', folder);
+        const uploaded = await storageService.uploadFileWithPath(
+            receiptFile,
+            'receipts',
+            folder,
+        );
         
         let table = 'orders';
         if (itemType === 'booking') table = 'bookings';
-        if (itemType === 'subscription') table = 'subscriptions';
 
-        const statusUpdate = itemType === 'subscription' ? { status: 'active' } : { status: 'بانتظار المراجعة' };
+        try {
+            if (itemType === 'subscription') {
+                await executeWithRetry(async () => {
+                    return await (supabase.rpc as any)('submit_subscription_receipt', {
+                        p_subscription_id: itemId,
+                        p_receipt_url: uploaded.url,
+                    });
+                });
+            } else {
+                await executeWithRetry(async () => {
+                    return await (supabase.from(table) as any)
+                        .update({
+                            receipt_url: uploaded.url,
+                            status: 'بانتظار المراجعة',
+                        })
+                        .eq('id', itemId)
+                        .select('id')
+                        .single();
+                });
+            }
+        } catch (error) {
+            try {
+                await storageService.removeFiles('receipts', [uploaded.path]);
+            } catch (cleanupError) {
+                console.error('Receipt upload rollback failed:', cleanupError);
+            }
+            throw error;
+        }
 
-        return await executeWithRetry(async () => {
-             return await (supabase.from(table) as any)
-                .update({ receipt_url: url, ...statusUpdate })
-                .eq('id', itemId)
-                .select('id')
-                .single();
-        }).then(() => {
              // Notify Admins
-            let link = '/admin/orders';
-            if (itemType === 'booking') link = '/admin/creative-writing';
-            if (itemType === 'subscription') link = '/admin/subscriptions';
-            
-            communicationService.notifyAdmins(
-                `تم رفع إيصال دفع جديد لـ ${itemType} #${itemId}`,
-                link,
-                'payment'
-            );
-            return { success: true, url };
-        });
+        let link = '/admin/orders';
+        if (itemType === 'booking') link = '/admin/creative-writing';
+        if (itemType === 'subscription') link = '/admin/subscriptions';
+
+        communicationService.notifyAdmins(
+            `تم رفع إيصال دفع جديد لـ ${itemType} #${itemId}`,
+            link,
+            'payment'
+        );
+        return { success: true, url: uploaded.url };
     },
 
     async bulkUpdateOrderStatus(orderIds: string[], status: OrderStatus) {

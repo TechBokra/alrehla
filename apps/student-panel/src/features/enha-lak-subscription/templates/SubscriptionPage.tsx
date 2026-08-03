@@ -3,7 +3,7 @@
 
 // ... existing imports
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useLocation } from '@/lib/router-compat';
+import { useRouter, usePathname } from 'next/navigation';
 import { Check, Star, Shield, Gift } from 'lucide-react';
 import { usePublicData } from '../../../hooks/queries/public/usePublicDataQuery';
 import { useCart } from '../../../contexts/CartContext';
@@ -28,8 +28,8 @@ const steps = [
 ];
 
 const SubscriptionPage: React.FC = () => {
-    const navigate = useNavigate();
-    const location = useLocation();
+    const router = useRouter();
+    const pathname = usePathname();
     const { data, isLoading } = usePublicData();
     const { addItemToCart } = useCart();
     const { addToast } = useToast();
@@ -93,9 +93,7 @@ const SubscriptionPage: React.FC = () => {
     };
     
     const handleAddChild = () => {
-        navigate('/account', { 
-            state: { defaultTab: 'familyCenter', from: location.pathname } 
-        });
+        router.push('/account?tab=familyCenter');
     };
 
     const validateStep = (currentStepKey: string) => {
@@ -197,7 +195,7 @@ const SubscriptionPage: React.FC = () => {
         });
 
         addToast('تمت إضافة الاشتراك للسلة!', 'success');
-        navigate('/cart');
+        router.push('/cart');
         setIsSubmitting(false);
     };
 

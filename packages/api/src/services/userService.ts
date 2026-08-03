@@ -2,7 +2,6 @@
 import { supabase, getCurrentAppProfileId } from '../lib/supabaseClient';
 import { reportingService } from './reportingService';
 import type { UserProfile, ChildProfile, UserRole, PublisherProfile } from '@alrehla/types';
-import { v4 as uuidv4 } from 'uuid';
 
 export interface CreateUserPayload {
     name: string;
@@ -116,24 +115,28 @@ export const userService = {
             throw new Error('Clerk هو مصدر الحسابات الآن. أنشئ المستخدم أو الدعوة في Clerk أولاً ثم اربط profile عبر clerkUserId.');
         }
 
-        const newProfileId = uuidv4();
-        const { data: profile, error: pError } = await (supabase.from('profiles') as any)
-            .insert({
-                id: newProfileId,
-                clerk_user_id: normalizedClerkUserId,
-                name,
-                email: normalizedEmail,
-                role,
-                phone,
-                address,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            })
-            .select()
-            .single();
+        let { data: profile, error: pError } = await (supabase.rpc as any)(
+            'create_profile_for_clerk_user',
+            {
+                p_clerk_user_id: normalizedClerkUserId,
+                p_email: normalizedEmail,
+                p_name: name,
+                p_role: role,
+            },
+        );
 
         if (pError) throw new Error(pError.message);
         const userId = profile.id as string;
+
+        if (phone || address) {
+            const { data: updatedProfile, error: profileUpdateError } = await (supabase.from('profiles') as any)
+                .update({ phone, address })
+                .eq('id', userId)
+                .select()
+                .single();
+            if (profileUpdateError) throw new Error(profileUpdateError.message);
+            profile = updatedProfile;
+        }
 
         if (role === 'instructor') {
              try {
@@ -195,13 +198,6 @@ export const userService = {
 
         if (error) throw new Error(error.message);
         
-        const { data: profileData } = await supabase.from('profiles').select('role').eq('id', ownerId).single();
-        const parentProfile = profileData as { role: string } | null;
-
-        if (parentProfile && parentProfile.role === 'user') {
-             await (supabase.from('profiles') as any).update({ role: 'parent' }).eq('id', ownerId);
-        }
-
         return data as ChildProfile;
     },
 
@@ -230,7 +226,16 @@ export const userService = {
     },
 
     async updateUser(payload: UpdateUserPayload) {
-        const { id, password, ...updates } = payload;
+        const {
+            id,
+            password,
+            role: _role,
+            account_type: _accountType,
+            global_role: _globalRole,
+            clerk_user_id: _clerkUserId,
+            email: _email,
+            ...updates
+        } = payload as UpdateUserPayload & Record<string, unknown>;
         const { data, error } = await (supabase.from('profiles') as any).update(updates).eq('id', id).select().single();
         if (error) throw new Error(error.message);
         if (password && password.trim() !== '') {

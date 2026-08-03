@@ -8,8 +8,9 @@ import { Select } from '@alrehla/ui/native-select';
 import type { ChildProfile, UserProfile } from '../../lib/database.types';
 import { UserPlus, User as UserIcon } from 'lucide-react';
 import { Button } from '@alrehla/ui/button';
-import { useFormContext } from 'react-hook-form';
 import Image from '@alrehla/ui/next-image';
+import type { OrderFormApi } from './form-types';
+import { getFieldError } from './form-types';
 
 interface ChildDetailsSectionProps {
     childProfiles: ChildProfile[];
@@ -18,6 +19,7 @@ interface ChildDetailsSectionProps {
     onSelectSelf?: () => void;
     currentUser: UserProfile | null;
     onAddChild: () => void;
+    form?: OrderFormApi;
     // Optional props for non-Context usage (like SubscriptionPage)
     formData?: any;
     handleChange?: (e: React.ChangeEvent<any>) => void;
@@ -30,19 +32,12 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
     selectedChildId, 
     onSelectSelf,
     onAddChild,
+    form,
     formData,
     handleChange,
     errors: propErrors
 }) => {
-    // Try to get context, but don't crash if it's null
-    const context = useFormContext();
-    const isContextMode = !!context;
-    
-    const register = isContextMode ? context.register : null;
-    const contextErrors = isContextMode ? context.formState.errors : {};
-
-    // Unified Accessors
-    const errors = isContextMode ? contextErrors : (propErrors || {});
+    const errors = propErrors || {};
     
     const today = new Date().toISOString().split('T')[0];
     
@@ -76,22 +71,7 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
         onSelectChild(null);
     }
     
-    // Helper to generate props for inputs
-    const getInputProps = (fieldName: string) => {
-        if (isContextMode && register) {
-            return { ...register(fieldName) };
-        }
-        return {
-            name: fieldName,
-            id: fieldName,
-            value: formData?.[fieldName] || '',
-            onChange: handleChange
-        };
-    };
-    
-    const getError = (fieldName: string) => {
-        return errors[fieldName]?.message || errors[fieldName];
-    };
+    const getError = (fieldName: string) => errors[fieldName]?.message || errors[fieldName];
     
     const hasMultipleOptions = childProfiles.length > 0;
 
@@ -139,18 +119,87 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
                             : 'يرجى إدخال بيانات الطفل يدوياً.'}
                     </p>
                 </div>
-                <FormField label="الاسم*" htmlFor="childName" error={getError('childName')}>
-                    <Input type="text" {...getInputProps('childName')} disabled={mode === 'self'} />
+                <FormField label="الاسم*" htmlFor="childName" error={form ? undefined : getError('childName')}>
+                    {form ? (
+                        <form.Field name="childName">
+                            {(field: any) => (<>
+                                <Input
+                                    id="childName"
+                                    type="text"
+                                    value={field.state.value || ''}
+                                    onChange={(event) => field.handleChange(event.target.value)}
+                                    onBlur={field.handleBlur}
+                                    disabled={mode === 'self'}
+                                />
+                                {getFieldError(field) && <p className="text-sm font-medium text-destructive">{getFieldError(field)}</p>}
+                            </>)}
+                        </form.Field>
+                    ) : (
+                        <Input
+                            id="childName"
+                            type="text"
+                            name="childName"
+                            value={formData?.childName || ''}
+                            onChange={handleChange}
+                            disabled={mode === 'self'}
+                        />
+                    )}
                 </FormField>
-                <FormField label="تاريخ الميلاد*" htmlFor="childBirthDate" error={getError('childBirthDate')}>
-                    <Input type="date" max={today} {...getInputProps('childBirthDate')} />
+                <FormField label="تاريخ الميلاد*" htmlFor="childBirthDate" error={form ? undefined : getError('childBirthDate')}>
+                    {form ? (
+                        <form.Field name="childBirthDate">
+                            {(field: any) => (<>
+                                <Input
+                                    id="childBirthDate"
+                                    type="date"
+                                    max={today}
+                                    value={field.state.value || ''}
+                                    onChange={(event) => field.handleChange(event.target.value)}
+                                    onBlur={field.handleBlur}
+                                />
+                                {getFieldError(field) && <p className="text-sm font-medium text-destructive">{getFieldError(field)}</p>}
+                            </>)}
+                        </form.Field>
+                    ) : (
+                        <Input
+                            id="childBirthDate"
+                            type="date"
+                            name="childBirthDate"
+                            max={today}
+                            value={formData?.childBirthDate || ''}
+                            onChange={handleChange}
+                        />
+                    )}
                 </FormField>
-                <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2" error={getError('childGender')}>
-                    <Select {...getInputProps('childGender')}>
-                        <option value="" disabled>-- اختر الجنس --</option>
-                        <option value="ذكر">ذكر</option>
-                        <option value="أنثى">أنثى</option>
-                    </Select>
+                <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2" error={form ? undefined : getError('childGender')}>
+                    {form ? (
+                        <form.Field name="childGender">
+                            {(field: any) => (<>
+                                <Select
+                                    id="childGender"
+                                    value={field.state.value || ''}
+                                    onChange={(event) => field.handleChange(event.target.value)}
+                                    onBlur={field.handleBlur}
+                                >
+                                    <option value="" disabled>-- اختر الجنس --</option>
+                                    <option value="ذكر">ذكر</option>
+                                    <option value="أنثى">أنثى</option>
+                                </Select>
+                                {getFieldError(field) && <p className="text-sm font-medium text-destructive">{getFieldError(field)}</p>}
+                            </>)}
+                        </form.Field>
+                    ) : (
+                        <Select
+                            id="childGender"
+                            name="childGender"
+                            value={formData?.childGender || ''}
+                            onChange={handleChange}
+                        >
+                            <option value="" disabled>-- اختر الجنس --</option>
+                            <option value="ذكر">ذكر</option>
+                            <option value="أنثى">أنثى</option>
+                        </Select>
+                    )}
                 </FormField>
             </div>
 

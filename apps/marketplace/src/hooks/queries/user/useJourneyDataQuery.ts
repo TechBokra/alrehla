@@ -1,7 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
-import { supabase } from '../../../lib/supabaseClient';
+import { supabase } from '../../../lib/supabase/client';
 import { authService } from '../../../services/authService';
 import type { 
     ScheduledSession, 
@@ -72,8 +72,10 @@ export const useStudentDashboardData = () => {
 };
 
 export const useSessionDetails = (sessionId: string | undefined) => {
+    const { currentUser } = useAuth();
+
     return useQuery({
-        queryKey: ['sessionDetails', sessionId],
+        queryKey: ['sessionDetails', currentUser?.id, sessionId],
         queryFn: async () => {
             if (!sessionId) return null;
             // Updated: Added child_profiles(name) to the selection
@@ -84,13 +86,15 @@ export const useSessionDetails = (sessionId: string | undefined) => {
                 .single();
             return data;
         },
-        enabled: !!sessionId,
+        enabled: !!currentUser && !!sessionId,
     });
 };
 
 export const useTrainingJourneyData = (journeyId: string | undefined) => {
+    const { currentUser } = useAuth();
+
     return useQuery({
-        queryKey: ['trainingJourney', journeyId],
+        queryKey: ['trainingJourney', currentUser?.id, journeyId],
         queryFn: async () => {
             if (!journeyId) return null;
             
@@ -124,7 +128,7 @@ export const useTrainingJourneyData = (journeyId: string | undefined) => {
                 attachments: (attachmentsRes.data || []) as SessionAttachment[]
             };
         },
-        enabled: !!journeyId,
+        enabled: !!currentUser && !!journeyId,
         refetchInterval: 5000, 
     });
 };

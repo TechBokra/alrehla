@@ -61,7 +61,6 @@ export function AuthForm({
         signIn: auth.signIn,
         signUp: auth.signUp,
         signInWithGoogle: auth.signInWithGoogle,
-        verifySignUpEmail: auth.verifySignUpEmail,
         loading: auth.loading,
         error: auth.error,
         pendingEmailVerification: auth.pendingEmailVerification,

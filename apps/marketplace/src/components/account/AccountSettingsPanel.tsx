@@ -61,11 +61,22 @@ const AccountSettingsPanel: React.FC<AccountSettingsPanelProps> = ({ isMandatory
     
     const handlePasswordSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!currentPassword) {
+            alert("أدخل كلمة المرور الحالية.");
+            return;
+        }
+        if ([newPassword, confirmPassword].some(password => password.length < 12)) {
+            alert("يجب أن تتكون كلمة المرور الجديدة من 12 حرفاً على الأقل.");
+            return;
+        }
         if (newPassword !== confirmPassword) {
             alert("كلمتا المرور الجديدتان غير متطابقتين.");
             return;
         }
-        await updateUserPassword.mutateAsync({ userId: currentUser!.id, newPassword });
+        await updateUserPassword.mutateAsync({
+            currentPassword,
+            newPassword,
+        });
         setIsEditingPassword(false);
         setCurrentPassword('');
         setNewPassword('');
@@ -206,11 +217,14 @@ const AccountSettingsPanel: React.FC<AccountSettingsPanelProps> = ({ isMandatory
                     </div>
                  ) : (
                      <form onSubmit={handlePasswordSubmit} className="p-4 bg-gray-50 rounded-lg border space-y-4">
+                         <FormField label="كلمة المرور الحالية" htmlFor="currentPassword">
+                             <Input id="currentPassword" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} autoComplete="current-password" required />
+                         </FormField>
                          <FormField label="كلمة المرور الجديدة" htmlFor="newPassword">
-                             <Input id="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
+                             <Input id="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} minLength={12} autoComplete="new-password" required />
                          </FormField>
                           <FormField label="تأكيد كلمة المرور الجديدة" htmlFor="confirmPassword">
-                             <Input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
+                             <Input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} minLength={12} autoComplete="new-password" required />
                          </FormField>
                          <div className="flex gap-2">
                             <Button type="submit" size="sm" loading={updateUserPassword.isPending}>حفظ التغييرات</Button>

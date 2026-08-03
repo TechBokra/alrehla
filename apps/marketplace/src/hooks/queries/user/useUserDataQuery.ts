@@ -1,7 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
-import { supabase } from '../../../lib/supabaseClient';
+import { supabase } from '../../../lib/supabase/client';
 import type { 
     Notification,
     Order, 

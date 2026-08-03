@@ -10,6 +10,7 @@
     "./imageCompression": "./src/imageCompression.ts",
     "./pricingCalculator": "./src/pricingCalculator.ts",
     "./schemas": "./src/schemas.ts",
+    "./sentry": "./src/sentry/index.ts",
     "./utils": "./src/utils.ts"
   },
   "scripts": {
@@ -19,6 +20,7 @@
   },
   "dependencies": {
     "zod": "^3.23.8",
+    "@sentry/core": "10.69.0",
     "@alrehla/types": "workspace:*",
     "@alrehla/config": "workspace:*"
   },

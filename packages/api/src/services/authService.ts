@@ -1,34 +1,12 @@
 
 import { supabase } from '../lib/supabaseClient';
-import type { UserProfile, ChildProfile, UserRole } from '@alrehla/types';
-
-const USER_ROLES: UserRole[] = [
-    'user',
-    'parent',
-    'student',
-    'instructor',
-    'super_admin',
-    'general_supervisor',
-    'enha_lak_supervisor',
-    'creative_writing_supervisor',
-    'content_editor',
-    'support_agent',
-    'publisher',
-];
+import type { UserProfile, ChildProfile } from '@alrehla/types';
 
 const normalizeEmail = (email: string) => email.toLowerCase().trim();
 
-const normalizeRole = (role: unknown, fallback: UserRole = 'user'): UserRole => {
-    return typeof role === 'string' && USER_ROLES.includes(role as UserRole)
-        ? (role as UserRole)
-        : fallback;
-};
-
 export interface ClerkProfileInput {
-    clerkUserId: string;
     email: string;
     name: string;
-    role?: UserRole;
 }
 
 type SupabaseRpcError = {
@@ -58,7 +36,7 @@ const getClerkProfileSyncError = (error: SupabaseRpcError): Error => {
         message.includes('does not exist')
     ) {
         return new Error(
-            'دالة مزامنة Clerk غير مثبتة أو لم تُحمّل بعد. شغّل ملف supabase/02_clerk_auth.sql ثم أعد تحميل مخطط Supabase.',
+            'دالة مزامنة Clerk غير مثبتة أو لم تُحمّل بعد. شغّل سلسلة Supabase القديمة ثم migration/202608010001_identity_and_security_hardening.sql وأعد تحميل مخطط Supabase.',
         );
     }
 
@@ -87,7 +65,7 @@ const getClerkProfileSyncError = (error: SupabaseRpcError): Error => {
 
     if (code === '23503') {
         return new Error(
-            'جدول profiles ما زال مرتبطاً بجدول auth.users. شغّل أحدث ملف supabase/02_clerk_auth.sql لإزالة القيد القديم.',
+            'جدول profiles ما زال مرتبطاً بجدول auth.users. راجع سلسلة Supabase القديمة ثم migration/202608010001_identity_and_security_hardening.sql.',
         );
     }
 
@@ -103,14 +81,11 @@ const getClerkProfileSyncError = (error: SupabaseRpcError): Error => {
 export const authService = {
     async getOrCreateClerkUserProfile(input: ClerkProfileInput) {
         const normalizedEmail = normalizeEmail(input.email);
-        const role = normalizeRole(input.role);
         const name = input.name?.trim() || normalizedEmail.split('@')[0] || 'مستخدم الرحلة';
 
         const { data, error } = await (supabase.rpc as any)('ensure_clerk_profile', {
-            p_clerk_user_id: input.clerkUserId,
             p_email: normalizedEmail,
             p_name: name,
-            p_role: role,
         });
 
         if (error) throw getClerkProfileSyncError(error);

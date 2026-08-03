@@ -1,12 +1,29 @@
 
 export type UserRole = 'user' | 'parent' | 'student' | 'instructor' | 'super_admin' | 'general_supervisor' | 'enha_lak_supervisor' | 'creative_writing_supervisor' | 'content_editor' | 'support_agent' | 'publisher';
 
+export const ACCOUNT_TYPES = ['parent', 'student'] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+
+export const GLOBAL_ROLES = ['super_admin', 'support_admin'] as const;
+export type GlobalRole = (typeof GLOBAL_ROLES)[number];
+
+export const ORGANIZATION_ROLES = [
+    'org:general_supervisor',
+    'org:instructor',
+    'org:publisher',
+] as const;
+export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number];
+
 export interface UserProfile {
     id: string;
     clerk_user_id?: string | null;
     email: string;
+    email_verified?: boolean | null;
     name: string;
     role: UserRole;
+    avatar_url?: string | null;
+    account_type?: AccountType;
+    global_role?: GlobalRole | null;
     phone?: string;
     address?: string;
     city?: string;
@@ -30,6 +47,18 @@ export interface ChildProfile {
     strengths?: string[];
     age?: number; // Virtual/Calculated
     parentName?: string; // Virtual field for parent name
+}
+
+export interface ParentStudentLink {
+    id: string;
+    parent_profile_id: string;
+    student_profile_id: string;
+    relationship: string;
+    can_view_progress: boolean;
+    can_manage_enrollment: boolean;
+    status: 'active' | 'disabled' | 'pending';
+    created_at: string;
+    updated_at: string;
 }
 
 export interface Instructor {
@@ -173,6 +202,7 @@ export interface SubscriptionPlan {
     price_per_month: number;
     savings_text?: string;
     is_best_value?: boolean;
+    is_active?: boolean;
     deleted_at?: string | null;
 }
 
@@ -251,7 +281,8 @@ export interface Subscription {
     start_date: string;
     end_date: string;
     next_renewal_date?: string;
-    status: 'active' | 'paused' | 'cancelled' | 'pending_payment';
+    status: 'active' | 'paused' | 'cancelled' | 'pending_payment' | 'pending_review';
+    receipt_url: string | null;
     
     // Virtuals
     user_name?: string;
@@ -525,6 +556,11 @@ export interface Database {
         Row: ChildProfile
         Insert: Partial<ChildProfile>
         Update: Partial<ChildProfile>
+      };
+      parent_student_links: {
+        Row: ParentStudentLink
+        Insert: Partial<ParentStudentLink>
+        Update: Partial<ParentStudentLink>
       };
       instructors: {
         Row: Instructor
