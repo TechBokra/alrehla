@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import type { UserProfile, UserRole } from '../../lib/database.types';
 import { redirectToAdminPanel } from '../../lib/adminPanelUrl';
 import { getMarketplaceUrl, redirectToMarketplace } from '../../lib/marketplaceUrl';
-import { useLocation, useNavigate } from '../../lib/router-compat';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface AuthFormProps {
   mode: 'login' | 'signup';
@@ -25,10 +25,10 @@ export function AuthForm({
   disableSignup = false,
 }: AuthFormProps) {
   const auth = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const queryRedirect = new URLSearchParams(location.search).get('redirect_url');
-  const stateRedirect = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryRedirect = searchParams.get('redirect_url');
+  const stateRedirect = searchParams.get('from');
   const requestedPath = redirectTo || queryRedirect || stateRedirect;
   const preferredPath =
     requestedPath &&
@@ -46,7 +46,7 @@ export function AuthForm({
     }
 
     if (user.role === 'student') {
-      navigate(preferredPath, { replace: true });
+      router.replace(preferredPath);
       return;
     }
 
@@ -71,7 +71,6 @@ export function AuthForm({
         signIn: auth.signIn,
         signUp: auth.signUp,
         signInWithGoogle: auth.signInWithGoogle,
-        verifySignUpEmail: auth.verifySignUpEmail,
         loading: auth.loading,
         error: auth.error,
         pendingEmailVerification: auth.pendingEmailVerification,

@@ -2,7 +2,8 @@
 
 
 import React from 'react';
-import { useParams, Link, useNavigate } from '@/lib/router-compat';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { usePublicData } from '../../../hooks/queries/public/usePublicDataQuery';
 import PageLoader from '@alrehla/ui/page-loader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@alrehla/ui/card';
@@ -14,7 +15,6 @@ import { calculateCustomerPrice } from '../../../utils/pricingCalculator';
 
 const ServiceProvidersPage: React.FC = () => {
     const { serviceId } = useParams<{ serviceId: string }>();
-    const navigate = useNavigate();
     const { data, isLoading } = usePublicData();
 
     if (isLoading) return <PageLoader text="جاري تحميل مقدمي الخدمة..." />;
@@ -26,8 +26,8 @@ const ServiceProvidersPage: React.FC = () => {
         return (
             <div className="container mx-auto py-20 text-center">
                 <h2 className="text-2xl font-bold text-red-600">الخدمة غير موجودة</h2>
-                <Button as={Link} to="/creative-writing/services" variant="outline" className="mt-4">
-                    العودة للخدمات
+                <Button asChild variant="outline" className="mt-4">
+                    <Link href="/creative-writing/services">العودة للخدمات</Link>
                 </Button>
             </div>
         );
@@ -40,7 +40,7 @@ const ServiceProvidersPage: React.FC = () => {
     return (
         <div className="bg-gray-50 py-16 sm:py-20 animate-fadeIn min-h-screen">
             <div className="container mx-auto px-4 max-w-5xl">
-                <Link to="/creative-writing/services" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary font-semibold mb-6">
+                <Link href="/creative-writing/services" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary font-semibold mb-6">
                     <ArrowLeft size={16} />
                     العودة للخدمات
                 </Link>
@@ -80,15 +80,13 @@ const ServiceProvidersPage: React.FC = () => {
                                                 <span className="text-xl font-bold text-green-600">{finalPrice} ج.م</span>
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">
-                                                <Button as={Link} to={`/instructor/${instructor.slug}`} variant="outline" size="sm">
-                                                    الملف الشخصي
+                                                <Button asChild variant="outline" size="sm">
+                                                    <Link href={`/instructor/${instructor.slug}`}>الملف الشخصي</Link>
                                                 </Button>
-                                                <Button 
-                                                    onClick={() => navigate(`/creative-writing/services/${service.id}/order?instructorId=${instructor.id}`)} 
-                                                    size="sm"
-                                                    className="shadow-md"
-                                                >
-                                                    اختيار ومتابعة
+                                                <Button asChild size="sm" className="shadow-md">
+                                                    <Link href={`/creative-writing/services/${service.id}/order?instructorId=${instructor.id}`}>
+                                                        اختيار ومتابعة
+                                                    </Link>
                                                 </Button>
                                             </div>
                                         </div>

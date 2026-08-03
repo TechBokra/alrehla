@@ -2,7 +2,7 @@
 
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation, useNavigate } from '@/lib/router-compat';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
 import PageLoader from '@alrehla/ui/page-loader';
 import Login from '../../../components/auth/login';
@@ -26,19 +26,17 @@ const isAccountTab = (tab: string | null): tab is AccountTab => {
 
 const AccountPage: React.FC = () => {
     const { isLoggedIn, loading: authLoading, currentUser, isProfileMandatory } = useAuth();
-    const location = useLocation();
-    const navigate = useNavigate();
+    const searchParams = useSearchParams();
     
     const queryTab = useMemo(() => {
-        const params = new URLSearchParams(location.search);
-        const tab = params.get('tab');
+        const tab = searchParams?.get('tab');
         return isAccountTab(tab) ? tab : null;
-    }, [location.search]);
+    }, [searchParams]);
 
     // Check if redirected due to mandatory profile update OR standard navigation
     const defaultTab: AccountTab = isProfileMandatory 
         ? 'settings' 
-        : queryTab || (location.state as any)?.defaultTab || 'dashboard';
+        : queryTab || 'dashboard';
 
     const [activeTab, setActiveTab] = useState<AccountTab>(defaultTab);
     const [paymentItem, setPaymentItem] = useState<{ id: string; type: 'order' | 'subscription' | 'booking' } | null>(null);

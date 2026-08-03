@@ -1,4 +1,3 @@
-"use client";
 
 import React from 'react';
 import { Edit, Trash2, UserPlus } from 'lucide-react';

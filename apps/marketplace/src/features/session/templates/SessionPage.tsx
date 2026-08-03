@@ -3,7 +3,8 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { getAdminPanelUrl } from '../../../lib/adminPanelUrl';
-import { useNavigate, useParams, Link } from '@/lib/router-compat';
+import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useSessionDetails } from '../../../hooks/queries/user/useJourneyDataQuery';
 import { useJitsiSettings } from '../../../hooks/queries/public/useJitsiSettingsQuery';
@@ -69,7 +70,7 @@ const SessionPage: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
     const { currentUser, loading: authLoading } = useAuth();
     const { addToast } = useToast();
-    const navigate = useNavigate();
+    const router = useRouter();
     
     const { data: session, isLoading: sessionLoading, refetch } = useSessionDetails(sessionId);
     const { data: jitsiSettings, isLoading: settingsLoading } = useJitsiSettings();
@@ -110,7 +111,7 @@ const SessionPage: React.FC = () => {
         if (authLoading || sessionLoading || settingsLoading) return;
 
         if (!currentUser) {
-            navigate('/account');
+            router.push('/account');
             return;
         }
 
@@ -144,7 +145,7 @@ const SessionPage: React.FC = () => {
             setStatus('active');
         }
 
-    }, [authLoading, sessionLoading, settingsLoading, currentUser, sessionData, jitsiSettings, navigate, isInstructor]);
+    }, [authLoading, sessionLoading, settingsLoading, currentUser, sessionData, jitsiSettings, router, isInstructor]);
 
     // 3. Initialize Jitsi
     useEffect(() => {
@@ -192,7 +193,7 @@ const SessionPage: React.FC = () => {
                     // Listen for hangup
                     jitsiApiRef.current.addEventListener('videoConferenceLeft', () => {
                         if (!isInstructor) {
-                            navigate(-1);
+                            router.back();
                         }
                     });
 
@@ -211,7 +212,7 @@ const SessionPage: React.FC = () => {
                 jitsiApiRef.current = null;
             }
         };
-    }, [status, currentUser, sessionData, jitsiSettings, jitsiScriptLoaded, isInstructor, navigate]);
+    }, [status, currentUser, sessionData, jitsiSettings, jitsiScriptLoaded, isInstructor, router]);
 
     const handleFinishSession = async () => {
         if (!sessionId || !sessionData) return;
@@ -224,7 +225,7 @@ const SessionPage: React.FC = () => {
             addToast('تم إنهاء الجلسة بنجاح وتوثيقها.', 'success');
             
             if (sessionData.booking_id) {
-                navigate(`/journey/${sessionData.booking_id}`);
+                router.push(`/journey/${sessionData.booking_id}`);
             } else {
                  window.location.assign(getAdminPanelUrl()); 
             }
@@ -280,7 +281,7 @@ const SessionPage: React.FC = () => {
                         </div>
 
                         <div className="pt-4">
-                            <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10" onClick={() => navigate(-1)}>
+                            <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10" onClick={() => router.back()}>
                                 العودة للخلف
                             </Button>
                         </div>
@@ -299,9 +300,9 @@ const SessionPage: React.FC = () => {
                     <CardContent>
                         <p className="text-muted-foreground mb-6">شكراً لحضورك. نتمنى أن تكون الجلسة مفيدة وممتعة.</p>
                         <div className="flex flex-col gap-3">
-                            <Button as={Link} to="/account" variant="default">العودة للوحة التحكم</Button>
+                            <Button asChild variant="default"><Link href="/account">العودة للوحة التحكم</Link></Button>
                             {sessionData?.booking_id && (
-                                <Button as={Link} to={`/journey/${sessionData.booking_id}`} variant="outline">الذهاب لصفحة الرحلة</Button>
+                                <Button asChild variant="outline"><Link href={`/journey/${sessionData.booking_id}`}>الذهاب لصفحة الرحلة</Link></Button>
                             )}
                         </div>
                     </CardContent>

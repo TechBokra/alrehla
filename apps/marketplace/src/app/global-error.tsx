@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { AlertOctagon, RefreshCw, Home } from 'lucide-react';
+import { AlertOctagon, RefreshCw } from 'lucide-react';
+import { captureException } from '@alrehla/utils/sentry';
 
 export default function GlobalError({
   error,
@@ -11,7 +12,12 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('Global Application Error:', error);
+    captureException(error, {
+      mechanism: {
+        handled: true,
+        type: 'nextjs.app_router.global_error_boundary',
+      },
+    });
   }, [error]);
 
   return (
@@ -47,11 +53,11 @@ export default function GlobalError({
 
             <div className="flex gap-4 justify-center">
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => reset()}
                 className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium shadow-md text-lg"
               >
                 <RefreshCw size={20} />
-                إعادة تحميل التطبيق
+                المحاولة مجدداً
               </button>
             </div>
           </div>

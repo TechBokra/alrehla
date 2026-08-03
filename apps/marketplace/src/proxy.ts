@@ -1,30 +1,17 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-const isAuthenticatedRoute = createRouteMatcher([
-  '/account(.*)',
-  '/checkout(.*)',
-  '/creative-writing/booking(.*)',
-  '/creative-writing/services/(.*)/order(.*)',
-  '/enha-lak/order(.*)',
-  '/journey(.*)',
-  '/notifications(.*)',
-  '/session(.*)',
+const isAuthRoute = createRouteMatcher([
+  '/login(.*)',
+  '/signup(.*)',
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
-  if (!isAuthenticatedRoute(request)) return;
-
   const { userId } = await auth();
-  if (userId) return;
 
-  const signInUrl = new URL('/login', request.url);
-  signInUrl.searchParams.set(
-    'redirect_url',
-    `${request.nextUrl.pathname}${request.nextUrl.search}`,
-  );
-
-  return NextResponse.redirect(signInUrl);
+  if (userId && isAuthRoute(request)) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
 });
 
 export const config = {

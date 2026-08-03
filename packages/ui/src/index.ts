@@ -50,4 +50,6 @@ export * from './components/auth/clerk-auth-form';
 export * from './components/auth/clerk-oauth-callback';
 export * from './components/auth/clerk-appearance';
 export * from './components/media/alhrela-image';
+export * from './components/brand/alrehla-logo';
+export * from './components/error-boundary';
 export * from './lib/utils';

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@alrehla/ui';
+import { captureException } from '@alrehla/utils/sentry';
 
 export default function ErrorPage({
   error,
@@ -12,8 +13,12 @@ export default function ErrorPage({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Optionally log the error to an error reporting service
-    console.error('Application Error:', error);
+    captureException(error, {
+      mechanism: {
+        handled: true,
+        type: 'nextjs.app_router.error_boundary',
+      },
+    });
   }, [error]);
 
   return (

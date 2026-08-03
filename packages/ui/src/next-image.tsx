@@ -6,8 +6,10 @@ import { ImageIcon } from 'lucide-react';
 import { cn } from './lib/utils';
 import { AlhrelaImage } from './components/media/alhrela-image';
 
-interface ImageProps
-  extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src' | 'width' | 'height'> {
+interface ImageProps extends Omit<
+  React.ImgHTMLAttributes<HTMLImageElement>,
+  'src' | 'width' | 'height'
+> {
   src?: any;
   objectFit?: 'cover' | 'contain' | 'fill' | 'none';
   fallbackText?: string;
@@ -53,11 +55,11 @@ const getPublicIdFromUrl = (url: string): string | null => {
   try {
     const parts = url.split('/upload/');
     if (parts.length < 2) return null;
-    
+
     const pathAfterUpload = parts[1];
     const versionRegex = /^v\d+\//;
     const cleanPath = pathAfterUpload.replace(versionRegex, '');
-    
+
     const dotIndex = cleanPath.lastIndexOf('.');
     if (dotIndex === -1) return cleanPath;
     return cleanPath.substring(0, dotIndex);
@@ -108,10 +110,13 @@ const NextImageComponent = React.forwardRef<HTMLImageElement, ImageProps>(
     };
 
     const currentSrc = errorFallback || !resolvedSrc ? DEFAULT_PLACEHOLDER : resolvedSrc;
+    // Browser-local previews must never pass through next/image or Cloudinary.
+    // next/image treats blob/data URLs as remote sources and Cloudinary cannot
+    // transform them, so keep these URLs entirely local to the browser.
+    const isLocalPreview =
+      !errorFallback && (resolvedSrc.startsWith('blob:') || resolvedSrc.startsWith('data:'));
     const isCloudinaryUrl = currentSrc.includes('cloudinary.com');
-    const cloudinaryPublicId = isCloudinaryUrl
-      ? getPublicIdFromUrl(currentSrc)
-      : null;
+    const cloudinaryPublicId = isCloudinaryUrl ? getPublicIdFromUrl(currentSrc) : null;
 
     const imageWidth = toNumber(width, 800);
     const imageHeight = toNumber(height, 600);
@@ -124,8 +129,10 @@ const NextImageComponent = React.forwardRef<HTMLImageElement, ImageProps>(
           : objectFit === 'none'
             ? 'object-none'
             : 'object-fill';
-    const transitionClass = 'relative z-10 h-full w-full transition-opacity duration-500 ease-in-out';
-    const opacityClass = status === 'loading' && showSkeleton && !priority ? 'opacity-0' : 'opacity-100';
+    const transitionClass =
+      'relative z-10 h-full w-full transition-opacity duration-500 ease-in-out';
+    const opacityClass =
+      status === 'loading' && showSkeleton && !priority ? 'opacity-0' : 'opacity-100';
 
     return (
       <div
@@ -149,7 +156,17 @@ const NextImageComponent = React.forwardRef<HTMLImageElement, ImageProps>(
           </div>
         )}
 
-        {isCloudinaryUrl && cloudinaryPublicId ? (
+        {isLocalPreview ? (
+          <img
+            src={resolvedSrc}
+            alt={imageAlt}
+            onLoad={handleLoad}
+            onError={handleError}
+            className={cn(transitionClass, objectFitClass, opacityClass)}
+            ref={ref}
+            {...(props as React.ImgHTMLAttributes<HTMLImageElement>)}
+          />
+        ) : isCloudinaryUrl && cloudinaryPublicId ? (
           <AlhrelaImage
             publicId={cloudinaryPublicId}
             alt={imageAlt}

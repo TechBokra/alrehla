@@ -31,7 +31,6 @@ export interface ClerkAuthAdapter<TUser extends ClerkAuthUser> {
     role: string,
   ) => Promise<TUser | null>;
   signInWithGoogle: (redirectUrl: string) => Promise<void>;
-  verifySignUpEmail: (code: string) => Promise<TUser | null>;
   loading: boolean;
   error?: string | null;
   pendingEmailVerification: boolean;
@@ -74,7 +73,6 @@ export function ClerkAuthForm<TUser extends ClerkAuthUser>({
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [name, setName] = React.useState('');
-  const [verificationCode, setVerificationCode] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
   const [localError, setLocalError] = React.useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = React.useState(false);
@@ -116,18 +114,6 @@ export function ClerkAuthForm<TUser extends ClerkAuthUser>({
     }
   };
 
-  const handleVerification = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setLocalError(null);
-
-    try {
-      const user = await adapter.verifySignUpEmail(verificationCode.trim());
-      await finishAuthentication(user);
-    } catch (error) {
-      setLocalError(getErrorMessage(error));
-    }
-  };
-
   const handleGoogle = async () => {
     setLocalError(null);
     setGoogleLoading(true);
@@ -149,34 +135,14 @@ export function ClerkAuthForm<TUser extends ClerkAuthUser>({
           </span>
           <CardTitle className="text-xl">تأكيد البريد الإلكتروني</CardTitle>
           <CardDescription>
-            أدخل رمز التحقق الذي أرسله Clerk إلى بريدك الإلكتروني.
+            افتح رابط التحقق الذي أرسله Clerk إلى بريدك الإلكتروني لإكمال إنشاء الحساب.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleVerification} className="space-y-4">
-            <FormField label="رمز التحقق" htmlFor="clerk-verification-code" required>
-              <Input
-                id="clerk-verification-code"
-                name="code"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                value={verificationCode}
-                onChange={(event) => setVerificationCode(event.target.value)}
-                placeholder="123456"
-                className="text-center text-lg tracking-[0.3em]"
-                dir="ltr"
-                required
-                disabled={busy}
-              />
-            </FormField>
-
-            {visibleError && <AuthError message={visibleError} />}
-
-            <Button type="submit" className="w-full" loading={busy} disabled={busy}>
-              تأكيد وإنشاء الحساب
-            </Button>
-          </form>
+          {visibleError && <AuthError message={visibleError} />}
+          <p className="text-center text-sm text-muted-foreground">
+            لا توجد خطوة إدخال رمز. بعد فتح الرابط سيعود Clerk إلى التطبيق تلقائياً.
+          </p>
           {adapter.isClerkEnabled && <div id="clerk-captcha" className="mt-4" />}
         </CardContent>
       </Card>

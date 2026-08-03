@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { ClerkAuthForm } from '@alrehla/ui/auth';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { useAuth } from '../../contexts/AuthContext';
 import type { UserProfile, UserRole } from '../../lib/database.types';
@@ -9,8 +10,8 @@ import {
   getOAuthRedirectPath,
   getPostAuthRedirectPath,
   isExternalUrl,
+  normalizeInternalRedirect,
 } from '../../lib/dashboardRedirect';
-import { useLocation, useNavigate } from '../../lib/router-compat';
 
 interface AuthFormProps {
   mode: 'login' | 'signup';
@@ -26,13 +27,11 @@ export function AuthForm({
   disableSignup = false,
 }: AuthFormProps) {
   const auth = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedPath = normalizeInternalRedirect(searchParams.get('redirect_url'));
 
-  const preferredPath =
-    redirectTo ||
-    (from && !from.includes('/login') && !from.includes('/signup') ? from : null);
+  const preferredPath = redirectTo || requestedPath;
 
   const handleAuthenticated = async (user: UserProfile) => {
     if (allowedRoles?.length && !allowedRoles.includes(user.role)) {
@@ -46,7 +45,7 @@ export function AuthForm({
       return;
     }
 
-    navigate(target, { replace: true });
+    router.replace(target);
   };
 
   return (
@@ -57,12 +56,11 @@ export function AuthForm({
       allowModeSwitch={!disableSignup}
       googleRedirectUrl={getOAuthRedirectPath(preferredPath)}
       onAuthenticated={handleAuthenticated}
-      onForgotPassword={() => navigate('/reset-password')}
+      onForgotPassword={() => router.push('/reset-password')}
       adapter={{
         signIn: auth.signIn,
         signUp: auth.signUp,
         signInWithGoogle: auth.signInWithGoogle,
-        verifySignUpEmail: auth.verifySignUpEmail,
         loading: auth.loading,
         error: auth.error,
         pendingEmailVerification: auth.pendingEmailVerification,

@@ -1,3 +1,10 @@
+import {
+  captureApiError,
+  shouldIgnoreError,
+  startSpan,
+  sanitizeData,
+} from '@alrehla/utils';
+
 // Use relative path for Vercel deployment.
 const API_BASE_URL = '/api';
 
@@ -26,68 +33,127 @@ const translateErrorMessage = (status: number, originalMessage: string): string 
 
     return originalMessage || 'حدث خطأ غير متوقع.';
 };
-
 const makeRequest = async <T>(endpoint: string, options: RequestInit = {}): Promise<T> => {
-    const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-    };
+    const method = (options.method || 'GET').toUpperCase();
+    const url = API_BASE_URL + endpoint;
+    const startTime = Date.now();
 
-    if (options.headers) {
-        Object.entries(options.headers).forEach(([key, value]) => {
-            if (key.toLowerCase() !== 'content-type' && key.toLowerCase() !== 'accept') {
-                headers[key] = value;
-            }
-        });
-    }
+    return startSpan(
+      {
+        name: `HTTP ${method} ${endpoint}`,
+        op: 'http.client',
+        attributes: {
+          'http.method': method,
+          'http.url': url,
+        },
+      },
+      async (span) => {
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        };
 
-    let response: Response;
-
-    try {
-        response = await fetch(API_BASE_URL + endpoint, {
-            ...options,
-            headers,
-            credentials: options.credentials || 'same-origin',
-        });
-    } catch {
-        throw new ApiError('حدث خطأ في الاتصال بالشبكة. يرجى التحقق من الإنترنت.', 0);
-    }
-
-    if (!response.ok) {
-        if (response.status === 401 && typeof window !== 'undefined') {
-            const currentPath = window.location.pathname + window.location.search;
-            if (!currentPath.includes('/login')) {
-                window.location.href = '/login?redirect_url=' + encodeURIComponent(currentPath);
-            }
+        if (options.headers) {
+            Object.entries(options.headers).forEach(([key, value]) => {
+                if (key.toLowerCase() !== 'content-type' && key.toLowerCase() !== 'accept') {
+                    headers[key] = value;
+                }
+            });
         }
 
-        let rawMessage = 'فشل الطلب: ' + response.status;
-        let errorData = null;
+        let response: Response;
 
         try {
-            const textBody = await response.text();
-            try {
-                const jsonBody = JSON.parse(textBody);
-                rawMessage = jsonBody.message || jsonBody.error || rawMessage;
-                errorData = jsonBody;
-            } catch {
-                if (textBody.length < 200) rawMessage = textBody;
+            response = await fetch(url, {
+                ...options,
+                headers,
+                credentials: options.credentials || 'same-origin',
+            });
+        } catch (networkError) {
+            const durationMs = Date.now() - startTime;
+            if (span && typeof span.setStatus === 'function') {
+              span.setStatus({ code: 2, message: 'network_error' });
             }
-        } catch {}
+            if (!shouldIgnoreError(networkError)) {
+              captureApiError(networkError, {
+                url,
+                method,
+                statusCode: 0,
+                durationMs,
+                metadata: { error: 'Network request failed' },
+              });
+            }
+            throw new ApiError('حدث خطأ في الاتصال بالشبكة. يرجى التحقق من الإنترنت.', 0);
+        }
 
-        const friendlyMessage = translateErrorMessage(response.status, rawMessage);
-        throw new ApiError(friendlyMessage, response.status, errorData);
-    }
+        const durationMs = Date.now() - startTime;
 
-    if (response.status === 204 || response.headers.get('Content-Length') === '0') {
-        return null as T;
-    }
+        if (span && typeof span.setAttribute === 'function') {
+          span.setAttribute('http.status_code', response.status);
+        }
 
-    try {
-        return await response.json();
-    } catch {
-        throw new ApiError('فشل قراءة استجابة الخادم.', response.status);
-    }
+        if (!response.ok) {
+            if (span && typeof span.setStatus === 'function') {
+              span.setStatus({ code: 2, message: `http_${response.status}` });
+            }
+
+            if (response.status === 401 && typeof window !== 'undefined') {
+                const currentPath = window.location.pathname + window.location.search;
+                if (!currentPath.includes('/login')) {
+                    window.location.href = '/login?redirect_url=' + encodeURIComponent(currentPath);
+                }
+            }
+
+            let rawMessage = 'فشل الطلب: ' + response.status;
+            let errorData = null;
+
+            try {
+                const textBody = await response.text();
+                try {
+                    const jsonBody = JSON.parse(textBody);
+                    rawMessage = jsonBody.message || jsonBody.error || rawMessage;
+                    errorData = jsonBody;
+                } catch {
+                    if (textBody.length < 200) rawMessage = textBody;
+                }
+            } catch {}
+
+            const friendlyMessage = translateErrorMessage(response.status, rawMessage);
+            const apiError = new ApiError(friendlyMessage, response.status, sanitizeData(errorData));
+
+            if (!shouldIgnoreError(apiError) && response.status !== 401 && response.status !== 404) {
+              captureApiError(apiError, {
+                url,
+                method,
+                statusCode: response.status,
+                durationMs,
+                metadata: { errorData: sanitizeData(errorData) },
+              });
+            }
+
+            throw apiError;
+        }
+
+        if (response.status === 204 || response.headers.get('Content-Length') === '0') {
+            return null as T;
+        }
+
+        try {
+            return await response.json();
+        } catch (parseError) {
+            if (!shouldIgnoreError(parseError)) {
+              captureApiError(parseError, {
+                url,
+                method,
+                statusCode: response.status,
+                durationMs,
+                metadata: { error: 'Failed to parse JSON response' },
+              });
+            }
+            throw new ApiError('فشل قراءة استجابة الخادم.', response.status);
+        }
+      }
+    );
 };
 
 export const apiClient = {

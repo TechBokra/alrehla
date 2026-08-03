@@ -1,8 +1,5 @@
-"use client";
-
-
 import React from 'react';
-import { Link } from '@/lib/router-compat';
+import Link from 'next/link';
 import { BookOpen, ArrowLeft, Clock } from 'lucide-react';
 import type { CreativeWritingBooking, ScheduledSession, CreativeWritingPackage } from '../../lib/database.types';
 import { formatDate } from '../../utils/helpers';
@@ -73,7 +70,7 @@ const StudentJourneyCard = React.forwardRef<HTMLElement, StudentJourneyCardProps
                     </div>
                 </CardContent>
                  <CardFooter>
-                     <Link to={`/journey/${journey.id}`} className="flex items-center justify-center gap-2 bg-purple-600 text-white text-sm font-bold py-2 px-4 rounded-full hover:bg-purple-700 transition-colors w-full sm:w-auto">
+                     <Link href={`/journey/${journey.id}`} className="flex items-center justify-center gap-2 bg-purple-600 text-white text-sm font-bold py-2 px-4 rounded-full hover:bg-purple-700 transition-colors w-full sm:w-auto">
                         <span>افتح مساحة العمل</span>
                         <ArrowLeft size={16} />
                     </Link>

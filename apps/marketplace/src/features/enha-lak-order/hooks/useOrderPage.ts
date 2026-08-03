@@ -1,0 +1,431 @@
+'use client';
+
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useForm } from '@tanstack/react-form';
+import { useOrderData, type OrderData } from '../../../hooks/queries/public/usePageDataQuery';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useCart } from '../../../contexts/CartContext';
+import { useShippingCosts } from '../../../hooks/queries/public/useProductDataQuery';
+import { useToast } from '../../../contexts/ToastContext';
+import { createOrderSchema, OrderFormValues } from '../../../lib/schemas';
+import { EGYPTIAN_GOVERNORATES } from '../../../utils/governorates';
+import type { PersonalizedProduct } from '../../../lib/database.types';
+import type { OrderFormApi } from '../../../components/order/form-types';
+
+export interface UseOrderPageProps {
+  initialOrderData?: OrderData;
+}
+
+export function useOrderPage({ initialOrderData }: UseOrderPageProps = {}) {
+  const { productKey } = useParams<{ productKey: string }>();
+  const router = useRouter();
+  const { addItemToCart } = useCart();
+  const { addToast } = useToast();
+  const { isLoggedIn, currentUser, childProfiles, isProfileComplete, triggerProfileUpdate } =
+    useAuth();
+  const { data: shippingCosts } = useShippingCosts();
+  const { data, isLoading } = useOrderData(initialOrderData);
+
+  const [step, setStep] = useState(0);
+  const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Get current product
+  const product = useMemo(
+    () => data?.personalizedProducts.find((p) => p.key === productKey),
+    [data, productKey],
+  );
+
+  const storyGoals = useMemo(() => product?.story_goals || [], [product?.story_goals]);
+  const orderSchema = useMemo(() => createOrderSchema(product), [product]);
+
+  const submitRef = useRef<(data: OrderFormValues) => Promise<void>>();
+  const invalidSubmitRef = useRef<(formApi: any) => void>();
+  const form = useForm<OrderFormValues, any, any, any, any, any, any, any, any, any, any, any>({
+    validators: {
+      onChange: orderSchema,
+      onSubmit: orderSchema,
+    },
+    onSubmit: async ({ value }) => submitRef.current?.(value),
+    onSubmitInvalid: ({ formApi }) => invalidSubmitRef.current?.(formApi),
+    defaultValues: {
+      childName: '',
+      childBirthDate: '',
+      childGender: '' as any, // Initialize as empty to show placeholder
+      deliveryType: 'printed',
+      shippingOption: 'my_address',
+    },
+  });
+
+  const deliveryType = form.getFieldValue('deliveryType');
+  const shippingOption = form.getFieldValue('shippingOption');
+  const governorate = form.getFieldValue('governorate');
+  const sendDigitalCard = form.getFieldValue('sendDigitalCard');
+
+  // Some add-ons are physical-only and therefore have no electronic price.
+  // Never offer an add-on that the secure order RPC must reject for the
+  // selected delivery format.
+  const addonProducts = useMemo(
+    () =>
+      (data?.personalizedProducts || []).filter((product) => {
+        if (!product.is_addon) return false;
+        return deliveryType === 'electronic'
+          ? product.price_electronic != null
+          : product.price_printed != null;
+      }),
+    [data, deliveryType],
+  );
+
+  useEffect(() => {
+    const availableAddonKeys = new Set(addonProducts.map((product) => product.key));
+    setSelectedAddons((current) => {
+      const next = current.filter((key) => availableAddonKeys.has(key));
+      return next.length === current.length ? current : next;
+    });
+  }, [addonProducts]);
+
+  // --- Dynamic Steps Logic ---
+  const isLibraryBook = product?.product_type === 'library_book';
+
+  const steps = useMemo(() => {
+    const baseSteps = [
+      { key: 'child', title: 'بيانات الطفل' },
+      // Only show story customization for Hero Stories
+      !isLibraryBook ? { key: 'story', title: 'تخصيص القصة' } : null,
+      { key: 'addons', title: 'إضافات' },
+      { key: 'delivery', title: 'الشحن' },
+      { key: 'review', title: 'المراجعة' },
+    ];
+    return baseSteps.filter(Boolean) as { key: string; title: string }[];
+  }, [isLibraryBook]);
+
+  // Reset form when child is selected
+  useEffect(() => {
+    if (selectedChildId) {
+      const child = childProfiles.find((c) => c.id === selectedChildId);
+      if (child) {
+        form.setFieldValue('childName', child.name);
+        form.setFieldValue('childBirthDate', child.birth_date);
+        form.setFieldValue('childGender', child.gender);
+      }
+    }
+  }, [selectedChildId, childProfiles, form]);
+
+  // Auto-fill shipping if user is logged in
+  useEffect(() => {
+    if (isLoggedIn && currentUser && shippingOption === 'my_address') {
+      if (!form.getFieldValue('recipientName'))
+        form.setFieldValue('recipientName', currentUser.name || '');
+      if (!form.getFieldValue('recipientAddress'))
+        form.setFieldValue('recipientAddress', currentUser.address || '');
+      if (!form.getFieldValue('recipientPhone'))
+        form.setFieldValue('recipientPhone', currentUser.phone || '');
+      if (!form.getFieldValue('recipientEmail'))
+        form.setFieldValue('recipientEmail', currentUser.email || '');
+
+      const currentGov = form.getFieldValue('governorate');
+      if (!currentGov) {
+        const gov =
+          currentUser.governorate ||
+          (currentUser.city && EGYPTIAN_GOVERNORATES.includes(currentUser.city)
+            ? currentUser.city
+            : '');
+        if (gov) form.setFieldValue('governorate', gov);
+      }
+    }
+  }, [isLoggedIn, currentUser, shippingOption, form]);
+
+  // Keep all derived pricing stable between unrelated renders. This also
+  // ensures the preview receives referentially stable values when the user
+  // edits a field outside the pricing inputs.
+  const basePrice = useMemo(() => {
+    if (!product) return 0;
+    return (deliveryType === 'electronic' ? product.price_electronic : product.price_printed) || 0;
+  }, [deliveryType, product?.price_electronic, product?.price_printed]);
+
+  const addonsList = useMemo(
+    () =>
+      selectedAddons.map((key) => {
+        const addon = addonProducts.find((candidate) => candidate.key === key);
+        return {
+          key,
+          title: addon?.title || '',
+          price:
+            (deliveryType === 'electronic' ? addon?.price_electronic : addon?.price_printed) || 0,
+        };
+      }),
+    [selectedAddons, addonProducts, deliveryType],
+  );
+
+  const addonsPrice = useMemo(
+    () => addonsList.reduce((sum, addon) => sum + addon.price, 0),
+    [addonsList],
+  );
+
+  const totalPrice = useMemo(() => basePrice + addonsPrice, [basePrice, addonsPrice]);
+
+  const shippingPrice = useMemo(() => {
+    if (deliveryType !== 'printed' || !shippingCosts || !governorate) return 0;
+    const egyptCosts = shippingCosts['مصر'] || shippingCosts;
+    return egyptCosts[governorate] || egyptCosts['باقي المحافظات'] || egyptCosts['default'] || 0;
+  }, [deliveryType, governorate, shippingCosts]);
+
+  const currentStepKey = steps[step]?.key || '';
+
+  const goToDeliveryStep = () => {
+    const deliveryStepIndex = steps.findIndex((currentStep) => currentStep.key === 'delivery');
+    if (deliveryStepIndex < 0) return;
+    setStep(deliveryStepIndex);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNext = async () => {
+    if (!product) return;
+    const currentFormData = form.state.values as OrderFormValues;
+    let fieldsToValidate: any[] = [];
+
+    if (currentStepKey === 'child') {
+      fieldsToValidate = ['childName', 'childBirthDate', 'childGender'];
+      // Fix: For Library Books, images are uploaded in the Child step
+      if (isLibraryBook && product.image_slots) {
+        const imageFields = product.image_slots.map((slot) => slot.id);
+        fieldsToValidate = [...fieldsToValidate, ...imageFields];
+      }
+    }
+
+    // Validation for story customization only if step exists
+    if (currentStepKey === 'story' && !isLibraryBook) {
+      fieldsToValidate = ['storyValue', 'customGoal'];
+      if (product.text_fields) {
+        fieldsToValidate = [
+          ...fieldsToValidate,
+          ...product.text_fields.filter((f) => f.required).map((f) => f.id),
+        ];
+      }
+      // Fix: For Hero Stories, images are uploaded in the Story step
+      if (product.image_slots) {
+        const imageFields = product.image_slots.map((slot) => slot.id);
+        fieldsToValidate = [...fieldsToValidate, ...imageFields];
+      }
+    }
+
+    if (currentStepKey === 'delivery' && currentFormData.deliveryType === 'printed') {
+      fieldsToValidate = ['recipientName', 'recipientAddress', 'recipientPhone', 'governorate'];
+      if (currentFormData.sendDigitalCard) fieldsToValidate.push('recipientEmail');
+    }
+
+    const validationErrors = await form.validate('change', {
+      filterFieldNames: (fieldName: string) => fieldsToValidate.includes(fieldName),
+    });
+    const isValid = Object.keys(validationErrors).length === 0;
+    if (isValid) {
+      setStep((prev) => prev + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      // Optional: visual feedback if validation fails silently (though fields usually turn red)
+      if (
+        (!isLibraryBook && currentStepKey === 'story') ||
+        (isLibraryBook && currentStepKey === 'child')
+      ) {
+        // Check if image errors exist
+        if (product.image_slots?.some((slot) => form.getFieldMeta(slot.id)?.errors?.length)) {
+          addToast('يرجى رفع الصور المطلوبة للمتابعة.', 'error');
+        }
+      }
+      addToast('يرجى إكمال البيانات المطلوبة في هذه الخطوة.', 'warning');
+    }
+  };
+
+  const handleBack = () => {
+    setStep((prev) => prev - 1);
+  };
+
+  // Redirect to Family Center
+  const handleAddChild = () => {
+    router.push('/account?tab=familyCenter');
+  };
+
+  const onError = (formApi: any) => {
+    const fieldMeta = formApi.state.fieldMeta || {};
+    const errors = Object.entries(fieldMeta).reduce(
+      (result: Record<string, any>, [fieldName, meta]: [string, any]) => {
+        const error = meta?.errors?.[0];
+        if (error) result[fieldName] = typeof error === 'string' ? error : error.message;
+        return result;
+      },
+      {},
+    );
+    console.error('Form Validation Errors:', errors);
+    const errorMessages = Object.values(errors).join('، ');
+    addToast(`عذراً، يوجد بيانات ناقصة: ${errorMessages.substring(0, 50)}...`, 'error');
+
+    // محاولة العودة للخطوة التي تحتوي على الخطأ (بسيط)
+    if (errors.childName || errors.childBirthDate) {
+      const childStep = steps.findIndex((s) => s.key === 'child');
+      if (step !== childStep) setStep(childStep);
+    } else if (errors.recipientAddress || errors.governorate) {
+      const deliveryStep = steps.findIndex((s) => s.key === 'delivery');
+      if (step !== deliveryStep) setStep(deliveryStep);
+    }
+  };
+
+  const onSubmit = async (data: OrderFormValues) => {
+    if (!product) return;
+
+    // 1. Strict Login Check
+    if (!isLoggedIn) {
+      addToast('يجب تسجيل الدخول لإتمام الطلب وإضافته للسلة.', 'info');
+      router.push('/account');
+      return;
+    }
+
+    // 2. Profile Completion Check
+    if (!isProfileComplete) {
+      triggerProfileUpdate(true);
+      return;
+    }
+
+    // 3. Strict Shipping & Address Check for Printed Items
+    if (data.deliveryType === 'printed') {
+      if (!data.governorate || data.governorate.trim() === '') {
+        addToast('عذراً، يجب تحديد المحافظة لحساب تكلفة الشحن.', 'error');
+        const deliveryStepIndex = steps.findIndex((s) => s.key === 'delivery');
+        setStep(deliveryStepIndex);
+        return;
+      }
+      if (!data.recipientAddress || data.recipientAddress.trim() === '') {
+        addToast('العنوان التفصيلي مطلوب للتوصيل.', 'error');
+        const deliveryStepIndex = steps.findIndex((s) => s.key === 'delivery');
+        setStep(deliveryStepIndex);
+        return;
+      }
+
+      let calculatedShipping = 0;
+      if (shippingCosts && data.governorate) {
+        const egyptCosts = shippingCosts['مصر'] || shippingCosts;
+        calculatedShipping =
+          egyptCosts[data.governorate] || egyptCosts['باقي المحافظات'] || egyptCosts['default'] || 0;
+      }
+
+      if (calculatedShipping <= 0) {
+        console.warn('Shipping cost is 0 or missing, defaulting to safe fallback or blocking.');
+        if (shippingCosts && Object.keys(shippingCosts).length > 0) {
+          addToast('حدث خطأ في حساب الشحن للمحافظة المختارة.', 'error');
+          return;
+        }
+      }
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Keep files local through the wizard and cart transition. The checkout
+      // server action owns the authenticated upload and order mutation.
+      const files: Record<string, File> = {};
+      if (product.image_slots) {
+        product.image_slots.forEach((slot) => {
+          if ((data as any)[slot.id] instanceof File) {
+            files[slot.id] = (data as any)[slot.id];
+          }
+        });
+      }
+
+      let finalShippingPrice = 0;
+      if (data.deliveryType === 'printed' && shippingCosts) {
+        const egyptCosts = shippingCosts['مصر'] || shippingCosts;
+        finalShippingPrice =
+          egyptCosts[data.governorate || ''] ||
+          egyptCosts['باقي المحافظات'] ||
+          egyptCosts['default'] ||
+          0;
+      }
+
+      const currentBasePrice =
+        (data.deliveryType === 'electronic' ? product.price_electronic : product.price_printed) ||
+        0;
+      const unavailableAddon = selectedAddons.find((addonKey) => {
+        const addon = addonProducts.find((candidate) => candidate.key === addonKey);
+        const price =
+          data.deliveryType === 'electronic' ? addon?.price_electronic : addon?.price_printed;
+        return !addon || price == null;
+      });
+      if (unavailableAddon) {
+        addToast('إحدى الإضافات غير متاحة لنوع النسخة المختار. أزلها ثم حاول مرة أخرى.', 'error');
+        return;
+      }
+
+      const currentAddonsPrice = selectedAddons.reduce((sum, addonKey) => {
+        const addon = addonProducts.find((candidate) => candidate.key === addonKey);
+        if (!addon) return sum;
+        const price =
+          data.deliveryType === 'electronic' ? addon.price_electronic : addon.price_printed;
+        return sum + (price || 0);
+      }, 0);
+      const finalTotal = currentBasePrice + currentAddonsPrice;
+
+      addItemToCart({
+        type: 'order',
+        payload: {
+          productKey: product.key,
+          formData: data,
+          files,
+          selectedAddons,
+          totalPrice: finalTotal,
+          shippingPrice: finalShippingPrice,
+          summary: `${product.title} لـ ${data.childName}`,
+          // IMPORTANT: Explicitly passing childId to avoid duplication in checkout
+          childId: selectedChildId,
+          details: {
+            ...data,
+            productTitle: product.title,
+            isPrinted: data.deliveryType === 'printed',
+            productType: product.product_type,
+            childId: selectedChildId,
+          },
+        },
+      });
+
+      addToast('تمت إضافة الطلب للسلة بنجاح!', 'success');
+      router.push('/cart');
+    } catch (error) {
+      console.error('Cart Error', error);
+      addToast('حدث خطأ أثناء الإضافة للسلة. يرجى المحاولة مرة أخرى.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  submitRef.current = onSubmit;
+  invalidSubmitRef.current = onError;
+
+  return {
+    isLoading,
+    product,
+    form,
+    steps,
+    step,
+    currentStepKey,
+    isLibraryBook,
+    selectedChildId,
+    setSelectedChildId,
+    selectedAddons,
+    setSelectedAddons,
+    addonProducts,
+    basePrice,
+    addonsList,
+    totalPrice,
+    shippingPrice,
+    shippingCosts,
+    isSubmitting,
+    isLoggedIn,
+    childProfiles,
+    currentUser,
+    storyGoals,
+    goToDeliveryStep,
+    handleNext,
+    handleBack,
+    handleAddChild,
+  };
+}

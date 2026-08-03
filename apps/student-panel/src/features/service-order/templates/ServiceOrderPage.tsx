@@ -2,7 +2,8 @@
 
 
 import React, { useState, useMemo } from 'react';
-import { useParams, useNavigate, useSearchParams, Link } from '@/lib/router-compat';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { usePublicData } from '../../../hooks/queries/public/usePublicDataQuery';
 import { useCart } from '../../../contexts/CartContext';
 import { useToast } from '../../../contexts/ToastContext';
@@ -19,10 +20,10 @@ import { calculateCustomerPrice } from '../../../utils/pricingCalculator';
 
 const ServiceOrderPage: React.FC = () => {
     const { serviceId } = useParams<{ serviceId: string }>();
-    const [searchParams] = useSearchParams();
+    const searchParams = useSearchParams();
     const instructorId = searchParams.get('instructorId');
     
-    const navigate = useNavigate();
+    const router = useRouter();
     const { addItemToCart } = useCart();
     const { addToast } = useToast();
     const { data, isLoading } = usePublicData();
@@ -48,7 +49,7 @@ const ServiceOrderPage: React.FC = () => {
         return (
             <div className="container mx-auto py-20 text-center">
                 <h2 className="text-2xl font-bold text-red-600">الخدمة غير موجودة</h2>
-                <Button as={Link} to="/creative-writing/services" variant="outline" className="mt-4">العودة</Button>
+                <Button asChild variant="outline" className="mt-4"><Link href="/creative-writing/services">العودة</Link></Button>
             </div>
         );
     }
@@ -96,7 +97,7 @@ const ServiceOrderPage: React.FC = () => {
             });
             
             addToast(`تمت إضافة "${service.name}" إلى السلة بنجاح!`, 'success');
-            navigate('/cart');
+            router.push('/cart');
             setIsSubmitting(false);
         }, 800);
     };
@@ -104,7 +105,7 @@ const ServiceOrderPage: React.FC = () => {
     return (
         <div className="bg-gray-50 py-12 sm:py-16 animate-fadeIn min-h-screen">
             <div className="container mx-auto px-4 max-w-3xl">
-                <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-semibold mb-6 transition-colors">
+                <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-semibold mb-6 transition-colors">
                     <ArrowLeft size={16} />
                     العودة للخلف
                 </button>

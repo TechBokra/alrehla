@@ -3,13 +3,18 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
 import { orderService } from '../../services/orderService';
 import type { OrderStatus } from '../../lib/database.types';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const useOrderMutations = () => {
     const queryClient = useQueryClient();
     const { addToast } = useToast();
+    const { currentUser } = useAuth();
 
     const createOrder = useMutation({
         mutationFn: orderService.createOrder,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['userAccountData', currentUser?.id] });
+        },
         onError: (error: Error) => {
             addToast(`فشل إنشاء الطلب: ${error.message}`, 'error');
         }
@@ -56,7 +61,7 @@ export const useOrderMutations = () => {
         mutationFn: (payload: { itemId: string; itemType: 'order' | 'booking' | 'subscription'; receiptFile: File; }) => 
             orderService.uploadReceipt(payload.itemId, payload.itemType, payload.receiptFile),
         onSuccess: (data, variables) => {
-             queryClient.invalidateQueries({ queryKey: ['userAccountData'] });
+             queryClient.invalidateQueries({ queryKey: ['userAccountData', currentUser?.id] });
              addToast('تم رفع الإيصال بنجاح. طلبك قيد المراجعة.', 'success');
         },
         onError: (error: Error) => {

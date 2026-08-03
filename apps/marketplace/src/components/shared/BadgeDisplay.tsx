@@ -1,5 +1,3 @@
-"use client";
-
 import React from 'react';
 import { Feather, Globe2, Trophy, Search, Award } from 'lucide-react';
 import type { Badge } from '../../lib/database.types';

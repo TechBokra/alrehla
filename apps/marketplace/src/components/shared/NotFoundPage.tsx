@@ -1,8 +1,5 @@
-"use client";
-
-
 import React from 'react';
-import { Link } from '@/lib/router-compat';
+import Link from 'next/link';
 import { Map, Home, Search, ArrowRight } from 'lucide-react';
 import { Button } from '@alrehla/ui/button';
 
@@ -23,11 +20,11 @@ const NotFoundPage: React.FC = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
-                <Button as={Link} to="/" size="lg" className="shadow-lg hover:shadow-xl transition-all">
+                <Button as={Link} href="/" size="lg" className="shadow-lg hover:shadow-xl transition-all">
                     <Home size={18} className="ml-2" />
                     العودة للرئيسية
                 </Button>
-                <Button as={Link} to="/support" variant="outline" size="lg">
+                <Button as={Link} href="/support" variant="outline" size="lg">
                     <Search size={18} className="ml-2" />
                     مركز المساعدة
                 </Button>

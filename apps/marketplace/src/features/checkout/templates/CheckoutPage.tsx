@@ -2,11 +2,11 @@
 
 
 import React, { useState } from 'react';
-import { useNavigate, Link } from '@/lib/router-compat';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useCart } from '../../../contexts/CartContext';
 import { useOrderMutations } from '../../../hooks/mutations/useOrderMutations';
 import { useUserMutations } from '../../../hooks/mutations/useUserMutations';
-import { useSubscriptionMutations } from '../../../hooks/mutations/useSubscriptionMutations';
 import { useBookingMutations } from '../../../hooks/mutations/useBookingMutations';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useToast } from '../../../contexts/ToastContext';
@@ -15,17 +15,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@alrehla/ui/card';
 import { CheckCircle, AlertCircle, ShoppingBag, Truck, CreditCard, Send, User } from 'lucide-react';
 import ReceiptUpload from '../../../components/shared/ReceiptUpload';
 import { usePublicData } from '../../../hooks/queries/public/usePublicDataQuery';
-import { storageService } from '../../../services/storageService';
+import { orderService } from '../../../services/orderService';
 import Image from '@alrehla/ui/next-image';
 
+type UploadedCheckoutFile = {
+    url: string;
+    path: string;
+};
+
 const CheckoutPage: React.FC = () => {
-    const navigate = useNavigate();
+    const router = useRouter();
     const { cart, clearCart, getCartTotal } = useCart();
     const { currentUser, isProfileComplete, triggerProfileUpdate, currentChildProfile, childProfiles } = useAuth();
     const { addToast } = useToast();
     const { createOrder } = useOrderMutations();
     const { createChildProfile } = useUserMutations();
-    const { createSubscription } = useSubscriptionMutations();
     const { createBooking } = useBookingMutations();
     const { data: publicData } = usePublicData();
 
@@ -44,14 +48,13 @@ const CheckoutPage: React.FC = () => {
 
     // Payment Info from Backend
     const instapayNumber = publicData?.communicationSettings?.instapay_number;
-    const instapayUrl = publicData?.communicationSettings?.instapay_url;
     const instapayQrUrl = publicData?.communicationSettings?.instapay_qr_url;
 
     if (cart.length === 0) {
         return (
             <div className="container mx-auto py-20 text-center">
                 <h2 className="text-2xl font-bold mb-4">السلة فارغة</h2>
-                <Button as={Link} to="/">العودة للتسوق</Button>
+                <Button asChild><Link href="/">العودة للتسوق</Link></Button>
             </div>
         );
     }
@@ -71,9 +74,12 @@ const CheckoutPage: React.FC = () => {
                 return existingChild.id;
             }
         }
+
+        if (isStudent) {
+            throw new Error('تعذر التحقق من ملف الطفل المرتبط بحساب الطالب.');
+        }
         
         // 3. If child doesn't exist, create profile first
-        // Note: Students shouldn't reach here for creating profiles usually, but safe to keep
         const newChild = await createChildProfile.mutateAsync({
             name: childData.name || childData.childName,
             birth_date: childData.birth_date || childData.childBirthDate,
@@ -82,105 +88,116 @@ const CheckoutPage: React.FC = () => {
         return newChild.id;
     };
 
+    const cleanupCheckoutPaths = async (paths: string[]) => {
+        if (paths.length === 0) return;
+        try {
+            await orderService.cleanupCheckoutFiles(paths);
+        } catch (cleanupError) {
+            console.error('Checkout upload cleanup failed', cleanupError);
+        }
+    };
+
     const processCartItem = async (item: any, receiptUrl: string | undefined) => {
         if (!currentUser) throw new Error('User not authenticated');
-        
-        // تحديد هوية "صاحب الطلب" (Payer ID)
-        // إذا كان المستخدم طالب، فالمالك هو ولي الأمر (الموجود في currentChildProfile.user_id)
-        // إذا كان مستخدم عادي/ولي أمر، فهو المستخدم نفسه
-        let payerUserId = currentUser.id;
-        if (isStudent && currentChildProfile?.user_id) {
-            payerUserId = currentChildProfile.user_id;
-        }
 
-        // 1. Service Order
-        if (item.type === 'order' && (item.payload.productKey?.startsWith('service_') || item.payload.details?.serviceId)) {
-            let fileUrl = null;
-            if (item.payload.files?.service_file) {
-                 fileUrl = await storageService.uploadFile(item.payload.files.service_file, 'receipts', `service_files/${payerUserId}`);
+        const itemUploadPaths: string[] = [];
+        try {
+            // 1. Service Order
+            if (item.type === 'order' && (item.payload.productKey?.startsWith('service_') || item.payload.details?.serviceId)) {
+                let fileUrl = null;
+                if (item.payload.files?.service_file) {
+                    const uploaded = await orderService.uploadCheckoutFile(
+                        'service_attachment',
+                        item.payload.files.service_file,
+                    ) as UploadedCheckoutFile;
+                    itemUploadPaths.push(uploaded.path);
+                    fileUrl = uploaded.url;
+                }
+
+                return await createOrder.mutateAsync({
+                    childId: item.payload.childId || (await ensureChildId(item.payload.details?.child || { name: 'Service Request', birth_date: '2000-01-01', gender: 'ذكر' })),
+                    summary: item.payload.summary,
+                    total: item.payload.totalPrice,
+                    shippingCost: 0,
+                    productKey: item.payload.productKey,
+                    details: { ...item.payload.details, fileUrl },
+                    receiptUrl
+                });
             }
             
-            return createOrder.mutateAsync({
-                userId: payerUserId,
-                childId: item.payload.childId || (await ensureChildId(item.payload.details?.child || { name: 'Service Request', birth_date: '2000-01-01', gender: 'ذكر' })), 
-                summary: item.payload.summary,
-                total: item.payload.totalPrice,
-                shippingCost: 0,
-                productKey: item.payload.productKey,
-                details: { ...item.payload.details, fileUrl },
-                receiptUrl
-            });
-        }
-        
-        // 2. Product Order
-        if (item.type === 'order') {
-            const childId = await ensureChildId(item.payload.formData || item.payload.details);
-            
-            const uploadedImages: Record<string, string> = {};
-            if (item.payload.files) {
-                 for (const [key, file] of Object.entries(item.payload.files as Record<string, File>)) {
-                     const url = await storageService.uploadFile(file, 'receipts', `custom_images/${payerUserId}`);
-                     uploadedImages[key] = url;
-                 }
+            // 2. Product Order
+            if (item.type === 'order') {
+                const childId = await ensureChildId(item.payload.formData || item.payload.details);
+
+                const uploadedImages: Record<string, string> = {};
+                if (item.payload.files) {
+                    for (const [key, file] of Object.entries(item.payload.files as Record<string, File>)) {
+                        const uploaded = await orderService.uploadCheckoutFile(
+                            'custom_image',
+                            file,
+                        ) as UploadedCheckoutFile;
+                        itemUploadPaths.push(uploaded.path);
+                        uploadedImages[key] = uploaded.url;
+                    }
+                }
+
+                // Inject productKey and selected add-ons for authoritative server pricing.
+                const finalDetails = {
+                    ...item.payload.details,
+                    ...uploadedImages,
+                    productKey: item.payload.productKey,
+                    addons: item.payload.selectedAddons || [],
+                };
+
+                const shippingCost = item.payload.shippingPrice || 0;
+                const itemsTotal = item.payload.totalPrice || 0;
+                const finalTotal = itemsTotal + shippingCost;
+
+                return await createOrder.mutateAsync({
+                    childId,
+                    summary: item.payload.summary,
+                    total: finalTotal,
+                    shippingCost: shippingCost,
+                    productKey: item.payload.productKey,
+                    details: finalDetails,
+                    receiptUrl
+                });
             }
 
-            // Inject productKey into details for easier access in admin panel
-            const finalDetails = {
-                ...item.payload.details,
-                ...uploadedImages,
-                productKey: item.payload.productKey
-            };
+            // 3. Subscription and its payment order are created atomically by
+            // create_order_secure; a separate subscription insert can orphan rows.
+            if (item.type === 'subscription') {
+                const childId = await ensureChildId(item.payload.formData);
+                return await createOrder.mutateAsync({
+                    childId,
+                    summary: item.payload.summary,
+                    total: item.payload.totalPrice + (item.payload.shippingPrice || 0),
+                    shippingCost: item.payload.shippingPrice || 0,
+                    productKey: 'subscription_payment',
+                    details: {
+                        ...item.payload.details,
+                        addons: item.payload.selectedAddons || item.payload.details?.addons || [],
+                    },
+                    receiptUrl
+                });
+            }
 
-            const shippingCost = item.payload.shippingPrice || 0;
-            const itemsTotal = item.payload.totalPrice || 0;
-            const finalTotal = itemsTotal + shippingCost;
+            // 4. Booking
+            if (item.type === 'booking') {
+                const childId = await ensureChildId(item.payload.child);
+                const bookingPayload = {
+                    ...item.payload,
+                    child: { ...item.payload.child, id: childId }
+                };
 
-            return createOrder.mutateAsync({
-                userId: payerUserId,
-                childId,
-                summary: item.payload.summary,
-                total: finalTotal,
-                shippingCost: shippingCost,
-                productKey: item.payload.productKey,
-                details: finalDetails,
-                receiptUrl
-            });
-        }
-
-        // 3. Subscription
-        if (item.type === 'subscription') {
-            const childId = await ensureChildId(item.payload.formData);
-            const sub = await createSubscription.mutateAsync({
-                userId: payerUserId,
-                childId,
-                planName: item.payload.planName,
-                durationMonths: item.payload.durationMonths
-            });
-            return createOrder.mutateAsync({
-                userId: payerUserId,
-                childId,
-                summary: item.payload.summary,
-                total: item.payload.totalPrice + (item.payload.shippingPrice || 0),
-                shippingCost: item.payload.shippingPrice || 0,
-                productKey: 'subscription_payment',
-                details: { subscriptionId: sub.id, ...item.payload.details },
-                receiptUrl
-            });
-        }
-
-        // 4. Booking
-        if (item.type === 'booking') {
-            const childId = await ensureChildId(item.payload.child);
-            const bookingPayload = {
-                ...item.payload,
-                child: { ...item.payload.child, id: childId }
-            };
-            
-            return createBooking.mutateAsync({
-                userId: payerUserId,
-                payload: bookingPayload,
-                receiptUrl: receiptUrl || '' // Booking mutation expects string, empty is treated as pending payment
-            });
+                return await createBooking.mutateAsync({
+                    payload: bookingPayload,
+                    receiptUrl: receiptUrl || '' // Booking mutation expects string, empty is treated as pending payment
+                });
+            }
+        } catch (error) {
+            await cleanupCheckoutPaths(itemUploadPaths);
+            throw error;
         }
     };
 
@@ -192,26 +209,37 @@ const CheckoutPage: React.FC = () => {
         }
 
         setIsSubmitting(true);
+        let receiptUpload: UploadedCheckoutFile | null = null;
+        let persistedItemCount = 0;
         try {
             let receiptUrl: string | undefined = undefined;
 
             // Upload Receipt Only if User provided it (Student won't)
             if (receiptFile) {
-                receiptUrl = await storageService.uploadFile(receiptFile, 'receipts', `payments/${currentUser?.id}`);
+                receiptUpload = await orderService.uploadCheckoutFile(
+                    'payment_receipt',
+                    receiptFile,
+                ) as UploadedCheckoutFile;
+                receiptUrl = receiptUpload.url;
             }
 
-            // Process all items
-            const promises = cart.map(item => processCartItem(item, receiptUrl));
-            await Promise.all(promises);
+            // Sequential persistence makes cleanup deterministic if a later item fails.
+            for (const item of cart) {
+                await processCartItem(item, receiptUrl);
+                persistedItemCount += 1;
+            }
 
             clearCart();
             
             if (isStudent) {
-                navigate('/payment-status?status=request_sent');
+                router.push('/payment-status?status=request_sent');
             } else {
-                navigate('/payment-status?status=success_review');
+                router.push('/payment-status?status=success_review');
             }
         } catch (error: any) {
+            if (persistedItemCount === 0 && receiptUpload) {
+                await cleanupCheckoutPaths([receiptUpload.path]);
+            }
             console.error("Checkout Error:", error);
             addToast(`حدث خطأ أثناء المعالجة: ${error.message}`, 'error');
         } finally {

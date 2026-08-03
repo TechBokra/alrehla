@@ -1,6 +1,3 @@
-"use client";
-
-
 import React from 'react';
 import type { StandaloneService } from '../../../lib/database.types';
 import { Button } from '@alrehla/ui/button';

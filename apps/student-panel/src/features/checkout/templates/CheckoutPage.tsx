@@ -2,7 +2,8 @@
 
 
 import React, { useState } from 'react';
-import { useNavigate, Link } from '@/lib/router-compat';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useCart } from '../../../contexts/CartContext';
 import { useOrderMutations } from '../../../hooks/mutations/useOrderMutations';
 import { useUserMutations } from '../../../hooks/mutations/useUserMutations';
@@ -19,7 +20,7 @@ import { storageService } from '../../../services/storageService';
 import Image from '@alrehla/ui/next-image';
 
 const CheckoutPage: React.FC = () => {
-    const navigate = useNavigate();
+    const router = useRouter();
     const { cart, clearCart, getCartTotal } = useCart();
     const { currentUser, isProfileComplete, triggerProfileUpdate, currentChildProfile, childProfiles } = useAuth();
     const { addToast } = useToast();
@@ -51,7 +52,7 @@ const CheckoutPage: React.FC = () => {
         return (
             <div className="container mx-auto py-20 text-center">
                 <h2 className="text-2xl font-bold mb-4">السلة فارغة</h2>
-                <Button as={Link} to="/">العودة للتسوق</Button>
+                <Button asChild><Link href="/">العودة للتسوق</Link></Button>
             </div>
         );
     }
@@ -207,9 +208,9 @@ const CheckoutPage: React.FC = () => {
             clearCart();
             
             if (isStudent) {
-                navigate('/payment-status?status=request_sent');
+                router.push('/payment-status?status=request_sent');
             } else {
-                navigate('/payment-status?status=success_review');
+                router.push('/payment-status?status=success_review');
             }
         } catch (error: any) {
             console.error("Checkout Error:", error);

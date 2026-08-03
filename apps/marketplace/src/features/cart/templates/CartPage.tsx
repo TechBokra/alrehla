@@ -2,7 +2,7 @@
 
 
 import React from 'react';
-import { Link, useNavigate } from '@/lib/router-compat';
+import Link from 'next/link';
 import { useCart } from '../../../contexts/CartContext';
 import { ShoppingCart, Trash2, ArrowLeft, CreditCard, Truck } from 'lucide-react';
 import { Button } from '@alrehla/ui/button';
@@ -10,7 +10,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@alrehla/u
 
 const CartPage: React.FC = () => {
     const { cart, removeItemFromCart, getCartTotal } = useCart();
-    const navigate = useNavigate();
     const cartTotal = getCartTotal();
 
     const getItemIcon = (type: string) => {
@@ -79,12 +78,17 @@ const CartPage: React.FC = () => {
                                 </div>
 
                                 <div className="flex flex-col sm:flex-row-reverse gap-4">
-                                     <Button onClick={() => navigate('/checkout')} className="w-full sm:w-auto" size="lg" icon={<CreditCard />}>
-                                        الانتقال إلى الدفع
+                                     <Button asChild className="w-full sm:w-auto" size="lg">
+                                        <Link href="/checkout">
+                                            <CreditCard className="ml-2 h-4 w-4 inline" />
+                                            <span>الانتقال إلى الدفع</span>
+                                        </Link>
                                     </Button>
-                                    <Button as={Link} to="/" variant="outline" className="w-full sm:w-auto" size="lg">
-                                        <ArrowLeft size={20} className="transform rotate-180 ml-2" />
-                                        <span>متابعة التسوق</span>
+                                    <Button asChild variant="outline" className="w-full sm:w-auto" size="lg">
+                                        <Link href="/">
+                                            <ArrowLeft size={20} className="transform rotate-180 ml-2" />
+                                            <span>متابعة التسوق</span>
+                                        </Link>
                                     </Button>
                                 </div>
                             </CardFooter>
@@ -95,8 +99,8 @@ const CartPage: React.FC = () => {
                                 <ShoppingCart className="mx-auto h-16 w-16 text-muted-foreground" />
                                 <h2 className="mt-4 text-2xl font-bold text-foreground">سلتك فارغة</h2>
                                 <p className="mt-2 text-muted-foreground">يبدو أنك لم تقم بإضافة أي منتجات بعد. ابدأ رحلتك الآن!</p>
-                                <Button as={Link} to="/" className="mt-8">
-                                    العودة إلى الرئيسية
+                                <Button asChild className="mt-8">
+                                    <Link href="/">تصفح المنتجات والباقات</Link>
                                 </Button>
                             </CardContent>
                         </Card>

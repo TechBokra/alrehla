@@ -1,12 +1,9 @@
 export const dynamic = 'force-dynamic';
 
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import SessionPage from '@/features/session';
+import { requireMarketplaceAuth } from '@/lib/server/requireAuth';
 
-export default function Page() {
-  return (
-    <ProtectedRoute>
-      <SessionPage />
-    </ProtectedRoute>
-  );
+export default async function Page() {
+  await requireMarketplaceAuth('/session');
+  return <SessionPage />;
 }

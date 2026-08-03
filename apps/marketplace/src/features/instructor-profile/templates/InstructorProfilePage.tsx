@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { useParams, useNavigate } from '@/lib/router-compat';
+import { useRouter, useParams } from 'next/navigation';
 import { usePublicData } from '../../../hooks/queries/public/usePublicDataQuery';
 import PageLoader from '@alrehla/ui/page-loader';
 import BookingCalendar from '../../../components/BookingCalendar';
@@ -39,7 +39,7 @@ const PublishedWorkCard: React.FC<{ work: PublishedWork }> = ({ work }) => (
 
 const InstructorProfilePage: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();
-    const navigate = useNavigate();
+    const router = useRouter();
     const { data, isLoading, error } = usePublicData();
 
     if (isLoading) {
@@ -57,12 +57,7 @@ const InstructorProfilePage: React.FC = () => {
     }
     
     const handleDateTimeSelect = (date: Date, time: string) => {
-        navigate('/creative-writing/booking', {
-            state: {
-                instructor: instructor,
-                selectedDateTime: { date, time }
-            }
-        });
+        router.push(`/creative-writing/booking?instructor=${instructor.id}`);
     };
 
     return (

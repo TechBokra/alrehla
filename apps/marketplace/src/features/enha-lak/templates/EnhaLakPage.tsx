@@ -50,7 +50,7 @@ const ProductHighlight: React.FC<{ title: string; description: string; features:
 
 
 const EnhaLakPage: React.FC = () => {
-    const pageUrl = window.location.href;
+    const pageUrl = typeof window !== 'undefined' ? window.location.href : '';
     const { data, isLoading } = usePublicData();
     const content = data?.siteContent?.enhaLakPage.main;
     

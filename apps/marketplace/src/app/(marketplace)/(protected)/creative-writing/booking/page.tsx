@@ -1,12 +1,9 @@
 export const dynamic = 'force-dynamic';
 
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import CreativeWritingBookingPage from '@/features/creative-writing-booking';
+import { requireMarketplaceAuth } from '@/lib/server/requireAuth';
 
-export default function Page() {
-  return (
-    <ProtectedRoute>
-      <CreativeWritingBookingPage />
-    </ProtectedRoute>
-  );
+export default async function Page() {
+  await requireMarketplaceAuth('/creative-writing/booking');
+  return <CreativeWritingBookingPage />;
 }

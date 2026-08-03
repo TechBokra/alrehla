@@ -2,7 +2,8 @@
 
 
 import React, { useState, useMemo } from 'react';
-import { Link, useNavigate } from '@/lib/router-compat';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ShoppingBag, Star, BookOpen, CreditCard, ArrowLeft, ChevronLeft, ChevronRight, Calendar, Package } from 'lucide-react';
 import { useUserAccountData } from '../../hooks/queries/user/useUserDataQuery';
 import { useAuth } from '../../contexts/AuthContext';
@@ -48,11 +49,11 @@ const JourneyCalendarView: React.FC<{ journey: EnrichedBooking }> = ({ journey }
                    sessionDate.getDate() === day;
         });
     };
-    
+
     // Saturday Start Configuration
     const dayNames = ['سبت', 'أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة'];
     const daysArray = Array.from({ length: daysInMonth(currentDate) }, (_, i) => i + 1);
-    
+
     // Helper to get first day index (0=Sun, ..., 6=Sat)
     const getFirstDayIndex = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
     // Offset for Saturday Start: (day + 1) % 7
@@ -77,7 +78,7 @@ const JourneyCalendarView: React.FC<{ journey: EnrichedBooking }> = ({ journey }
                     {completedSessions.length}/{totalSessions || '?'}
                 </div>
             </div>
-            
+
             <CardContent className="p-4 flex-grow flex flex-col">
                 <div className="flex justify-between items-center mb-4 bg-gray-50 p-2 rounded-lg">
                     <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="p-1 rounded-full hover:bg-white hover:shadow-sm transition-all"><ChevronRight size={16} /></button>
@@ -94,16 +95,16 @@ const JourneyCalendarView: React.FC<{ journey: EnrichedBooking }> = ({ journey }
                         const session = getSessionForDay(day);
                         const isNext = nextSession && new Date(nextSession.session_date).toDateString() === new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString();
                         let dayClass = 'text-gray-500 hover:bg-gray-50';
-                        
+
                         if (session) {
-                            dayClass = session.status === 'completed' 
-                                ? 'bg-green-500 text-white shadow-sm' 
+                            dayClass = session.status === 'completed'
+                                ? 'bg-green-500 text-white shadow-sm'
                                 : 'bg-blue-100 text-blue-700 border border-blue-200';
                         }
                         if (isNext) {
                             dayClass = 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200 ring-offset-1 font-bold animate-pulse';
                         }
-                        
+
                         return (
                             <div key={day} className={`aspect-square flex items-center justify-center rounded-lg transition-all text-xs cursor-default ${dayClass}`}>
                                 {day}
@@ -111,11 +112,13 @@ const JourneyCalendarView: React.FC<{ journey: EnrichedBooking }> = ({ journey }
                         )
                     })}
                 </div>
-                
+
                 <div className="mt-auto pt-4 border-t">
-                    <Button as={Link} to={`/journey/${journey.id}`} variant="outline" className="w-full justify-between group hover:border-purple-300 hover:bg-purple-50">
-                        <span className="text-xs">دخول مساحة العمل</span>
-                        <ArrowLeft size={14} className="text-purple-500 group-hover:-translate-x-1 transition-transform rtl:group-hover:translate-x-1" />
+                    <Button asChild variant="outline" className="w-full justify-between group hover:border-purple-300 hover:bg-purple-50">
+                        <Link href={`/journey/${journey.id}`}>
+                            <span className="text-xs">دخول مساحة العمل</span>
+                            <ArrowLeft size={14} className="text-purple-500 group-hover:-translate-x-1 transition-transform rtl:group-hover:translate-x-1" />
+                        </Link>
                     </Button>
                 </div>
             </CardContent>
@@ -129,12 +132,12 @@ interface MyLibraryPanelProps {
 }
 
 const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
-    const navigate = useNavigate();
+    const router = useRouter();
     const { data } = useUserAccountData();
     const { childProfiles } = useAuth();
     const { userOrders: orders = [], userSubscriptions: subscriptions = [], userBookings: bookings = [] } = data || {};
     const [activeTab, setActiveTab] = useState<'enha-lak' | 'creative-writing'>('enha-lak');
-    
+
     const enhaLakItemsExist = orders.length > 0 || subscriptions.length > 0;
 
     const bookingsByChild = useMemo(() => {
@@ -150,7 +153,7 @@ const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
         });
         return Array.from(map.values());
     }, [bookings, childProfiles]);
-    
+
     const creativeWritingItemsExist = bookings.length > 0;
 
     return (
@@ -198,7 +201,7 @@ const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
                                                         </div>
                                                         <StatusBadge status={sub.status} />
                                                     </div>
-                                                    
+
                                                     <div className="flex items-center justify-between pt-4 border-t border-orange-100">
                                                         <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded border">
                                                             التجديد: {formatDate(sub.next_renewal_date)}
@@ -237,12 +240,12 @@ const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
                                 )}
                             </>
                         ) : (
-                            <EmptyState 
-                                icon={<ShoppingBag className="w-16 h-16 text-gray-300" />} 
-                                title="لا توجد منتجات بعد" 
-                                message="ابدأ بتخصيص قصة لطفلك أو اشترك في الصندوق الشهري لتظهر طلباتك هنا." 
-                                actionText="اكتشف المتجر" 
-                                onAction={() => navigate('/enha-lak/store')} 
+                            <EmptyState
+                                icon={<ShoppingBag className="w-16 h-16 text-gray-300" />}
+                                title="لا توجد منتجات بعد"
+                                message="ابدأ بتخصيص قصة لطفلك أو اشترك في الصندوق الشهري لتظهر طلباتك هنا."
+                                actionText="اكتشف المتجر"
+                                onAction={() => router.push('/enha-lak/store')}
                             />
                         )}
                     </div>
@@ -268,12 +271,12 @@ const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
                                 ))}
                             </div>
                         ) : (
-                             <EmptyState 
-                                icon={<BookOpen className="w-16 h-16 text-gray-300" />} 
-                                title="لم تبدأ أي رحلة بعد" 
-                                message="سجل طفلك في برنامج 'بداية الرحلة' لتنمية مهاراته الكتابية." 
-                                actionText="استعرض الباقات" 
-                                onAction={() => navigate('/creative-writing/packages')} 
+                             <EmptyState
+                                icon={<BookOpen className="w-16 h-16 text-gray-300" />}
+                                title="لم تبدأ أي رحلة بعد"
+                                message="سجل طفلك في برنامج 'بداية الرحلة' لتنمية مهاراته الكتابية."
+                                actionText="استعرض الباقات"
+                                onAction={() => router.push('/creative-writing/packages')}
                             />
                         )}
                     </div>

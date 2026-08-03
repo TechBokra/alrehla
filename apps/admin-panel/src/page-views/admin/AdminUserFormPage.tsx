@@ -14,6 +14,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@alre
 import { ArrowLeft, Save, Shield, Briefcase, GraduationCap, Link as LinkIcon, AlertTriangle, Trash2, Info, Building2 } from 'lucide-react';
 import PageLoader from '@alrehla/ui/page-loader';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import Modal from '@alrehla/ui/modal';
 
 const createNavigate = (router: ReturnType<typeof useRouter>) => (
@@ -47,6 +48,7 @@ const AdminUserFormPage: React.FC = () => {
     const navigate = createNavigate(router);
     const isNew = !id;
     const { currentUser: loggedInAdmin } = useAuth();
+    const { addToast } = useToast();
 
     const type = searchParams.get('type') || 'customer';
     const isStaffFlow = type === 'staff';
@@ -101,6 +103,17 @@ const AdminUserFormPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (isNew) {
+            if (!formData.password || formData.password.length < 8) {
+                addToast('كلمة المرور يجب أن تتكون من 8 أحرف على الأقل حتى يقبلها نظام Clerk.', 'error');
+                return;
+            }
+        } else if (formData.password && formData.password.length < 8) {
+            addToast('كلمة المرور الجديدة يجب أن تتكون من 8 أحرف على الأقل.', 'error');
+            return;
+        }
+
         try {
             if (isNew) {
                 await createUser.mutateAsync(formData as any);

@@ -60,7 +60,7 @@ const InstructorShowcaseCard: React.FC<{ instructor: Instructor }> = ({ instruct
 
 
 const CreativeWritingPage: React.FC = () => {
-  const pageUrl = window.location.href;
+  const pageUrl = typeof window !== 'undefined' ? window.location.href : '';
   const { data: publicData } = usePublicData();
   const content = publicData?.siteContent?.creativeWritingPage.main;
   const instructors = publicData?.instructors || [];

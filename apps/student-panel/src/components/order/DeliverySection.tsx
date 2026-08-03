@@ -6,25 +6,26 @@ import FormField from '@alrehla/ui/form-field';
 import { Select } from '@alrehla/ui/native-select';
 import type { PersonalizedProduct } from '../../lib/database.types';
 import ShippingAddressForm from '../shared/ShippingAddressForm';
-import { useFormContext } from 'react-hook-form';
 import { Truck, Smartphone } from 'lucide-react';
+import type { OrderFormApi } from './form-types';
 
 interface DeliverySectionProps {
     product: PersonalizedProduct | null;
+    form: OrderFormApi;
 }
 
-const DeliverySection: React.FC<DeliverySectionProps> = ({ product }) => {
-    const { register, watch } = useFormContext();
-    const deliveryType = watch('deliveryType');
+const DeliverySection: React.FC<DeliverySectionProps> = ({ product, form }) => {
 
     const hasElectronicOption = product?.price_electronic !== null && product?.price_electronic > 0;
 
     return (
-        <div>
+        <form.Subscribe selector={(state: any) => state.values.deliveryType}>
+            {(deliveryType: 'printed' | 'electronic') => <div>
             <div className="space-y-6">
                 {product?.has_printed_version && (
                     <FormField label="نوع النسخة المطلوبة" htmlFor="deliveryType">
-                        <Select id="deliveryType" {...register('deliveryType')}>
+                        <form.Field name="deliveryType">
+                            {(field: any) => <Select id="deliveryType" value={field.state.value || ''} onChange={(event) => field.handleChange(event.target.value)} onBlur={field.handleBlur}>
                             {/* الخيار المطبوع يظهر دائماً لأننا في شرط has_printed_version */}
                             <option value="printed">
                                 {hasElectronicOption ? 'نسخة مطبوعة (تشمل نسخة رقمية مجاناً)' : 'نسخة مطبوعة فقط'}
@@ -34,7 +35,8 @@ const DeliverySection: React.FC<DeliverySectionProps> = ({ product }) => {
                             {hasElectronicOption && (
                                 <option value="electronic">نسخة إلكترونية فقط</option>
                             )}
-                        </Select>
+                            </Select>}
+                        </form.Field>
                     </FormField>
                 )}
 
@@ -56,11 +58,11 @@ const DeliverySection: React.FC<DeliverySectionProps> = ({ product }) => {
                 {deliveryType === 'printed' && (
                     <div className="space-y-4 pt-4 border-t animate-fadeIn">
                         <h4 className="font-bold text-gray-700">بيانات التوصيل</h4>
-                        <ShippingAddressForm />
+                        <ShippingAddressForm form={form} />
                     </div>
                 )}
-            </div>
-        </div>
+            </div></div>}
+        </form.Subscribe>
     );
 };
 

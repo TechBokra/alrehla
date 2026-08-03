@@ -17,13 +17,32 @@ interface StudentAccountFormProps {
     onSuccess: () => void;
 }
 
+const PASSWORD_ALPHABET =
+    'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+
+const generateTemporaryPassword = () => {
+    const randomValues = new Uint32Array(16);
+    window.crypto.getRandomValues(randomValues);
+    const randomPart = Array.from(
+        randomValues,
+        value => PASSWORD_ALPHABET[value % PASSWORD_ALPHABET.length],
+    ).join('');
+
+    // Guarantee the character classes Clerk commonly requires.
+    return `Aa9!${randomPart}`;
+};
+
 const StudentAccountForm: React.FC<StudentAccountFormProps> = ({ childProfile, parentEmail, onCancel, onSuccess }) => {
     const { createAndLinkStudentAccount } = useUserMutations();
     
     // State for the custom english username part
     const [usernamePart, setUsernamePart] = useState('');
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState(() => `Alr-${Math.random().toString(36).slice(2, 8)}-2026`); // Clerk-compatible default password
+    const [password, setPassword] = useState('');
+
+    useEffect(() => {
+        setPassword(generateTemporaryPassword());
+    }, []);
 
     // Initial setup: Try to guess english name from arabic name if possible, or leave blank
     useEffect(() => {
@@ -128,7 +147,7 @@ const StudentAccountForm: React.FC<StudentAccountFormProps> = ({ childProfile, p
                             value={password} 
                             onChange={(e) => setPassword(e.target.value)} 
                             required 
-                            minLength={8}
+                            minLength={12}
                             placeholder="******"
                             className="bg-white font-mono"
                         />
