@@ -113,7 +113,6 @@ export function DatePicker({
             if (minDate && date < minDate) return true;
             return false;
           }}
-          initialFocus
         />
       </PopoverContent>
     </Popover>

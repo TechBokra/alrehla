@@ -150,7 +150,7 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
                             )}
                         </form.Field>
                     ) : (
-                        <DatePicker id="childBirthDate" name="childBirthDate" max={today} value={formData?.childBirthDate || ''} onChange={(val) => handleChange({ target: { name: 'childBirthDate', value: val } })} />
+                        <DatePicker id="childBirthDate" name="childBirthDate" max={today} value={formData?.childBirthDate || ''} onChange={(val) => handleChange?.({ target: { name: 'childBirthDate', value: val } } as any)} />
                     )}
                 </FormField>
                 <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2" error={form ? undefined : getError('childGender')}>
