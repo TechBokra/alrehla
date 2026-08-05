@@ -91,7 +91,11 @@ export const parseActionInput = <Schema extends z.ZodTypeAny>(
 ): z.infer<Schema> => {
   const result = schema.safeParse(input);
   if (!result.success) {
-    actionError('البيانات المدخلة غير صالحة.');
+    const formattedError = result.error.errors
+      .map((e) => e.message)
+      .filter((m) => Boolean(m) && m !== 'Invalid input')
+      .join('، ');
+    actionError(formattedError ? `البيانات المدخلة غير صالحة: ${formattedError}` : 'البيانات المدخلة غير صالحة.');
   }
   return result.data;
 };

@@ -36,7 +36,6 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ['lucide-react'],
-    // Receipt actions accept at most 10 MiB; leave only minimal multipart overhead.
     serverActions: {
       bodySizeLimit: '11mb',
     },
@@ -51,9 +50,6 @@ export default withSentryConfig(nextConfig, {
   silent: !process.env.CI,
   debug: sentryDebug,
   widenClientFileUpload: true,
-  sourcemaps: {
-    deleteSourcemapsAfterUpload: true,
-  },
   tunnelRoute: '/monitoring',
   errorHandler() {
     // Monitoring must never make a deploy unavailable.

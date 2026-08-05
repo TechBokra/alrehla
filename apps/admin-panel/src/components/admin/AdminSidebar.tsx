@@ -7,7 +7,7 @@ import { useProduct } from '../../contexts/ProductContext';
 import {
     LayoutDashboard, Users, ShoppingBag, BookOpen, UserCog, MessageSquare, UserPlus,
     FileText, Settings, Star, Package, Sparkles, CalendarCheck, Plug, DollarSign, BarChart, History, X,
-    Globe, Home, Info, HelpCircle, Shield, Server, Library, Wallet
+    Globe, Home, Info, HelpCircle, Shield, Server, Library, Wallet, Bell
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Image from '@alrehla/ui/image';
@@ -100,6 +100,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
             { to: '/', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', permission: true },
             { to: '/profile', icon: <UserCog size={20} />, label: 'ملفي الشخصي', permission: permissions.canManageOwnProfile },
             { to: '/schedule', icon: <CalendarCheck size={20} />, label: 'جدولي', permission: permissions.canManageOwnSchedule },
+            { to: '/notifications', icon: <Bell size={20} />, label: 'الإشعارات', permission: true },
             { to: '/journeys', icon: <BookOpen size={20} />, label: 'رحلات الطلاب', permission: true },
             { to: '/pricing', icon: <DollarSign size={20} />, label: 'التسعير', permission: true },
             { to: '/financials', icon: <DollarSign size={20} />, label: 'الماليات', permission: permissions.canViewOwnFinancials },
@@ -111,6 +112,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
         const publisherNav = [
             { to: '/', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', permission: true },
             { to: '/publisher-products', icon: <Library size={20} />, label: 'إدارة كتبي', permission: permissions.canManageOwnProducts },
+            { to: '/notifications', icon: <Bell size={20} />, label: 'الإشعارات', permission: true },
             { to: '/publisher-financials', icon: <Wallet size={20} />, label: 'الماليات', permission: true },
             { to: '/my-profile', icon: <UserCog size={20} />, label: 'إعدادات الحساب', permission: true },
         ];
@@ -121,6 +123,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
             {
                 items: [
                     { to: '/', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', permission: permissions.canViewDashboard },
+                    { to: '/notifications', icon: <Bell size={20} />, label: 'الإشعارات', permission: true },
                 ]
             },
             {

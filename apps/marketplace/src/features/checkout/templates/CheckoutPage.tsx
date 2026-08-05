@@ -39,13 +39,6 @@ const CheckoutPage: React.FC = () => {
 
     const isStudent = currentUser?.role === 'student';
 
-    // Enforce Profile Check on Mount (Skip for students as their parent handles profile data mostly)
-    React.useEffect(() => {
-        if (currentUser && !isStudent && !isProfileComplete) {
-            triggerProfileUpdate(true);
-        }
-    }, [currentUser, isProfileComplete, triggerProfileUpdate, isStudent]);
-
     // Payment Info from Backend
     const instapayNumber = publicData?.communicationSettings?.instapay_number;
     const instapayQrUrl = publicData?.communicationSettings?.instapay_qr_url;

@@ -23,6 +23,7 @@ export * from './components/ui/tooltip';
 export * from './components/ui/toast';
 export * from './components/ui/toaster';
 export * from './components/ui/calendar';
+export * from './components/ui/date-picker';
 export * from './components/ui/breadcrumb';
 export * from './components/ui/pagination';
 export {

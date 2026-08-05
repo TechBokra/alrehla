@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import FormField from '@alrehla/ui/form-field';
 import { Input } from '@alrehla/ui/input';
+import { DatePicker } from '@alrehla/ui/date-picker';
 import { Select } from '@alrehla/ui/native-select';
 import type { ChildProfile, UserProfile } from '../../lib/database.types';
 import { UserPlus, User as UserIcon } from 'lucide-react';
@@ -145,11 +146,11 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
                     {form ? (
                         <form.Field name="childBirthDate">
                             {(field: any) => (
-                                <><Input id="childBirthDate" type="date" max={today} value={field.state.value || ''} onChange={(event) => field.handleChange(event.target.value)} onBlur={field.handleBlur} />{getFieldError(field) && <p className="text-sm font-medium text-destructive">{getFieldError(field)}</p>}</>
+                                <><DatePicker id="childBirthDate" max={today} value={field.state.value || ''} onChange={(val) => field.handleChange(val)} onBlur={field.handleBlur} />{getFieldError(field) && <p className="text-sm font-medium text-destructive">{getFieldError(field)}</p>}</>
                             )}
                         </form.Field>
                     ) : (
-                        <Input id="childBirthDate" type="date" name="childBirthDate" max={today} value={formData?.childBirthDate || ''} onChange={handleChange} />
+                        <DatePicker id="childBirthDate" name="childBirthDate" max={today} value={formData?.childBirthDate || ''} onChange={(val) => handleChange({ target: { name: 'childBirthDate', value: val } })} />
                     )}
                 </FormField>
                 <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2" error={form ? undefined : getError('childGender')}>

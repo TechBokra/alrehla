@@ -40,6 +40,9 @@
       "@alrehla/ui/skeletons": [
         "../../packages/ui/src/Skeletons.tsx"
       ],
+      "@alrehla/ui/date-picker": [
+        "../../packages/ui/src/components/ui/date-picker.tsx"
+      ],
       "@alrehla/ui/*": [
         "../../packages/ui/src/*"
       ],

@@ -159,11 +159,6 @@ const CreativeWritingBookingPage: React.FC = () => {
     };
 
     const handleSubmit = async () => {
-        // Enforce Profile Completion
-        if (!isProfileComplete) {
-            triggerProfileUpdate(true); // Mandatory
-            return;
-        }
 
         if (!childData.childName || !selectedPackage || !selectedInstructor || !selectedDateTime || finalPrice === null) {
             addToast('بيانات الحجز غير مكتملة.', 'error');

@@ -203,7 +203,11 @@ export const userService = {
 
     async updateChildProfile(payload: Partial<ChildProfile> & { id: number }) {
         const { id, ...updates } = payload;
-        const { data, error } = await (supabase.from('child_profiles') as any).update(updates).eq('id', id).select().single();
+        if (Object.keys(updates).length === 0) {
+            const { data } = await supabase.from('child_profiles').select('*').eq('id', id).maybeSingle();
+            return data as ChildProfile;
+        }
+        const { data, error } = await (supabase.from('child_profiles') as any).update(updates).eq('id', id).select().maybeSingle();
         if (error) throw new Error(error.message);
         return data as ChildProfile;
     },
@@ -236,7 +240,11 @@ export const userService = {
             email: _email,
             ...updates
         } = payload as UpdateUserPayload & Record<string, unknown>;
-        const { data, error } = await (supabase.from('profiles') as any).update(updates).eq('id', id).select().single();
+        if (Object.keys(updates).length === 0) {
+            const { data } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle();
+            return data as UserProfile;
+        }
+        const { data, error } = await (supabase.from('profiles') as any).update(updates).eq('id', id).select().maybeSingle();
         if (error) throw new Error(error.message);
         if (password && password.trim() !== '') {
             throw new Error('تغيير كلمة المرور يتم عبر Clerk فقط، وليس عبر Supabase Auth.');
