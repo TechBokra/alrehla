@@ -1,5 +1,3 @@
-'use client';
-
 import PageComponent from '@/page-views/admin/AdminOrderDetailPage';
 import PermissionGate from '@/components/auth/PermissionGate';
 

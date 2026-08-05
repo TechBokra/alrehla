@@ -1,17 +1,15 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { useRouter, useParams } from 'next/navigation';
 import { useForm } from '@tanstack/react-form';
-import { useOrderData, type OrderData } from '../../../hooks/queries/public/usePageDataQuery';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useCart } from '../../../contexts/CartContext';
-import { useShippingCosts } from '../../../hooks/queries/public/useProductDataQuery';
 import { useToast } from '../../../contexts/ToastContext';
+import { useOrderData, type OrderData } from '../../../hooks/queries/public/usePageDataQuery';
+import { useShippingCosts } from '../../../hooks/queries/public/useProductDataQuery';
 import { createOrderSchema, OrderFormValues } from '../../../lib/schemas';
 import { EGYPTIAN_GOVERNORATES } from '../../../utils/governorates';
-import type { PersonalizedProduct } from '../../../lib/database.types';
-import type { OrderFormApi } from '../../../components/order/form-types';
 
 export interface UseOrderPageProps {
   initialOrderData?: OrderData;
@@ -221,6 +219,26 @@ export function useOrderPage({ initialOrderData }: UseOrderPageProps = {}) {
     });
     const isValid = Object.keys(validationErrors).length === 0;
     if (isValid) {
+      if (isLoggedIn && currentUser && currentStepKey === 'delivery' && currentFormData.deliveryType === 'printed') {
+        const addressUpdates: Record<string, any> = {};
+        if (currentFormData.recipientPhone && currentFormData.recipientPhone !== currentUser.phone) {
+          addressUpdates.phone = currentFormData.recipientPhone;
+        }
+        if (currentFormData.recipientAddress && currentFormData.recipientAddress !== currentUser.address) {
+          addressUpdates.address = currentFormData.recipientAddress;
+        }
+        if (currentFormData.governorate && currentFormData.governorate !== currentUser.governorate) {
+          addressUpdates.governorate = currentFormData.governorate;
+          addressUpdates.city = currentFormData.governorate;
+        }
+        if (!currentUser.country) {
+          addressUpdates.country = 'مصر';
+        }
+        if (Object.keys(addressUpdates).length > 0) {
+          userActions.updateUser(addressUpdates).catch((err) => console.warn('Background profile sync:', err));
+        }
+      }
+
       setStep((prev) => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
@@ -281,10 +299,19 @@ export function useOrderPage({ initialOrderData }: UseOrderPageProps = {}) {
       return;
     }
 
-    // 2. Profile Completion Check
-    if (!isProfileComplete) {
-      triggerProfileUpdate(true);
-      return;
+    // Auto-update user profile details in background
+    if (isLoggedIn && currentUser && data.deliveryType === 'printed') {
+      const addressUpdates: Record<string, any> = {};
+      if (data.recipientPhone && data.recipientPhone !== currentUser.phone) addressUpdates.phone = data.recipientPhone;
+      if (data.recipientAddress && data.recipientAddress !== currentUser.address) addressUpdates.address = data.recipientAddress;
+      if (data.governorate && data.governorate !== currentUser.governorate) {
+        addressUpdates.governorate = data.governorate;
+        addressUpdates.city = data.governorate;
+      }
+      if (!currentUser.country) addressUpdates.country = 'مصر';
+      if (Object.keys(addressUpdates).length > 0) {
+        userActions.updateUser(addressUpdates).catch((err) => console.warn('Background profile sync:', err));
+      }
     }
 
     // 3. Strict Shipping & Address Check for Printed Items

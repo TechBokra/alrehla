@@ -343,15 +343,16 @@ export const shouldIgnoreError = (error: unknown): boolean => {
     return true;
   }
 
-  const browserIsOffline =
-    typeof navigator !== 'undefined' && navigator.onLine === false;
-  return (
-    browserIsOffline &&
-    (message.includes('Failed to fetch') ||
-      message.includes('NetworkError when attempting to fetch resource') ||
-      message.includes('Load failed') ||
-      message.includes('ERR_INTERNET_DISCONNECTED'))
-  );
+  if (
+    message.includes('Failed to fetch') ||
+    message.includes('NetworkError when attempting to fetch resource') ||
+    message.includes('Load failed') ||
+    message.includes('net::ERR_INTERNET_DISCONNECTED') ||
+    message.includes('net::ERR_NAME_NOT_RESOLVED') ||
+    message.includes('net::ERR_CONNECTION_RESET')
+  ) {
+    return true;
+  }
 };
 
 const sanitizeBreadcrumb = (breadcrumb: Sentry.Breadcrumb): Sentry.Breadcrumb => ({

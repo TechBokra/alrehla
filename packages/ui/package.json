@@ -63,7 +63,9 @@
     "./IconMap": "./src/icon-map.tsx",
     "./icon-map": "./src/icon-map.tsx",
     "./use-modal-accessibility": "./src/use-modal-accessibility.ts",
-    "./error-boundary": "./src/components/error-boundary/index.ts"
+    "./error-boundary": "./src/components/error-boundary/index.ts",
+    "./date-picker": "./src/components/ui/date-picker.tsx",
+    "./DatePicker": "./src/components/ui/date-picker.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

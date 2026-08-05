@@ -63,11 +63,6 @@ const ServiceOrderPage: React.FC = () => {
     const finalPrice = calculateCustomerPrice(netPrice, pricingConfig);
 
     const handleConfirm = () => {
-         // Enforce Profile Completion
-        if (!isProfileComplete) {
-            triggerProfileUpdate(true); // Mandatory
-            return;
-        }
 
         if (service.requires_file_upload && !file) {
             addToast('يرجى رفع الملف المطلوب للمتابعة.', 'warning');

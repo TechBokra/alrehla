@@ -5,11 +5,48 @@ import { z } from 'zod';
 export const resourceIdSchema = z.string().trim().min(1).max(128);
 export const numericIdSchema = z.coerce.number().int().positive();
 export const emailSchema = z.string().trim().toLowerCase().email().max(254);
-export const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+export const dateSchema = z
+  .union([z.string(), z.date()])
+  .transform((val, ctx) => {
+    if (val instanceof Date) {
+      if (isNaN(val.getTime())) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'تاريخ غير صالح' });
+        return z.NEVER;
+      }
+      return val.toISOString().split('T')[0];
+    }
+    const str = val.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      return str;
+    }
+    if (str.includes('T')) {
+      const parsed = new Date(str);
+      if (!isNaN(parsed.getTime())) {
+        return parsed.toISOString().split('T')[0];
+      }
+    }
+    return str;
+  });
+
 export const timeSchema = z
-  .string()
-  .regex(/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/)
-  .transform((value) => value.slice(0, 5));
+  .union([z.string(), z.date()])
+  .transform((val, ctx) => {
+    if (val instanceof Date) {
+      const hours = String(val.getHours()).padStart(2, '0');
+      const minutes = String(val.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+    const str = val.trim();
+    if (str.includes('T')) {
+      const parsed = new Date(str);
+      if (!isNaN(parsed.getTime())) {
+        const hours = String(parsed.getHours()).padStart(2, '0');
+        const minutes = String(parsed.getMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
+      }
+    }
+    return str.slice(0, 5);
+  });
 
 const requiredText = (max: number) => z.string().trim().min(1).max(max);
 const optionalText = (max: number) =>
@@ -177,23 +214,23 @@ export const publisherProfileSchema = z
 
 export const createOrderSchema = z
   .object({
-    userId: resourceIdSchema.optional(),
-    childId: numericIdSchema.nullable(),
+    userId: resourceIdSchema.optional().nullable(),
+    childId: numericIdSchema.optional().nullable(),
     summary: requiredText(300),
     total: finiteMoney,
     shippingCost: finiteMoney,
     productKey: z.string().trim().min(1).max(120).regex(/^[a-zA-Z0-9_-]+$/),
     details: jsonRecordSchema,
-    receiptUrl: z.string().trim().url().max(5000).optional().or(z.literal('')),
+    receiptUrl: z.string().trim().max(5000).optional().nullable().or(z.literal('')),
   })
   .strip();
 
 export const createSubscriptionSchema = z
   .object({
-    userId: resourceIdSchema.optional(),
-    childId: numericIdSchema,
+    userId: resourceIdSchema.optional().nullable(),
+    childId: numericIdSchema.optional().nullable(),
     planName: requiredText(160),
-    durationMonths: z.coerce.number().int().min(1).max(120).optional(),
+    durationMonths: z.coerce.number().int().min(1).max(120).optional().nullable(),
   })
   .strip();
 
@@ -324,7 +361,7 @@ export const personalizedProductSchema = z
 
 export const createBookingSchema = z
   .object({
-    userId: resourceIdSchema.optional(),
+    userId: resourceIdSchema.optional().nullable(),
     payload: z
       .object({
         child: z.object({ id: numericIdSchema }).strip(),
@@ -338,7 +375,7 @@ export const createBookingSchema = z
           .strip(),
       })
       .strip(),
-    receiptUrl: z.string().trim().url().max(5000).optional().or(z.literal('')),
+    receiptUrl: z.string().trim().max(5000).optional().nullable().or(z.literal('')),
   })
   .strip();
 

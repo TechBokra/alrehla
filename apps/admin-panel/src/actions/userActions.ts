@@ -183,14 +183,18 @@ export const updateUser = async (payload: AdminUpdateUserPayload) => {
     delete updates.password;
     if (updates.email) updates.email = normalizeEmail(updates.email);
 
+    if (Object.keys(updates).length === 0) {
+      return beforeProfile;
+    }
+
     const { data, error } = await (supabase.from('profiles') as any)
       .update(updates)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw new Error(getDatabaseErrorMessage(error));
-    return data as any;
+    return (data || beforeProfile) as any;
   });
 
   if (role) {

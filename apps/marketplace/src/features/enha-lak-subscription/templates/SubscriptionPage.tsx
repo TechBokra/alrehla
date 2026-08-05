@@ -164,10 +164,19 @@ const SubscriptionPage: React.FC = () => {
   const handleBack = () => setStep((prev) => prev - 1);
 
   const handleSubmit = async () => {
-    // Enforce Profile Completion
-    if (!isProfileComplete) {
-      triggerProfileUpdate(true); // Mandatory
-      return;
+    // Auto-update user profile in background
+    if (currentUser && formData.governorate) {
+      const addressUpdates: Record<string, any> = {};
+      if (formData.recipientPhone && formData.recipientPhone !== currentUser.phone) addressUpdates.phone = formData.recipientPhone;
+      if (formData.recipientAddress && formData.recipientAddress !== currentUser.address) addressUpdates.address = formData.recipientAddress;
+      if (formData.governorate && formData.governorate !== currentUser.governorate) {
+        addressUpdates.governorate = formData.governorate;
+        addressUpdates.city = formData.governorate;
+      }
+      if (!currentUser.country) addressUpdates.country = 'مصر';
+      if (Object.keys(addressUpdates).length > 0) {
+        userActions.updateUser(addressUpdates).catch((err) => console.warn('Background profile sync:', err));
+      }
     }
 
     if (!validateStep('delivery')) return;
