@@ -17,6 +17,7 @@ import { useToast } from '../../../contexts/ToastContext';
 import { useShippingCosts } from '../../../hooks/queries/public/useProductDataQuery';
 import { usePublicData } from '../../../hooks/queries/public/usePublicDataQuery';
 import { EGYPTIAN_GOVERNORATES } from '../../../utils/governorates';
+import * as userActions from '../../../actions/userActions';
 
 const steps = [
   { key: 'plan', title: 'اختر الباقة' },
