@@ -103,6 +103,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [error, setError] = useState<string | null>(null);
   const [pendingEmailVerification, setPendingEmailVerification] = useState(false);
 
+
+
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [isProfileMandatory, setIsProfileMandatory] = useState(false);
 
@@ -111,8 +113,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const clerk = useClerk();
   const { user: clerkUser, isLoaded: clerkUserLoaded } = useClerkUser();
   const { session, isLoaded: clerkSessionLoaded } = useSession();
-  const { signIn: clerkSignIn, fetchStatus: clerkSignInFetchStatus } = useClerkSignIn();
-  const { signUp: clerkSignUp, fetchStatus: clerkSignUpFetchStatus } = useClerkSignUp();
+  const { signIn: clerkSignIn } = useClerkSignIn();
+  const { signUp: clerkSignUp } = useClerkSignUp();
 
   const getClerkAccessToken = useCallback(async () => {
     const activeSession =
@@ -418,7 +420,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       signUp,
       signInWithGoogle,
       updateCurrentUser,
-      loading: loading || clerkSignInFetchStatus === "fetching" || clerkSignUpFetchStatus === "fetching",
+      loading,
       error,
       hasAdminAccess: canAccessAdmin(userRole),
       permissions: currentPermissions,
@@ -442,8 +444,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     profileModalOpen,
     isProfileMandatory,
     pendingEmailVerification,
-    clerkSignInFetchStatus,
-    clerkSignUpFetchStatus,
   ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
