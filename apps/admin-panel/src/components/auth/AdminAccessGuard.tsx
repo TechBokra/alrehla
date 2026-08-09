@@ -16,8 +16,12 @@ export default function AdminAccessGuard({ children }: { children: React.ReactNo
     }
   }, [currentUser, hasAdminAccess, isLoggedIn, loading, router]);
 
-  if (loading || !isLoggedIn || !currentUser || !hasAdminAccess) {
+  if (loading) {
     return <PageLoader text="جاري التحقق من الصلاحيات..." />;
+  }
+
+  if (!isLoggedIn || !currentUser || !hasAdminAccess) {
+    return null;
   }
 
   return <>{children}</>;

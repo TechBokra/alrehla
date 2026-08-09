@@ -22,8 +22,12 @@ export default function PermissionGate({
     }
   }, [loading, permission, permissions, router]);
 
-  if (loading || !permissions[permission]) {
+  if (loading) {
     return <PageLoader text="جاري التحقق من الصلاحيات..." />;
+  }
+
+  if (!permissions[permission]) {
+    return null;
   }
 
   return <>{children}</>;
