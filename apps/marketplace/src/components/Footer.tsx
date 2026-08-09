@@ -68,7 +68,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-2 text-sm">
               <li>
                 <Link
-                  to="/enha-lak/store"
+                  to="/enha-lak"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   قصص "إنها لك"

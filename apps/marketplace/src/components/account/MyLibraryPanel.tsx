@@ -255,7 +255,7 @@ const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
                                 title="لا توجد منتجات بعد"
                                 message="ابدأ بتخصيص قصة لطفلك أو اشترك في الصندوق الشهري لتظهر طلباتك هنا."
                                 actionText="اكتشف المتجر"
-                                onAction={() => router.push('/enha-lak/store')}
+                                onAction={() => router.push('/enha-lak/custom')}
                             />
                         )}
                     </div>

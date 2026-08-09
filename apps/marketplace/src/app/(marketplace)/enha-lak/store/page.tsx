@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
-import PersonalizedStoriesPage from '@/features/enha-lak-store';
+import { redirect } from 'next/navigation';
 
 export default function Page() {
-  return <PersonalizedStoriesPage />;
+  redirect('/enha-lak/custom');
 }

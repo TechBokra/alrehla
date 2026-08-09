@@ -4,7 +4,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useCart } from '../../../contexts/CartContext';
-import { ShoppingCart, Trash2, ArrowLeft, CreditCard, Truck } from 'lucide-react';
+import { Library, ShoppingCart, Sparkles, Trash2, ArrowLeft, CreditCard, Truck } from 'lucide-react';
 import { Button } from '@alrehla/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@alrehla/ui/card';
 
@@ -44,6 +44,12 @@ const CartPage: React.FC = () => {
                                             <div key={item.id} className="flex items-center gap-4 border-b pb-4 last:border-b-0 last:pb-0">
                                                 <span className="text-3xl">{getItemIcon(item.type)}</span>
                                                 <div className="flex-grow">
+                                                    {item.type === 'order' && (
+                                                        <div className="mb-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+                                                            {item.payload.details?.journey === 'library' ? <Library size={13} className="text-blue-600" /> : <Sparkles size={13} className="text-pink-600" />}
+                                                            {item.payload.details?.journey === 'library' ? 'قصة جاهزة — تخصيص الغلاف' : 'تجربة وقصة مخصصة'}
+                                                        </div>
+                                                    )}
                                                     <p className="font-bold text-foreground flex items-center gap-2">
                                                         {item.payload.formData?.shippingOption === 'gift' && <span title="هدية">🎁</span>}
                                                         {item.payload.summary}

@@ -206,13 +206,14 @@ const AdminProductDetailPage: React.FC = () => {
     const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const value = e.target.value;
         if (value === 'addon') {
-            setProduct(prev => ({ ...prev, product_type: 'addon', is_addon: true, goal_config: 'none', image_slots: [] }));
+            setProduct(prev => ({ ...prev, product_type: 'addon', is_addon: true, goal_config: 'none', story_goals: [], image_slots: [] }));
         } else if (value === 'library_book') {
              setProduct(prev => ({ 
                  ...prev, 
                  product_type: 'library_book', 
                  is_addon: false, 
                  goal_config: 'none', 
+                 story_goals: [],
                  has_printed_version: true,
                  // Set default slots when switching to library book
                  image_slots: [
@@ -277,6 +278,8 @@ const AdminProductDetailPage: React.FC = () => {
                 ...product,
                 image_url: uploadedImageUrl,
                 is_addon: product.product_type === 'addon',
+                goal_config: product.product_type === 'library_book' || product.product_type === 'addon' ? 'none' : product.goal_config,
+                story_goals: product.product_type === 'library_book' || product.product_type === 'addon' ? [] : product.story_goals,
                 has_printed_version: true, // Force Printed for library/publisher products
                 price_printed: Number(product.price_printed),
                 price_electronic: hasElectronicOption ? (Number(product.price_electronic) || null) : null,
@@ -312,6 +315,14 @@ const AdminProductDetailPage: React.FC = () => {
     };
 
     if ((productsLoading || configLoading || publishersLoading) && !isNew) return <PageLoader />;
+
+    const isLibraryProduct = product.product_type === 'library_book';
+    const imageSlotsDescription = isLibraryProduct
+        ? 'هذه هي الصور التي يمكن للعميل رفعها لتخصيص الغلاف فقط. لا تستخدم هذه الخانات لإعادة كتابة محتوى القصة.'
+        : 'هذه هي الصور التي يرفعها العميل لتجهيز التجربة أو القصة المخصصة.';
+    const textFieldsDescription = isLibraryProduct
+        ? 'أضف حقول الغلاف المدعومة فقط، مثل الإهداء أو النص الذي يظهر على الغلاف.'
+        : 'أضف الحقول التي يحتاجها فريق إعداد التجربة أو القصة المخصصة.';
 
     return (
          <div className="animate-fadeIn space-y-8">
@@ -377,7 +388,7 @@ const AdminProductDetailPage: React.FC = () => {
                     <Card>
                         <CardHeader><CardTitle className="flex items-center gap-2"><ImageIcon /> تخصيص الصور (للعميل)</CardTitle></CardHeader>
                         <CardContent>
-                            <p className="text-sm text-muted-foreground mb-4">هذه هي الأماكن التي سيرفع فيها العميل صوره عند الشراء (مثل صورة الوجه للغلاف).</p>
+                            <p className="text-sm text-muted-foreground mb-4">{imageSlotsDescription}</p>
                              <DynamicListManager 
                                 items={product.image_slots || []}
                                 onAdd={() => handleAddItem('image_slots')}
@@ -398,7 +409,7 @@ const AdminProductDetailPage: React.FC = () => {
                     <Card>
                         <CardHeader><CardTitle className="flex items-center gap-2"><Type /> حقول التخصيص النصية</CardTitle></CardHeader>
                         <CardContent>
-                            <p className="text-sm text-muted-foreground mb-4">أضف حقولاً ليقوم العميل بملئها عند الشراء (مثال: اسم الطفل للإهداء).</p>
+                            <p className="text-sm text-muted-foreground mb-4">{textFieldsDescription}</p>
                             <DynamicListManager 
                                 items={product.text_fields || []}
                                 onAdd={() => handleAddItem('text_fields')}

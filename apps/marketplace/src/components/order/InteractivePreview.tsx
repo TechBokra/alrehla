@@ -3,6 +3,7 @@ import Image from '@alrehla/ui/next-image';
 import { Image as ImageIcon, Package, Palette, Sparkles, User } from 'lucide-react';
 import React from 'react';
 import type { PersonalizedProduct } from '../../lib/database.types';
+import type { OrderJourney } from '../../features/enha-lak-order/lib/orderJourneyConfig';
 
 interface StoryGoal {
   key: string;
@@ -24,6 +25,7 @@ interface InteractivePreviewProps {
   shippingPrice: number;
   imagePreviewUrl: string | null;
   storyGoals: StoryGoal[];
+  journey: OrderJourney;
 }
 
 const InteractivePreview: React.FC<InteractivePreviewProps> = ({
@@ -35,6 +37,7 @@ const InteractivePreview: React.FC<InteractivePreviewProps> = ({
   shippingPrice,
   imagePreviewUrl,
   storyGoals,
+  journey,
 }) => {
   const { childName } = formData;
 
@@ -68,7 +71,7 @@ const InteractivePreview: React.FC<InteractivePreviewProps> = ({
         <div>
           <h3 className="text-base font-semibold text-muted-foreground mb-3 flex items-center gap-2">
             <User size={16} />
-            بطل القصة
+            {journey === 'library' ? 'تخصيص الغلاف' : 'بطل القصة'}
           </h3>
           <div className="bg-muted/50 p-4 rounded-lg flex flex-col items-center gap-3">
             <div className="w-24 h-24 rounded-full bg-background flex items-center justify-center overflow-hidden border-2 border-white shadow-md">
@@ -101,8 +104,8 @@ const InteractivePreview: React.FC<InteractivePreviewProps> = ({
             ),
         )}
 
-        {/* Goal Preview - Only if applicable */}
-        {goalTitle && (
+        {/* Goal preview belongs to the custom journey only. */}
+        {journey === 'custom' && goalTitle && (
           <div>
             <h3 className="text-base font-semibold text-muted-foreground mb-2 flex items-center gap-2">
               {goalIcon}

@@ -47,7 +47,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ backgroundUrl, content }) => 
           className="mt-10 flex animate-fadeIn flex-col items-center justify-center gap-4 sm:flex-row"
           style={{ animationDelay: '0.4s' }}
         >
-          <Link href="/enha-lak/store" className="inline-block">
+          <Link href="/enha-lak" className="inline-block">
             <Button as="span" size="lg" className="shadow-lg transition-transform hover:scale-105">
               {content?.heroButtonText1 || 'اطلب قصتك المخصصة الآن'}
             </Button>
