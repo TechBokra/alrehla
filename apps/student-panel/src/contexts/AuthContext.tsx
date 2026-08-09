@@ -4,6 +4,7 @@ import React, {
   createContext,
   useState,
   useEffect,
+  useRef,
   useContext,
   ReactNode,
   useMemo,
@@ -102,6 +103,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingEmailVerification, setPendingEmailVerification] = useState(false);
+  const initialAuthDoneRef = useRef(false);
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [isProfileMandatory, setIsProfileMandatory] = useState(false);
@@ -206,7 +208,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     const syncSession = async () => {
       try {
-        setLoading(true);
+        if (!initialAuthDoneRef.current) {
+          setLoading(true);
+        }
         setError(null);
 
         if (!clerkUser) {
@@ -225,6 +229,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           console.error("Clerk session sync error", e);
         }
       } finally {
+        initialAuthDoneRef.current = true;
         if (!cancelled) setLoading(false);
       }
     };
