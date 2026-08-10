@@ -65,7 +65,9 @@
     "./use-modal-accessibility": "./src/use-modal-accessibility.ts",
     "./error-boundary": "./src/components/error-boundary/index.ts",
     "./date-picker": "./src/components/ui/date-picker.tsx",
-    "./DatePicker": "./src/components/ui/date-picker.tsx"
+    "./DatePicker": "./src/components/ui/date-picker.tsx",
+    "./date-time-picker": "./src/components/ui/date-time-picker.tsx",
+    "./DateTimePicker": "./src/components/ui/date-time-picker.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

@@ -1,16 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import AdminSidebar from './AdminSidebar';
 import AdminNavbar from './AdminNavbar';
 import AdminFooter from './AdminFooter';
-import PageLoader from '@alrehla/ui/page-loader';
 import NotificationListener from '../shared/NotificationListener';
 
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
     return (
         <div className="flex h-screen bg-muted/30 overflow-hidden" dir="rtl">
             {/* إضافة مستمع الإشعارات هنا لضمان عمله داخل لوحة التحكم */}

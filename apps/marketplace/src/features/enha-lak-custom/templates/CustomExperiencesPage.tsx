@@ -1,23 +1,16 @@
-"use client";
-
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Gift, Sparkles } from 'lucide-react';
-import { usePublicData } from '../../../hooks/queries/public/usePublicDataQuery';
-import { ProductCardSkeleton } from '@alrehla/ui/skeletons';
-import ErrorState from '@alrehla/ui/error-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@alrehla/ui/card';
 import { Button } from '@alrehla/ui/button';
-import { Link } from '@/lib/router-compat';
 import PersonalizedProductCard from '../../enha-lak-store/components/PersonalizedProductCard';
+import { getEnhaLakData } from '../../../services/enhaLakPublicService';
 
-const CustomExperiencesPage: React.FC = () => {
-  const { data, isLoading, error, refetch } = usePublicData();
-  const products = data?.personalizedProducts || [];
-  const customProducts = useMemo(
-    () => products.filter((product) => !product.is_addon && product.product_type === 'hero_story'),
-    [products],
+const CustomExperiencesPage = async () => {
+  const { personalizedProducts: products } = await getEnhaLakData();
+  const customProducts = products.filter(
+    (product) => !product.is_addon && product.product_type === 'hero_story',
   );
-  const addons = useMemo(() => products.filter((product) => product.is_addon), [products]);
+  const addons = products.filter((product) => product.is_addon);
   const subscription = products.find((product) => product.product_type === 'subscription_box');
 
   return (
@@ -31,55 +24,49 @@ const CustomExperiencesPage: React.FC = () => {
           </p>
         </header>
 
-        {error ? <ErrorState message={(error as Error).message} onRetry={refetch} /> : (
-          <>
-            <section aria-labelledby="custom-products-heading">
-              <div className="mb-8 flex items-center gap-3">
-                <div className="rounded-lg bg-pink-100 p-2 text-pink-600"><Sparkles size={24} /></div>
-                <div>
-                  <h2 id="custom-products-heading" className="text-2xl font-bold text-foreground">اختر تجربتك</h2>
-                  <p className="text-sm text-muted-foreground">كل منتج هنا نقطة بداية لتجربة يتم إعدادها لطفلك.</p>
-                </div>
+        <section aria-labelledby="custom-products-heading">
+          <div className="mb-8 flex items-center gap-3">
+            <div className="rounded-lg bg-pink-100 p-2 text-pink-600"><Sparkles size={24} /></div>
+            <div>
+              <h2 id="custom-products-heading" className="text-2xl font-bold text-foreground">اختر تجربتك</h2>
+              <p className="text-sm text-muted-foreground">كل منتج هنا نقطة بداية لتجربة يتم إعدادها لطفلك.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {customProducts.length > 0 ? customProducts.map((product) => (
+              <PersonalizedProductCard key={product.id} product={product} variant="custom" />
+            )) : (
+              <div className="col-span-full rounded-xl border border-dashed bg-white py-12 text-center text-muted-foreground">
+                لا توجد تجارب مخصصة متاحة حالياً.
               </div>
-              <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-                {isLoading ? Array.from({ length: 3 }).map((_, index) => <ProductCardSkeleton key={index} />) : (
-                  customProducts.length > 0 ? customProducts.map((product) => (
-                    <PersonalizedProductCard key={product.id} product={product} variant="custom" />
-                  )) : (
-                    <div className="col-span-full rounded-xl border border-dashed bg-white py-12 text-center text-muted-foreground">
-                      لا توجد تجارب مخصصة متاحة حالياً.
-                    </div>
-                  )
-                )}
-              </div>
-            </section>
-
-            {addons.length > 0 && (
-              <section className="mt-16 border-t pt-12" aria-labelledby="custom-addons-heading">
-                <div className="mb-8 text-center">
-                  <h2 id="custom-addons-heading" className="flex items-center justify-center gap-3 text-2xl font-bold text-foreground">
-                    <Gift className="text-emerald-500" /> إضافات اختيارية
-                  </h2>
-                  <p className="mt-2 text-muted-foreground">يمكن اختيارها داخل خطوات التجربة المخصصة.</p>
-                </div>
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-                  {addons.map((product) => <PersonalizedProductCard key={product.id} product={product} variant="addon" />)}
-                </div>
-              </section>
             )}
+          </div>
+        </section>
 
-            {subscription && (
-              <Card className="mx-auto mt-16 max-w-3xl border-pink-200 bg-pink-50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Gift className="text-pink-600" /> {subscription.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
-                  <p className="text-muted-foreground">{subscription.description}</p>
-                  <Button as={Link} to="/enha-lak/subscription" variant="pink" className="flex-shrink-0">اعرف المزيد</Button>
-                </CardContent>
-              </Card>
-            )}
-          </>
+        {addons.length > 0 && (
+          <section className="mt-16 border-t pt-12" aria-labelledby="custom-addons-heading">
+            <div className="mb-8 text-center">
+              <h2 id="custom-addons-heading" className="flex items-center justify-center gap-3 text-2xl font-bold text-foreground">
+                <Gift className="text-emerald-500" /> إضافات اختيارية
+              </h2>
+              <p className="mt-2 text-muted-foreground">يمكن اختيارها داخل خطوات التجربة المخصصة.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {addons.map((product) => <PersonalizedProductCard key={product.id} product={product} variant="addon" />)}
+            </div>
+          </section>
+        )}
+
+        {subscription && (
+          <Card className="mx-auto mt-16 max-w-3xl border-pink-200 bg-pink-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Gift className="text-pink-600" /> {subscription.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
+              <p className="text-muted-foreground">{subscription.description}</p>
+              <Button href="/enha-lak/subscription" variant="pink" className="flex-shrink-0">اعرف المزيد</Button>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

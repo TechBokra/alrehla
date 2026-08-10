@@ -1,10 +1,9 @@
 'use client';
 
 // ... existing imports
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button } from '@alrehla/ui/button';
 import { Card, CardContent } from '@alrehla/ui/card';
-import PageLoader from '@alrehla/ui/page-loader';
 import React, { useEffect, useMemo, useState } from 'react';
 import AddonsSection from '../../../components/order/AddonsSection';
 import ChildDetailsSection from '../../../components/order/ChildDetailsSection';
@@ -14,10 +13,9 @@ import SubscriptionSummary from '../../../components/subscription/SubscriptionSu
 import { useAuth } from '../../../contexts/AuthContext';
 import { useCart } from '../../../contexts/CartContext';
 import { useToast } from '../../../contexts/ToastContext';
-import { useShippingCosts } from '../../../hooks/queries/public/useProductDataQuery';
-import { usePublicData } from '../../../hooks/queries/public/usePublicDataQuery';
 import { EGYPTIAN_GOVERNORATES } from '../../../utils/governorates';
 import * as userActions from '../../../actions/userActions';
+import type { EnhaLakSubscriptionData } from '../../../services/enhaLakPublicService';
 
 const steps = [
   { key: 'plan', title: 'اختر الباقة' },
@@ -26,15 +24,17 @@ const steps = [
   { key: 'delivery', title: 'الشحن والتأكيد' },
 ];
 
-const SubscriptionPage: React.FC = () => {
+interface SubscriptionPageProps {
+  initialData: EnhaLakSubscriptionData;
+}
+
+const SubscriptionPage: React.FC<SubscriptionPageProps> = ({ initialData }) => {
   const router = useRouter();
-  const pathname = usePathname();
-  const { data, isLoading } = usePublicData();
   const { addItemToCart } = useCart();
   const { addToast } = useToast();
   const { currentUser, childProfiles, isLoggedIn, isProfileComplete, triggerProfileUpdate } =
     useAuth();
-  const { data: shippingCosts } = useShippingCosts();
+  const shippingCosts = initialData.shippingCosts;
 
   const getOneTimeShippingCost = (governorate?: string): number => {
     if (!governorate) return 0;
@@ -67,10 +67,10 @@ const SubscriptionPage: React.FC = () => {
   const [errors, setErrors] = useState<any>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const plans = data?.subscriptionPlans || [];
+  const plans = initialData.subscriptionPlans;
   const addonProducts =
-    data?.personalizedProducts.filter((p) => p.is_addon && p.price_printed != null) || [];
-  const boxContent = data?.siteContent?.enhaLakPage.subscription;
+    initialData.personalizedProducts.filter((p) => p.is_addon && p.price_printed != null);
+  const boxContent = initialData.siteContent?.enhaLakPage.subscription;
 
   const selectedPlan = useMemo(
     () => plans.find((p) => p.id === selectedPlanId) || null,
@@ -231,8 +231,6 @@ const SubscriptionPage: React.FC = () => {
     router.push('/cart');
     setIsSubmitting(false);
   };
-
-  if (isLoading) return <PageLoader text="جاري تحميل الباقات..." />;
 
   const currentStepKey = steps[step].key;
 

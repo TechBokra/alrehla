@@ -1,18 +1,13 @@
-"use client";
-
-
-import React, { useMemo } from 'react';
-import { Link } from '@/lib/router-compat';
+import React from 'react';
 import { BookHeart, Gift, ArrowLeft, CheckCircle, Send, User, Sparkles } from 'lucide-react';
 import TestimonialCard from '../../../components/shared/TestimonialCard';
 import ShareButtons from '../../../components/shared/ShareButtons';
 import HowItWorksStep from '../../../components/shared/HowItWorksStep';
 import EnhaLakJourneyChoice from '../components/EnhaLakJourneyChoice';
 import { Button } from '@alrehla/ui/button';
-import { usePublicData } from '../../../hooks/queries/public/usePublicDataQuery';
-import PageLoader from '@alrehla/ui/page-loader';
 import { Card, CardContent } from '@alrehla/ui/card';
 import Image from '@alrehla/ui/next-image';
+import type { EnhaLakPublicData } from '../../../services/enhaLakPublicService';
 
 const BenefitCard: React.FC<{ icon: React.ReactNode; title: string; description: string; }> = ({ icon, title, description }) => (
     <Card className="text-center h-full shadow-lg">
@@ -42,7 +37,7 @@ const ProductHighlight: React.FC<{ title: string; description: string; features:
                     </li>
                 ))}
             </ul>
-            <Button as={Link} to={ctaLink} size="lg" variant="pink" className="mt-8">
+            <Button href={ctaLink} size="lg" variant="pink" className="mt-8">
                 {ctaText}
             </Button>
         </div>
@@ -50,17 +45,16 @@ const ProductHighlight: React.FC<{ title: string; description: string; features:
 );
 
 
-const EnhaLakPage: React.FC = () => {
-    const pageUrl = typeof window !== 'undefined' ? window.location.href : '';
-    const { data, isLoading } = usePublicData();
-    const content = data?.siteContent?.enhaLakPage.main;
-    
-    // جلب بيانات المنتجات لربط الصور
-    const products = data?.personalizedProducts || [];
-    const subBoxProduct = useMemo(() => products.find(p => p.key === 'subscription_box'), [products]);
-    const customStoryProduct = useMemo(() => products.find(p => p.key === 'custom_story'), [products]);
+interface EnhaLakPageProps {
+    data: EnhaLakPublicData;
+    shareUrl: string;
+}
 
-    if (isLoading) return <PageLoader />;
+const EnhaLakPage: React.FC<EnhaLakPageProps> = ({ data, shareUrl }) => {
+    const content = data.siteContent?.enhaLakPage?.main;
+    const products = data.personalizedProducts;
+    const subBoxProduct = products.find(p => p.key === 'subscription_box');
+    const customStoryProduct = products.find(p => p.key === 'custom_story');
 
     return (
         <div className="bg-gray-50 animate-fadeIn">
@@ -75,14 +69,14 @@ const EnhaLakPage: React.FC = () => {
                         {content?.heroSubtitle}
                     </p>
                     <div className="mt-10">
-                        <Button as={Link} to="#enha-lak-journeys" size="lg" variant="pink" className="shadow-lg transition-transform transform hover:scale-105">
+                        <Button href="#enha-lak-journeys" size="lg" variant="pink" className="shadow-lg transition-transform transform hover:scale-105">
                            اختر تجربتك الآن
                         </Button>
                     </div>
                      <div className="mt-8 flex justify-center">
                         <ShareButtons 
                           title='اكتشف قصص "إنها لك" المخصصة التي تجعل طفلك بطلاً حكايته'
-                          url={pageUrl} 
+                          url={shareUrl}
                           label="شارك المشروع:"
                         />
                     </div>
@@ -175,7 +169,7 @@ const EnhaLakPage: React.FC = () => {
                     <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground">{content?.finalCtaTitle}</h2>
                     <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">{content?.finalCtaSubtitle}</p>
                     <div className="mt-8">
-                        <Button as={Link} to="/enha-lak/custom" size="lg" variant="pink" icon={<ArrowLeft className="me-3 transform rotate-180" size={22}/>} className="shadow-lg transition-transform transform hover:scale-105">
+                        <Button href="/enha-lak/custom" size="lg" variant="pink" icon={<ArrowLeft className="me-3 transform rotate-180" size={22}/>} className="shadow-lg transition-transform transform hover:scale-105">
                             ابدأ تخصيص قصتك الآن
                         </Button>
                     </div>

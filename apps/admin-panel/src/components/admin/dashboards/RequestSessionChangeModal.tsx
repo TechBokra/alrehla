@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Send, Calendar, Clock, AlertTriangle } from 'lucide-react';
 import { Button } from '@alrehla/ui/button';
 import { Textarea } from '@alrehla/ui/textarea';
-import { Input } from '@alrehla/ui/input';
+import { DatePicker } from '@alrehla/ui/date-picker';
 import FormField from '@alrehla/ui/form-field';
 import { useInstructorMutations } from '../../../hooks/mutations/useInstructorMutations';
 import type { ScheduledSession, Instructor, WeeklySchedule } from '../../../lib/database.types';
@@ -109,11 +109,10 @@ const RequestSessionChangeModal: React.FC<RequestSessionChangeModalProps> = ({ i
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField label="الموعد الجديد المقترح" htmlFor="newDate">
-                        <Input 
-                            type="date" 
-                            id="newDate" 
+                        <DatePicker
+                            id="newDate"
                             value={newDate} 
-                            onChange={e => { setNewDate(e.target.value); setError(null); }} 
+                            onChange={date => { setNewDate(date); setError(null); }}
                             min={new Date().toISOString().split('T')[0]} 
                             required 
                         />

@@ -1,5 +1,3 @@
-"use client";
-
 import React from 'react';
 import { ArrowLeft, Building2, CheckCircle, Library, User } from 'lucide-react';
 import { Button } from '@alrehla/ui/button';
@@ -7,7 +5,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import Accordion from '@alrehla/ui/accordion';
 import Image from '@alrehla/ui/next-image';
 import type { PersonalizedProduct } from '../../../lib/database.types';
-import { Link } from '@/lib/router-compat';
 
 export type ProductCardVariant = 'custom' | 'library' | 'addon';
 
@@ -85,7 +82,7 @@ const PersonalizedProductCard: React.FC<PersonalizedProductCardProps> = ({ produ
             يُختار من داخل التجربة المخصصة
           </p>
         ) : (
-          <Button as={Link} to={resolvedHref} variant={isLibrary ? 'default' : 'pink'} className="w-full">
+          <Button href={resolvedHref} variant={isLibrary ? 'default' : 'pink'} className="w-full">
             {isLibrary ? 'عرض تفاصيل القصة' : 'ابدأ التخصيص'}
             <ArrowLeft className="rotate-180" size={18} />
           </Button>
@@ -95,4 +92,4 @@ const PersonalizedProductCard: React.FC<PersonalizedProductCardProps> = ({ produ
   );
 };
 
-export default React.memo(PersonalizedProductCard);
+export default PersonalizedProductCard;

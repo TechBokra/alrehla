@@ -1,10 +1,7 @@
-"use client";
-
 import React from 'react';
 import { ArrowLeft, Library, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@alrehla/ui/card';
 import { Button } from '@alrehla/ui/button';
-import { Link } from '@/lib/router-compat';
 
 const journeys = [
   {
@@ -58,7 +55,7 @@ const EnhaLakJourneyChoice: React.FC = () => (
               <p className="text-muted-foreground">{hint}</p>
             </CardContent>
             <CardFooter>
-              <Button as={Link} to={href} className={`w-full ${buttonClassName}`} icon={<ArrowLeft size={18} />}>
+              <Button href={href} className={`w-full ${buttonClassName}`} icon={<ArrowLeft size={18} />}>
                 {cta}
               </Button>
             </CardFooter>

@@ -3,12 +3,22 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PageLoader from '@alrehla/ui/page-loader';
+import { Button } from '@alrehla/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPostAuthRedirectPath } from '@/lib/dashboardRedirect';
+import AuthStatePanel from '@/components/auth/AuthStatePanel';
 
 export default function AuthRedirectPage() {
   const router = useRouter();
-  const { currentUser, isLoggedIn, loading, signOut } = useAuth();
+  const {
+    currentUser,
+    isLoggedIn,
+    loading,
+    authStatus,
+    error,
+    retryAuthSync,
+    signOut,
+  } = useAuth();
   const [nextPath, setNextPath] = useState<string | null>(null);
   const [queryReady, setQueryReady] = useState(false);
 
@@ -19,9 +29,9 @@ export default function AuthRedirectPage() {
   }, []);
 
   useEffect(() => {
-    if (loading || !queryReady) return;
+    if (loading || authStatus === 'loading' || !queryReady || authStatus === 'error') return;
 
-    if (!isLoggedIn || !currentUser) {
+    if (authStatus === 'unauthenticated' || !isLoggedIn || !currentUser) {
       router.replace('/login');
       return;
     }
@@ -33,7 +43,28 @@ export default function AuthRedirectPage() {
     }
 
     router.replace(target);
-  }, [currentUser, isLoggedIn, loading, nextPath, queryReady, router, signOut]);
+  }, [authStatus, currentUser, isLoggedIn, loading, nextPath, queryReady, router, signOut]);
+
+  if (authStatus === 'error') {
+    return (
+      <AuthStatePanel
+        title="تم تسجيل الدخول لكن تعذر تجهيز الحساب"
+        message={error || 'تعذر مزامنة بيانات الحساب مع قاعدة البيانات.'}
+        onRetry={retryAuthSync}
+        action={
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              void signOut().then(() => router.replace('/login'));
+            }}
+          >
+            تسجيل الخروج والعودة
+          </Button>
+        }
+      />
+    );
+  }
 
   return <PageLoader text="جاري تجهيز حسابك..." />;
 }

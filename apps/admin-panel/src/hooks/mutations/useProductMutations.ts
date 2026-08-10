@@ -1,14 +1,19 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
-import { orderService } from '../../services/orderService';
+import {
+    approveProduct as approveProductAction,
+    createPersonalizedProduct as createPersonalizedProductAction,
+    deletePersonalizedProduct as deletePersonalizedProductAction,
+    updatePersonalizedProduct as updatePersonalizedProductAction,
+} from '../../actions/productActions';
 
 export const useProductMutations = () => {
     const queryClient = useQueryClient();
     const { addToast } = useToast();
 
     const createPersonalizedProduct = useMutation({
-        mutationFn: orderService.createPersonalizedProduct,
+        mutationFn: createPersonalizedProductAction,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminPersonalizedProducts'] });
             addToast('تم إنشاء المنتج بنجاح.', 'success');
@@ -17,7 +22,7 @@ export const useProductMutations = () => {
     });
     
     const updatePersonalizedProduct = useMutation({
-        mutationFn: orderService.updatePersonalizedProduct,
+        mutationFn: updatePersonalizedProductAction,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminPersonalizedProducts'] });
             addToast('تم تحديث المنتج بنجاح.', 'success');
@@ -26,7 +31,7 @@ export const useProductMutations = () => {
     });
 
     const deletePersonalizedProduct = useMutation({
-        mutationFn: (payload: { productId: number }) => orderService.deletePersonalizedProduct(payload.productId),
+        mutationFn: (payload: { productId: number }) => deletePersonalizedProductAction(payload.productId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminPersonalizedProducts'] });
             addToast('تم حذف المنتج بنجاح.', 'info');
@@ -35,7 +40,7 @@ export const useProductMutations = () => {
     });
     
     const approveProduct = useMutation({
-        mutationFn: (payload: { productId: number, status: 'approved' | 'rejected' }) => orderService.approveProduct(payload.productId, payload.status),
+        mutationFn: (payload: { productId: number, status: 'approved' | 'rejected' }) => approveProductAction(payload.productId, payload.status),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['adminPersonalizedProducts'] });
             const msg = variables.status === 'approved' ? 'تمت الموافقة على المنتج ونشره.' : 'تم رفض المنتج.';

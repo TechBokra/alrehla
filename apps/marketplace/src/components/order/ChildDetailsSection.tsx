@@ -146,11 +146,11 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
                     {form ? (
                         <form.Field name="childBirthDate">
                             {(field: any) => (
-                                <><DatePicker id="childBirthDate" max={today} value={field.state.value || ''} onChange={(val) => field.handleChange(val)} onBlur={field.handleBlur} />{getFieldError(field) && <p className="text-sm font-medium text-destructive">{getFieldError(field)}</p>}</>
+                                <><DatePicker id="childBirthDate" max={today} fromYear={1900} value={field.state.value || ''} onChange={(val) => field.handleChange(val)} onBlur={field.handleBlur} />{getFieldError(field) && <p className="text-sm font-medium text-destructive">{getFieldError(field)}</p>}</>
                             )}
                         </form.Field>
                     ) : (
-                        <DatePicker id="childBirthDate" name="childBirthDate" max={today} value={formData?.childBirthDate || ''} onChange={(val) => handleChange?.({ target: { name: 'childBirthDate', value: val } } as any)} />
+                        <DatePicker id="childBirthDate" name="childBirthDate" max={today} fromYear={1900} value={formData?.childBirthDate || ''} onChange={(val) => handleChange?.({ target: { name: 'childBirthDate', value: val } } as any)} />
                     )}
                 </FormField>
                 <FormField label="الجنس*" htmlFor="childGender" className="md:col-span-2" error={form ? undefined : getError('childGender')}>

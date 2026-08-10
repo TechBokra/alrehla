@@ -4,7 +4,7 @@ import { Save, Plus, Trash2, Calendar, Star, Info, CheckCircle } from 'lucide-re
 import { useInstructorMutations } from '../../../hooks/mutations/useInstructorMutations';
 import type { Instructor, AvailableSlots } from '../../../lib/database.types';
 import { Button } from '@alrehla/ui/button';
-import { Input } from '@alrehla/ui/input';
+import { DatePicker } from '@alrehla/ui/date-picker';
 import { Select } from '@alrehla/ui/native-select';
 import { Card, CardContent } from '@alrehla/ui/card';
 
@@ -81,7 +81,12 @@ const IntroductoryAvailabilityManager: React.FC<{ instructor: Instructor }> = ({
             <div className="bg-muted/30 p-5 rounded-xl border-2 border-dashed border-muted flex flex-col sm:flex-row gap-4 items-end">
                 <div className="flex-1 w-full">
                     <label className="text-xs font-bold mb-1.5 block text-gray-600">اختر تاريخ الجلسة</label>
-                    <Input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="bg-white" />
+                    <DatePicker
+                        id="intro-availability-date"
+                        value={selectedDate}
+                        onChange={setSelectedDate}
+                        className="bg-white"
+                    />
                 </div>
                 <div className="flex-1 w-full">
                     <label className="text-xs font-bold mb-1.5 block text-gray-600">وقت البدء (60 دقيقة)</label>

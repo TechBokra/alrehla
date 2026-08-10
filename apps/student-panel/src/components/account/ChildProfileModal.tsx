@@ -8,6 +8,7 @@ import { ChildProfile } from '../../lib/database.types';
 import { Button } from '@alrehla/ui/button';
 import FormField from '@alrehla/ui/form-field';
 import { Input } from '@alrehla/ui/input';
+import { DatePicker } from '@alrehla/ui/date-picker';
 import { Select } from '@alrehla/ui/native-select';
 import { Textarea } from '@alrehla/ui/textarea';
 import Modal from '@alrehla/ui/modal';
@@ -127,7 +128,14 @@ const ChildProfileModal: React.FC<ChildProfileModalProps> = ({ isOpen, onClose, 
                 </FormField>
                 <div className="grid grid-cols-2 gap-4">
                     <FormField label="تاريخ الميلاد*" htmlFor="birthDate">
-                        <Input type="date" id="birthDate" value={birthDate} max={today} onChange={(e) => setBirthDate(e.target.value)} required />
+                        <DatePicker
+                            id="birthDate"
+                            value={birthDate}
+                            max={today}
+                            fromYear={1900}
+                            onChange={setBirthDate}
+                            required
+                        />
                     </FormField>
                     <FormField label="الجنس*" htmlFor="gender">
                         <Select id="gender" value={gender} onChange={(e) => setGender(e.target.value as 'ذكر' | 'أنثى' | '')} required>

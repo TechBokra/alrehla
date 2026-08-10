@@ -169,7 +169,7 @@ const ChildForm: React.FC<ChildFormProps> = ({ childToEdit, onCancel, onSuccess 
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField label="تاريخ الميلاد*" htmlFor="birthDate">
-                            <DatePicker id="birthDate" value={birthDate} max={today} onChange={(val) => setBirthDate(val)} disabled={isSaving} />
+                            <DatePicker id="birthDate" value={birthDate} max={today} fromYear={1900} onChange={(val) => setBirthDate(val)} disabled={isSaving} />
                         </FormField>
                         <FormField label="الجنس*" htmlFor="gender">
                             <Select id="gender" value={gender} onChange={(e) => setGender(e.target.value as 'ذكر' | 'أنثى' | '')} required disabled={isSaving}>

@@ -353,8 +353,11 @@ export const orderService = {
             .select('*, publisher:profiles!personalized_products_publisher_id_fkey(name)')
             .is('deleted_at', null)
             .order('sort_order');
-            
-        if (error) return [];
+
+        if (error) {
+            console.error('Fetch personalized products error', error);
+            throw new Error(error.message || 'تعذر تحميل المنتجات.');
+        }
         return data as PersonalizedProduct[];
     },
 

@@ -7,6 +7,7 @@ import type { Instructor } from '../../lib/database.types';
 import { Button } from '@alrehla/ui/button';
 import FormField from '@alrehla/ui/form-field';
 import { Input } from '@alrehla/ui/input';
+import { DatePicker } from '@alrehla/ui/date-picker';
 import { Select } from '@alrehla/ui/native-select';
 import Modal from '@alrehla/ui/modal';
 
@@ -86,7 +87,7 @@ const IntroductorySessionSchedulerModal: React.FC<IntroductorySessionSchedulerMo
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField label="التاريخ" htmlFor="session-date">
-                        <Input type="date" id="session-date" value={date} onChange={e => setDate(e.target.value)} required />
+                        <DatePicker id="session-date" value={date} onChange={setDate} required />
                     </FormField>
                     <FormField label="الوقت" htmlFor="session-time">
                         <Input type="time" id="session-time" value={time} onChange={e => setTime(e.target.value)} required />
