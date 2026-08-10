@@ -32,7 +32,7 @@ const AUTHORIZATION_ERROR = 'لا تملك صلاحية تنفيذ هذا الط
 export const MARKETPLACE_ROLES = {
   databaseAdmins: DATABASE_ADMIN_ROLES,
   orderManagers: DATABASE_ADMIN_ROLES,
-  bookingManagers: DATABASE_ADMIN_ROLES,
+  bookingManagers: ['super_admin', 'general_supervisor', 'creative_writing_supervisor'] as const satisfies readonly UserRole[],
   supportManagers: ['super_admin', 'general_supervisor', 'support_agent'] as const satisfies readonly UserRole[],
   productManagers: ['super_admin', 'general_supervisor', 'enha_lak_supervisor'] as const satisfies readonly UserRole[],
   productAuthors: ['super_admin', 'general_supervisor', 'enha_lak_supervisor', 'publisher'] as const satisfies readonly UserRole[],
@@ -277,12 +277,13 @@ export const requireBookingAccess = async (
     user_id: string;
     child_id: number;
     instructor_id: number;
+    status: string;
   };
   relationship: BookingRelationship;
 }> => {
   const { data, error } = await context.supabase
     .from('bookings')
-    .select('id, user_id, child_id, instructor_id')
+    .select('id, user_id, child_id, instructor_id, status')
     .eq('id', bookingId)
     .maybeSingle();
 
@@ -291,13 +292,14 @@ export const requireBookingAccess = async (
     user_id: string;
     child_id: number;
     instructor_id: number;
+    status: string;
   } | null;
 
   if (error || !booking) {
     actionError('الحجز غير موجود أو لا تملك صلاحية الوصول إليه.');
   }
 
-  if (isDatabaseAdmin(context.actor)) {
+  if (isDatabaseAdmin(context.actor) || context.actor.role === 'creative_writing_supervisor') {
     return { booking, relationship: 'admin' };
   }
 

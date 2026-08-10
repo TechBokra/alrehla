@@ -41,7 +41,7 @@ export const useStudentDashboardData = () => {
 
             // 3. جلب البيانات المرتبطة من الجداول الحقيقية فقط
             const [bookingsRes, ordersRes, subsRes, badgesRes, attachmentsRes, sessionsRes] = await Promise.all([
-                supabase.from('bookings').select('*, instructors(name, id, avatar_url, specialty)').eq('child_id', childId),
+                supabase.from('bookings').select('*, instructors(name, id, avatar_url, specialty)').eq('child_id', childId).in('status', ['مؤكد', 'مكتمل']),
                 supabase.from('orders').select('*').eq('child_id', childId),
                 supabase.from('subscriptions').select('*').eq('child_id', childId),
                 supabase.from('child_badges').select('*, badges(*)').eq('child_id', childId),
@@ -102,6 +102,7 @@ export const useTrainingJourneyData = (journeyId: string | undefined) => {
                 .from('bookings')
                 .select('*, instructors(*), child_profiles(*)')
                 .eq('id', journeyId)
+                .in('status', ['مؤكد', 'مكتمل'])
                 .single();
 
             if (bookingError) throw bookingError;

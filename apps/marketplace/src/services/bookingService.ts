@@ -4,6 +4,7 @@ export const bookingService = {
   getAllBookings: bookingActions.getAllBookings,
   createBooking: bookingActions.createBooking,
   getBookingAvailability: bookingActions.getBookingAvailability,
+  getBookingQuote: bookingActions.getBookingQuote,
   updateBookingStatus: bookingActions.updateBookingStatus,
   updateBookingProgressNotes: bookingActions.updateBookingProgressNotes,
   saveBookingDraft: bookingActions.saveBookingDraft,
@@ -28,4 +29,5 @@ export const bookingService = {
   uploadSessionAttachment: bookingActions.uploadSessionAttachment,
   getAllScheduledSessions: bookingActions.getAllScheduledSessions,
   checkSlotAvailability: bookingActions.checkSlotAvailability,
+  authorizeSessionJoin: bookingActions.authorizeSessionJoin,
 };

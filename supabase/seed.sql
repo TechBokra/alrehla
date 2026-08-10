@@ -16,7 +16,7 @@ INSERT INTO public.site_settings (key, value, updated_at) VALUES
 ('shipping_costs', '{"default":50,"باقي المحافظات":50}'::jsonb, NOW()),
 ('social_links', '{"facebook_url":"","twitter_url":"","instagram_url":""}'::jsonb, NOW()),
 ('communication_settings', '{"support_email":"support@alrehla.com","join_us_email":"join@alrehla.com","whatsapp_number":"","whatsapp_default_message":"مرحباً، أحتاج مساعدة من منصة الرحلة","instapay_url":"","instapay_qr_url":"","instapay_number":""}'::jsonb, NOW()),
-('pricing_config', '{"company_percentage":30,"fixed_fee":0}'::jsonb, NOW()),
+('pricing_config', '{"company_percentage":1.2,"fixed_fee":50}'::jsonb, NOW()),
 ('library_pricing_config', '{"company_percentage":30,"fixed_fee":0}'::jsonb, NOW()),
 ('jitsi_settings', '{"domain":"meet.jit.si","room_prefix":"alrehla","join_minutes_before":10,"expire_minutes_after":30,"start_with_audio_muted":true,"start_with_video_muted":true}'::jsonb, NOW()),
 ('maintenance_settings', '{"isActive":false,"message":""}'::jsonb, NOW())

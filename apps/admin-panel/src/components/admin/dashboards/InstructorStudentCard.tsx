@@ -5,6 +5,7 @@ import { ArrowLeft, Clock, ShieldCheck } from 'lucide-react';
 import { Button } from '@alrehla/ui/button';
 import type { ScheduledSession, CreativeWritingPackage } from '../../../lib/database.types';
 import Image from '@alrehla/ui/image';
+import { getMarketplaceUrl } from '../../../lib/marketplaceUrl';
 
 interface StudentProfile {
     name: string;
@@ -100,7 +101,7 @@ const InstructorStudentCard: React.FC<{ student: StudentProfile; journeys: Journ
                                 </div>
                                 
                                 {isConfirmed ? (
-                                    <Button as={Link} href={`/journey/${journey.id}`} size="sm" variant="ghost" className="h-7 text-[10px] font-bold text-primary hover:text-primary hover:bg-white px-3 shadow-sm border border-transparent hover:border-primary/20">
+                                    <Button as={Link} href={getMarketplaceUrl(`/journey/${journey.id}`)} size="sm" variant="ghost" className="h-7 text-[10px] font-bold text-primary hover:text-primary hover:bg-white px-3 shadow-sm border border-transparent hover:border-primary/20">
                                         مساحة العمل <ArrowLeft size={10} className="mr-1" />
                                     </Button>
                                 ) : null}

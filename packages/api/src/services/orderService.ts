@@ -269,6 +269,13 @@ export const orderService = {
                         p_receipt_url: uploaded.url,
                     });
                 });
+            } else if (itemType === 'booking') {
+                await executeWithRetry(async () => {
+                    return await (supabase.rpc as any)('submit_booking_receipt_secure', {
+                        p_booking_id: itemId,
+                        p_receipt_url: uploaded.url,
+                    });
+                });
             } else {
                 await executeWithRetry(async () => {
                     return await (supabase.from(table) as any)

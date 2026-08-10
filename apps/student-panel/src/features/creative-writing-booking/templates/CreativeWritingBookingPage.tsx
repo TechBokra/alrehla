@@ -30,6 +30,13 @@ const stepsConfig = [
     { key: 'schedule', title: 'اختر الموعد' },
 ];
 
+const formatCalendarDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const CreativeWritingBookingPage: React.FC = () => {
     const router = useRouter();
     const pathname = usePathname();
@@ -173,9 +180,10 @@ const CreativeWritingBookingPage: React.FC = () => {
         setIsSubmitting(true);
 
         try {
+            const bookingDate = formatCalendarDate(selectedDateTime.date);
             const isAvailable = await bookingService.checkSlotAvailability(
                 selectedInstructor.id, 
-                selectedDateTime.date.toISOString(), 
+                bookingDate,
                 selectedDateTime.time
             );
 
@@ -201,7 +209,7 @@ const CreativeWritingBookingPage: React.FC = () => {
                     child: childForCart,
                     package: selectedPackage,
                     instructor: selectedInstructor,
-                    dateTime: selectedDateTime,
+                    dateTime: { ...selectedDateTime, date: bookingDate },
                     total: finalPrice,
                     summary: `${selectedPackage.name} لـ ${childData.childName} (مع ${selectedInstructor.name})`
                 }

@@ -30,6 +30,13 @@ const stepsConfig = [
     { key: 'schedule', title: 'اختر الموعد' },
 ];
 
+const formatCalendarDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const CreativeWritingBookingPage: React.FC = () => {
     const router = useRouter();
     const pathname = usePathname();
@@ -46,6 +53,7 @@ const CreativeWritingBookingPage: React.FC = () => {
     const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
     const [selectedDateTime, setSelectedDateTime] = useState<{ date: Date, time: string } | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [finalPrice, setFinalPrice] = useState<number | null>(null);
 
     useEffect(() => {
         // Handled via standard search params if present
@@ -54,33 +62,34 @@ const CreativeWritingBookingPage: React.FC = () => {
     // تصحيح: استخدام pricingSettings من المستوى الأعلى
     const { instructors = [], cw_packages = [], holidays = [], activeBookings = [], pricingConfig } = (bookingData as any) || {};
     
-    // المعادلة الديناميكية لحساب سعر العميل النهائي
-    const finalPrice = useMemo(() => {
-        if (!selectedPackage) return null;
-        if (selectedPackage.price === 0) return 0;
-        
-        if (selectedInstructor && selectedPackage) {
-            const netPrice = selectedInstructor.package_rates?.[selectedPackage.id];
-            
-            // إذا لم يحدد المدرب سعراً خاصاً، نستخدم السعر الأساسي للباقة
-            const baseNet = netPrice !== undefined ? netPrice : selectedPackage.price;
-            
-            // استخدام القيم الافتراضية إذا لم تتوفر إعدادات التسعير
-            const percentage = pricingConfig?.company_percentage || 1.2;
-            const fixedFee = pricingConfig?.fixed_fee || 50;
+    // The displayed checkout price comes from the same database function that
+    // create_booking_secure uses when it stores bookings.total.
+    useEffect(() => {
+        let cancelled = false;
+        setFinalPrice(null);
+        if (!selectedPackage || !selectedInstructor) return () => { cancelled = true; };
 
-            return Math.ceil((baseNet * percentage) + fixedFee);
-        }
-        return null;
-    }, [selectedPackage, selectedInstructor, pricingConfig]);
+        bookingService.getBookingQuote(selectedPackage.name, selectedInstructor.id)
+            .then((quote) => {
+                if (!cancelled) setFinalPrice(quote);
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setFinalPrice(null);
+                    addToast('تعذر التحقق من السعر النهائي. حاول اختيار المدرب مرة أخرى.', 'error');
+                }
+            });
+
+        return () => { cancelled = true; };
+    }, [selectedPackage, selectedInstructor, addToast]);
 
     // حساب نطاق الأسعار للباقة المختارة قبل اختيار المدرب
     const priceRange = useMemo(() => {
         if (!selectedPackage || finalPrice !== null) return null;
         if (selectedPackage.price === 0) return { min: 0, max: 0 };
 
-        const percentage = pricingConfig?.company_percentage || 1.2;
-        const fixedFee = pricingConfig?.fixed_fee || 50;
+        const percentage = pricingConfig?.company_percentage ?? 1.2;
+        const fixedFee = pricingConfig?.fixed_fee ?? 50;
 
         // نحسب الأسعار النهائية لكل المدربين لهذه الباقة
         const prices = (instructors as Instructor[])
@@ -168,9 +177,10 @@ const CreativeWritingBookingPage: React.FC = () => {
         setIsSubmitting(true);
 
         try {
+            const bookingDate = formatCalendarDate(selectedDateTime.date);
             const isAvailable = await bookingService.checkSlotAvailability(
                 selectedInstructor.id, 
-                selectedDateTime.date.toISOString(), 
+                bookingDate,
                 selectedDateTime.time
             );
 
@@ -196,7 +206,7 @@ const CreativeWritingBookingPage: React.FC = () => {
                     child: childForCart,
                     package: selectedPackage,
                     instructor: selectedInstructor,
-                    dateTime: selectedDateTime,
+                    dateTime: { ...selectedDateTime, date: bookingDate },
                     total: finalPrice,
                     summary: `${selectedPackage.name} لـ ${childData.childName} (مع ${selectedInstructor.name})`
                 }

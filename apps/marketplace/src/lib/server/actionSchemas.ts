@@ -367,6 +367,7 @@ export const createBookingSchema = z
         child: z.object({ id: numericIdSchema }).strip(),
         instructor: z.object({ id: numericIdSchema }).strip(),
         package: z.object({ name: requiredText(160) }).strip(),
+        total: finiteMoney,
         dateTime: z
           .object({
             date: dateSchema,

@@ -181,7 +181,9 @@ Supabase SQL files live in `supabase/`:
 - `migrations/202608010001_identity_and_security_hardening.sql`: timestamped corrective migration for existing databases
 - `migrations/202608020001_fix_parent_managed_student_profile_id.sql`: repairs legacy `profiles.id` defaults and explicitly generates managed-student profile UUIDs
 - `migrations/202608020002_remove_create_order_secure_integer_overload.sql`: removes the legacy integer RPC overload that makes order creation ambiguous
+- `migrations/202608100001_package_booking_confirmation_flow.sql`: atomically confirms package bookings, creates the authoritative session set, protects coach slots, and hardens participant access
 - `tests/rls_identity.sql`: SQL assertions for RLS and protected identity/role privileges
+- `tests/booking_confirmation_contract.sql` and `tests/booking_confirmation_flow.sql`: booking confirmation, pricing, receipt, visibility, join-window, cancellation, and slot-conflict assertions
 
 For a fresh Clerk-enabled Supabase project, run `schema.sql` to initialize all tables, functions, and RLS policies, then run `seed.sql` to load default catalog data. For existing deployments that have already applied the legacy setup scripts (`00`–`05`), apply the corrective migrations in timestamp order.
 
