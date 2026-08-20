@@ -3,6 +3,8 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { getAdminPanelUrl } from '../../../lib/adminPanelUrl';
+import { getInstructorPanelUrl } from '../../../lib/instructorPanelUrl';
+import { getDashboardDestinationForRole } from '../../../lib/dashboardRedirect';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -243,7 +245,12 @@ const SessionPage: React.FC = () => {
             if (sessionData.booking_id) {
                 router.push(`/journey/${sessionData.booking_id}`);
             } else {
-                 window.location.assign(getAdminPanelUrl()); 
+                const dest = getDashboardDestinationForRole(currentUser?.role);
+                if (dest.external) {
+                    window.location.assign(dest.href);
+                } else {
+                    router.push(dest.href);
+                }
             }
         } catch (e) {
             addToast('حدث خطأ أثناء إنهاء الجلسة.', 'error');
@@ -316,7 +323,18 @@ const SessionPage: React.FC = () => {
                     <CardContent>
                         <p className="text-muted-foreground mb-6">شكراً لحضورك. نتمنى أن تكون الجلسة مفيدة وممتعة.</p>
                         <div className="flex flex-col gap-3">
-                            <Button asChild variant="default"><Link href="/account">العودة للوحة التحكم</Link></Button>
+                            {(() => {
+                                const dashboardDest = getDashboardDestinationForRole(currentUser?.role);
+                                return (
+                                    <Button asChild variant="default">
+                                        {dashboardDest.external ? (
+                                            <a href={dashboardDest.href}>العودة للوحة التحكم</a>
+                                        ) : (
+                                            <Link href={dashboardDest.href}>العودة للوحة التحكم</Link>
+                                        )}
+                                    </Button>
+                                );
+                            })()}
                             {sessionData?.booking_id && (
                                 <Button asChild variant="outline"><Link href={`/journey/${sessionData.booking_id}`}>الذهاب لصفحة الرحلة</Link></Button>
                             )}

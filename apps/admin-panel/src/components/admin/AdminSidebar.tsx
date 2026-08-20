@@ -61,7 +61,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
     const { permissions } = useAuth();
     const { siteBranding } = useProduct();
     
-    const isInstructorOnly = permissions.isInstructor && !permissions.canViewGlobalStats;
     const isPublisherOnly = permissions.isPublisher && !permissions.canViewGlobalStats;
 
     const renderNavContent = (navItems: (NavGroup | NavItemProps)[]) => (
@@ -95,20 +94,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isCollapsed, isMobileOpen, 
 
     let navigationContent;
 
-    if (isInstructorOnly) {
-        const instructorNav = [
-            { to: '/', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', permission: true },
-            { to: '/profile', icon: <UserCog size={20} />, label: 'ملفي الشخصي', permission: permissions.canManageOwnProfile },
-            { to: '/schedule', icon: <CalendarCheck size={20} />, label: 'جدولي', permission: permissions.canManageOwnSchedule },
-            { to: '/notifications', icon: <Bell size={20} />, label: 'الإشعارات', permission: true },
-            { to: '/journeys', icon: <BookOpen size={20} />, label: 'رحلات الطلاب', permission: true },
-            { to: '/pricing', icon: <DollarSign size={20} />, label: 'التسعير', permission: true },
-            { to: '/financials', icon: <DollarSign size={20} />, label: 'الماليات', permission: permissions.canViewOwnFinancials },
-        ];
-        
-        // Wrap in simple structure for renderer
-        navigationContent = renderNavContent(instructorNav.map(i => ({ ...i, onClick: onMobileClose, isCollapsed })));
-    } else if (isPublisherOnly) {
+    if (isPublisherOnly) {
         const publisherNav = [
             { to: '/', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', permission: true },
             { to: '/publisher-products', icon: <Library size={20} />, label: 'إدارة كتبي', permission: permissions.canManageOwnProducts },

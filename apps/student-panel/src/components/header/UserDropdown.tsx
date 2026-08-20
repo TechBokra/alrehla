@@ -3,17 +3,19 @@
 import React from 'react';
 import { Link } from '@/lib/router-compat';
 import { getAdminPanelUrl } from '../../lib/adminPanelUrl';
+import { getInstructorPanelUrl } from '../../lib/instructorPanelUrl';
 import { Card, CardContent, CardFooter, CardHeader } from '@alrehla/ui/card';
 import { LogOut } from 'lucide-react';
 
 interface UserDropdownProps {
     currentUser: any;
     hasAdminAccess: boolean;
+    hasInstructorAccess?: boolean;
     onSignOut: () => void;
     onClose: () => void;
 }
 
-const UserDropdown: React.FC<UserDropdownProps> = ({ currentUser, hasAdminAccess, onSignOut, onClose }) => (
+const UserDropdown: React.FC<UserDropdownProps> = ({ currentUser, hasAdminAccess, hasInstructorAccess, onSignOut, onClose }) => (
      <Card className="absolute top-full left-0 mt-2 w-56 animate-fadeIn z-50">
          <CardHeader className="p-4">
             <p className="text-sm font-semibold">مرحباً، {currentUser?.name}</p>
@@ -21,6 +23,7 @@ const UserDropdown: React.FC<UserDropdownProps> = ({ currentUser, hasAdminAccess
         </CardHeader>
         <CardContent className="p-1">
             <Link to="/account" onClick={onClose} className="block w-full text-right px-3 py-2 text-sm rounded-md hover:bg-accent">حسابي</Link>
+            {hasInstructorAccess && <a href={getInstructorPanelUrl()} onClick={onClose} className="block w-full text-right px-3 py-2 text-sm rounded-md hover:bg-accent text-primary font-semibold">لوحة المدرب</a>}
             {hasAdminAccess && <a href={getAdminPanelUrl()} onClick={onClose} className="block w-full text-right px-3 py-2 text-sm rounded-md hover:bg-accent">لوحة التحكم</a>}
         </CardContent>
         <CardFooter className="p-1 border-t">

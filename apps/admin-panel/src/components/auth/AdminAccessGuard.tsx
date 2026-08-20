@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import PageLoader from '@alrehla/ui/page-loader';
 import { Button } from '@alrehla/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { getInstructorPanelUrl } from '@/lib/instructorPanelUrl';
 import AuthStatePanel from './AuthStatePanel';
 
 export default function AdminAccessGuard({ children }: { children: React.ReactNode }) {
@@ -51,14 +52,22 @@ export default function AdminAccessGuard({ children }: { children: React.ReactNo
   }
 
   if (!currentUser || !hasAdminAccess) {
+    const isInstructor = currentUser?.role === 'instructor';
     return (
       <AuthStatePanel
-        title="لا تملك صلاحية الدخول إلى لوحة الإدارة"
-        message="تم تسجيل الدخول، لكن هذا الحساب لا يملك دوراً إدارياً فعالاً. استخدم حساباً مصرحاً به أو تواصل مع مدير النظام."
+        title={isInstructor ? "لوحة المدربين مخصصة لحسابك" : "لا تملك صلاحية الدخول إلى لوحة الإدارة"}
+        message={isInstructor ? "تم إنشاء لوحة مخصصة ومستقلة للمدربين. يمكنك الانتقال إليها لمتابعة طلابك وجدولك." : "تم تسجيل الدخول، لكن هذا الحساب لا يملك دوراً إدارياً فعالاً. استخدم حساباً مصرحاً به أو تواصل مع مدير النظام."}
         action={
-          <Button type="button" variant="outline" onClick={() => void signOut()}>
-            تسجيل الخروج
-          </Button>
+          <div className="flex items-center gap-2">
+            {isInstructor && (
+              <Button asChild variant="default">
+                <a href={getInstructorPanelUrl('/')}>الانتقال إلى لوحة المدربين</a>
+              </Button>
+            )}
+            <Button type="button" variant="outline" onClick={() => void signOut()}>
+              تسجيل الخروج
+            </Button>
+          </div>
         }
       />
     );

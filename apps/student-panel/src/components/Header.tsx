@@ -23,7 +23,7 @@ import Image from '@alrehla/ui/next-image';
 const NotificationListener = dynamic(() => import('./shared/NotificationListener'), { ssr: false });
 
 const Header: React.FC = () => {
-    const { isLoggedIn, currentUser, hasAdminAccess, signOut } = useAuth();
+    const { isLoggedIn, currentUser, hasAdminAccess, hasInstructorAccess, signOut } = useAuth();
     const { itemCount } = useCart();
     const { siteBranding } = useProduct();
     const { data: notifications = [] } = useUserNotifications();
@@ -134,6 +134,7 @@ const Header: React.FC = () => {
                                         <UserDropdown 
                                             currentUser={currentUser}
                                             hasAdminAccess={hasAdminAccess}
+                                            hasInstructorAccess={hasInstructorAccess}
                                             onSignOut={signOut}
                                             onClose={closeAllMenus}
                                         />

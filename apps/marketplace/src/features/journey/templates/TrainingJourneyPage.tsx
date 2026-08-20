@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { getAdminPanelUrl } from '../../../lib/adminPanelUrl';
+import { getInstructorPanelUrl } from '../../../lib/instructorPanelUrl';
 import { useParams, Link } from '@/lib/router-compat';
 import { useTrainingJourneyData } from '../../../hooks/queries/user/useJourneyDataQuery';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -131,7 +132,7 @@ const TrainingJourneyPage: React.FC = () => {
     if (currentUser?.role === 'student') {
         backLink = "/student/dashboard";
     } else if (currentUser?.role === 'instructor') {
-        backLink = getAdminPanelUrl('/journeys');
+        backLink = getInstructorPanelUrl('/journeys');
     } else if (['super_admin', 'creative_writing_supervisor'].includes(currentUser?.role || '')) {
         backLink = getAdminPanelUrl(`/creative-writing/bookings/${booking.id}`);
     }

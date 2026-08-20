@@ -3,6 +3,8 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { getAdminPanelUrl } from '../../../lib/adminPanelUrl';
+import { getInstructorPanelUrl } from '../../../lib/instructorPanelUrl';
+import { getMarketplaceUrl } from '../../../lib/marketplaceUrl';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -227,7 +229,15 @@ const SessionPage: React.FC = () => {
             if (sessionData.booking_id) {
                 router.push(`/journey/${sessionData.booking_id}`);
             } else {
-                 window.location.assign(getAdminPanelUrl()); 
+                if (currentUser?.role === 'instructor') {
+                    window.location.assign(getInstructorPanelUrl('/'));
+                } else if (currentUser?.role === 'student') {
+                    router.push('/dashboard');
+                } else if (['super_admin', 'general_supervisor', 'creative_writing_supervisor', 'enha_lak_supervisor', 'content_editor', 'support_agent', 'publisher'].includes(currentUser?.role || '')) {
+                    window.location.assign(getAdminPanelUrl('/'));
+                } else {
+                    window.location.assign(getMarketplaceUrl('/account'));
+                }
             }
         } catch (e) {
             addToast('حدث خطأ أثناء إنهاء الجلسة.', 'error');
@@ -300,7 +310,27 @@ const SessionPage: React.FC = () => {
                     <CardContent>
                         <p className="text-muted-foreground mb-6">شكراً لحضورك. نتمنى أن تكون الجلسة مفيدة وممتعة.</p>
                         <div className="flex flex-col gap-3">
-                            <Button asChild variant="default"><Link href="/account">العودة للوحة التحكم</Link></Button>
+                            {(() => {
+                                let dest = { href: '/dashboard', external: false };
+                                if (currentUser?.role === 'instructor') {
+                                    dest = { href: getInstructorPanelUrl('/'), external: true };
+                                } else if (currentUser?.role === 'student') {
+                                    dest = { href: '/dashboard', external: false };
+                                } else if (['super_admin', 'general_supervisor', 'creative_writing_supervisor', 'enha_lak_supervisor', 'content_editor', 'support_agent', 'publisher'].includes(currentUser?.role || '')) {
+                                    dest = { href: getAdminPanelUrl('/'), external: true };
+                                } else {
+                                    dest = { href: getMarketplaceUrl('/account'), external: true };
+                                }
+                                return (
+                                    <Button asChild variant="default">
+                                        {dest.external ? (
+                                            <a href={dest.href}>العودة للوحة التحكم</a>
+                                        ) : (
+                                            <Link href={dest.href}>العودة للوحة التحكم</Link>
+                                        )}
+                                    </Button>
+                                );
+                            })()}
                             {sessionData?.booking_id && (
                                 <Button asChild variant="outline"><Link href={`/journey/${sessionData.booking_id}`}>الذهاب لصفحة الرحلة</Link></Button>
                             )}

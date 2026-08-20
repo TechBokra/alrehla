@@ -237,7 +237,7 @@ export const orderService = {
         if (instructorId) {
              const { data: instructor } = await supabase.from('instructors').select('user_id').eq('id', instructorId).single();
              if ((instructor as any)?.user_id) {
-                 communicationService.sendNotification((instructor as any).user_id, 'تم تعيينك لخدمة إبداعية جديدة.', '/admin/instructor-financials', 'service');
+                 communicationService.sendNotification((instructor as any).user_id, 'تم تعيينك لخدمة إبداعية جديدة.', '/financials', 'service');
              }
         }
 
