@@ -55,18 +55,25 @@ export const bookingService = {
             p_package_name: payload.payload.package.name,
             p_booking_date: payload.payload.dateTime.date,
             p_booking_time: payload.payload.dateTime.time,
-            p_receipt_url: payload.receiptUrl || null
+            p_receipt_url: payload.receiptUrl || null,
+            p_expected_total: payload.payload.total,
         });
 
         if (error) throw new Error(error.message);
         return data;
     },
 
+    async getBookingQuote(packageName: string, instructorId: number) {
+        const { data, error } = await (supabase.rpc as any)('calculate_booking_price', {
+            p_package_name: packageName,
+            p_instructor_id: instructorId,
+        });
+        if (error) throw new Error(error.message);
+        return Number(data);
+    },
+
     async getBookingAvailability() {
-        const { data, error } = await supabase
-            .from('bookings')
-            .select('instructor_id, booking_date, booking_time, status')
-            .neq('status', 'ملغي');
+        const { data, error } = await (supabase.rpc as any)('get_booking_availability_secure');
         if (error) {
             console.error("Error fetching availability:", error);
             return { bookings: [] };
@@ -74,12 +81,25 @@ export const bookingService = {
         return { bookings: data || [] };
     },
 
-    async updateBookingStatus(bookingId: string, newStatus: BookingStatus) {
-        const { error } = await (supabase.from('bookings') as any)
-            .update({ status: newStatus })
-            .eq('id', bookingId);
+    async confirmBooking(bookingId: string) {
+        const { data, error } = await (supabase.rpc as any)('confirm_booking_secure', {
+            p_booking_id: bookingId,
+        });
         if (error) throw new Error(error.message);
-        return { success: true };
+        return data;
+    },
+
+    async updateBookingStatus(bookingId: string, newStatus: BookingStatus) {
+        if (newStatus === 'مؤكد') {
+            return this.confirmBooking(bookingId);
+        }
+
+        const { data, error } = await (supabase.rpc as any)('update_booking_status_secure', {
+            p_booking_id: bookingId,
+            p_new_status: newStatus,
+        });
+        if (error) throw new Error(error.message);
+        return data;
     },
 
     async updateBookingProgressNotes(bookingId: string, notes: string) {
@@ -270,16 +290,30 @@ export const bookingService = {
 
     async checkSlotAvailability(instructorId: number, date: string, time: string) {
         const dateStr = date.split('T')[0];
-        
-        const { data } = await supabase
-            .from('bookings')
-            .select('id')
-            .eq('instructor_id', instructorId)
-            .eq('booking_date', dateStr)
-            .eq('booking_time', time)
-            .neq('status', 'ملغي')
-            .maybeSingle();
 
-        return !data;
+        const { data, error } = await (supabase.rpc as any)('is_booking_slot_available_secure', {
+            p_instructor_id: instructorId,
+            p_booking_date: dateStr,
+            p_booking_time: time,
+        });
+        if (error) throw new Error(error.message);
+        return data === true;
+    },
+
+    async authorizeSessionJoin(sessionId: string) {
+        const { data, error } = await (supabase.rpc as any)('authorize_session_join_secure', {
+            p_session_id: sessionId,
+        });
+        if (error) throw new Error(error.message);
+        return data as {
+            allowed: boolean;
+            reason: 'allowed' | 'too_early' | 'expired' | 'booking_inactive' | 'session_closed';
+            session_id: string;
+            session_date: string;
+            join_allowed_at: string;
+            join_expires_at: string;
+            domain: string | null;
+            room_name: string | null;
+        };
     }
 };

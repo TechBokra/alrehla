@@ -9,6 +9,7 @@ import OrderStepper from '../../../components/order/OrderStepper';
 import ChildDetailsSection from '../../../components/order/ChildDetailsSection';
 import StoryCustomizationSection from '../../../components/order/StoryCustomizationSection';
 import ImageUploadSection from '../../../components/order/ImageUploadSection';
+import LibraryCoverPersonalizationSection from '../../../components/order/LibraryCoverPersonalizationSection';
 import AddonsSection from '../../../components/order/AddonsSection';
 import DeliverySection from '../../../components/order/DeliverySection';
 import InteractivePreview from '../../../components/order/InteractivePreview';
@@ -17,6 +18,7 @@ import { ArrowLeft, ArrowRight, Library, LogIn } from 'lucide-react';
 import type { PersonalizedProduct } from '../../../lib/database.types';
 import type { OrderFormApi } from '../../../components/order/form-types';
 import type { OrderFormValues } from '../../../lib/schemas';
+import type { OrderJourney } from '../lib/orderJourneyConfig';
 
 interface OrderPreviewProps {
   form: OrderFormApi;
@@ -26,6 +28,7 @@ interface OrderPreviewProps {
   totalPrice: number;
   shippingPrice: number;
   storyGoals: { key: string; title: string }[];
+  journey: OrderJourney;
 }
 
 interface OrderPreviewValuesProps extends Omit<OrderPreviewProps, 'form'> {
@@ -40,6 +43,7 @@ const OrderPreviewValues: React.FC<OrderPreviewValuesProps> = ({
   totalPrice,
   shippingPrice,
   storyGoals,
+  journey,
 }) => {
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
@@ -89,12 +93,13 @@ const OrderPreviewValues: React.FC<OrderPreviewValuesProps> = ({
       shippingPrice={shippingPrice}
       imagePreviewUrl={imagePreviewUrl}
       storyGoals={storyGoals}
+      journey={journey}
     />
   );
 };
 
 const OrderPreview = React.memo<OrderPreviewProps>(
-  ({ form, product, basePrice, addons, totalPrice, shippingPrice, storyGoals }) => (
+  ({ form, product, basePrice, addons, totalPrice, shippingPrice, storyGoals, journey }) => (
     <form.Subscribe selector={(state: any) => state.values}>
       {(values: OrderFormValues) => (
         <OrderPreviewValues
@@ -105,6 +110,7 @@ const OrderPreview = React.memo<OrderPreviewProps>(
           totalPrice={totalPrice}
           shippingPrice={shippingPrice}
           storyGoals={storyGoals}
+          journey={journey}
         />
       )}
     </form.Subscribe>
@@ -112,7 +118,7 @@ const OrderPreview = React.memo<OrderPreviewProps>(
 );
 OrderPreview.displayName = 'OrderPreview';
 
-const OrderPage: React.FC<UseOrderPageProps> = ({ initialOrderData }) => {
+const OrderPage: React.FC<UseOrderPageProps> = ({ initialOrderData, productKey, expectedJourney }) => {
   const {
     isLoading,
     product,
@@ -121,6 +127,7 @@ const OrderPage: React.FC<UseOrderPageProps> = ({ initialOrderData }) => {
     step,
     currentStepKey,
     isLibraryBook,
+    journey,
     selectedChildId,
     setSelectedChildId,
     selectedAddons,
@@ -136,7 +143,7 @@ const OrderPage: React.FC<UseOrderPageProps> = ({ initialOrderData }) => {
     handleNext,
     handleBack,
     handleAddChild,
-  } = useOrderPage({ initialOrderData });
+  } = useOrderPage({ initialOrderData, productKey, expectedJourney });
 
   if (isLoading) return <PageLoader text="جاري تحميل المنتج..." />;
   if (!product) return <div className="text-center py-20">المنتج غير موجود</div>;
@@ -209,14 +216,12 @@ const OrderPage: React.FC<UseOrderPageProps> = ({ initialOrderData }) => {
                               currentUser={currentUser}
                               onAddChild={handleAddChild}
                             />
-                            {/* Show basic cover customization for Library Books here since Story step is skipped */}
+                            {/* Library books intentionally expose cover-only personalization. */}
                             {isLibraryBook && (
                               <div className="mt-8 border-t pt-6">
-                                <h4 className="text-lg font-bold text-gray-800 mb-4">
-                                  تخصيص الغلاف
-                                </h4>
-                                <ImageUploadSection
+                                <LibraryCoverPersonalizationSection
                                   form={form}
+                                  textFields={product.text_fields || []}
                                   imageSlots={product.image_slots || []}
                                 />
                               </div>
@@ -239,7 +244,7 @@ const OrderPage: React.FC<UseOrderPageProps> = ({ initialOrderData }) => {
                             </div>
                           </>
                         )}
-                        {currentStepKey === 'addons' && (
+                        {currentStepKey === 'addons' && journey === 'custom' && (
                           <AddonsSection
                             addonProducts={availableAddonProducts}
                             selectedAddons={selectedAddons}
@@ -283,8 +288,8 @@ const OrderPage: React.FC<UseOrderPageProps> = ({ initialOrderData }) => {
                             </p>
                             <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-sm text-yellow-800">
                               <p>
-                                بمجرد تأكيد الطلب، سيتم البدء في تجهيز{' '}
-                                {isLibraryBook ? 'كتابك المختار' : 'قصتك المخصصة'}.
+                              بمجرد تأكيد الطلب، سيتم تجهيز{' '}
+                                {isLibraryBook ? 'كتابك المختار مع غلافه المخصص' : 'تجربتك وقصتك المخصصة'}.
                               </p>
                             </div>
                             {deliveryType === 'printed' &&
@@ -364,6 +369,7 @@ const OrderPage: React.FC<UseOrderPageProps> = ({ initialOrderData }) => {
                       totalPrice={totalPrice}
                       shippingPrice={shippingPrice}
                       storyGoals={storyGoals}
+                      journey={journey}
                     />
                   </div>
                 </div>

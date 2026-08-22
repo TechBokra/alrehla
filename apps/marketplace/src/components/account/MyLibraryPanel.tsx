@@ -20,7 +20,10 @@ type EnrichedBooking = CreativeWritingBooking & {
     instructorName: string;
 };
 
-const JourneyCalendarView: React.FC<{ journey: EnrichedBooking }> = ({ journey }) => {
+const JourneyCalendarView: React.FC<{
+    journey: EnrichedBooking;
+    onPay: (item: { id: string; type: 'booking' }) => void;
+}> = ({ journey, onPay }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
 
     const { packageDetails, sessions, instructorName } = journey;
@@ -37,6 +40,7 @@ const JourneyCalendarView: React.FC<{ journey: EnrichedBooking }> = ({ journey }
     const upcomingSessions = sessions.filter(s => s.status === 'upcoming')
         .sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
     const nextSession = upcomingSessions[0];
+    const isWorkspaceActive = journey.status === 'مؤكد' || journey.status === 'مكتمل';
 
     const monthName = currentDate.toLocaleString('ar-EG', { month: 'long' });
     const year = currentDate.getFullYear();
@@ -69,7 +73,7 @@ const JourneyCalendarView: React.FC<{ journey: EnrichedBooking }> = ({ journey }
                     <div>
                         <h4 className="font-bold text-gray-800 line-clamp-1" title={packageDetails?.name}>{packageDetails?.name}</h4>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
+                            <span className={`w-1.5 h-1.5 rounded-full inline-block ${isWorkspaceActive ? 'bg-green-500' : 'bg-orange-400'}`}></span>
                             مع {instructorName}
                         </p>
                     </div>
@@ -114,12 +118,18 @@ const JourneyCalendarView: React.FC<{ journey: EnrichedBooking }> = ({ journey }
                 </div>
 
                 <div className="mt-auto pt-4 border-t">
-                    <Button asChild variant="outline" className="w-full justify-between group hover:border-purple-300 hover:bg-purple-50">
+                    {isWorkspaceActive ? <Button asChild variant="outline" className="w-full justify-between group hover:border-purple-300 hover:bg-purple-50">
                         <Link href={`/journey/${journey.id}`}>
                             <span className="text-xs">دخول مساحة العمل</span>
                             <ArrowLeft size={14} className="text-purple-500 group-hover:-translate-x-1 transition-transform rtl:group-hover:translate-x-1" />
                         </Link>
-                    </Button>
+                    </Button> : journey.status === 'بانتظار الدفع' ? (
+                        <Button onClick={() => onPay({ id: journey.id, type: 'booking' })} variant="success" className="w-full" icon={<CreditCard size={14} />}>
+                            رفع إيصال الدفع
+                        </Button>
+                    ) : (
+                        <div className="flex justify-center"><StatusBadge status={journey.status} /></div>
+                    )}
                 </div>
             </CardContent>
         </Card>
@@ -255,7 +265,7 @@ const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
                                 title="لا توجد منتجات بعد"
                                 message="ابدأ بتخصيص قصة لطفلك أو اشترك في الصندوق الشهري لتظهر طلباتك هنا."
                                 actionText="اكتشف المتجر"
-                                onAction={() => router.push('/enha-lak/store')}
+                                onAction={() => router.push('/enha-lak/custom')}
                             />
                         )}
                     </div>
@@ -274,7 +284,7 @@ const MyLibraryPanel: React.FC<MyLibraryPanelProps> = ({ onPay }) => {
                                         {/* استخدام Grid بدل القائمة العمودية */}
                                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                                             {journeys.map(journey => (
-                                                <JourneyCalendarView key={journey.id} journey={journey} />
+                                                <JourneyCalendarView key={journey.id} journey={journey} onPay={onPay} />
                                             ))}
                                         </div>
                                     </div>

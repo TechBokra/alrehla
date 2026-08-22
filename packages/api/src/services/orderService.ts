@@ -237,7 +237,7 @@ export const orderService = {
         if (instructorId) {
              const { data: instructor } = await supabase.from('instructors').select('user_id').eq('id', instructorId).single();
              if ((instructor as any)?.user_id) {
-                 communicationService.sendNotification((instructor as any).user_id, 'تم تعيينك لخدمة إبداعية جديدة.', '/admin/instructor-financials', 'service');
+                 communicationService.sendNotification((instructor as any).user_id, 'تم تعيينك لخدمة إبداعية جديدة.', '/financials', 'service');
              }
         }
 
@@ -266,6 +266,13 @@ export const orderService = {
                 await executeWithRetry(async () => {
                     return await (supabase.rpc as any)('submit_subscription_receipt', {
                         p_subscription_id: itemId,
+                        p_receipt_url: uploaded.url,
+                    });
+                });
+            } else if (itemType === 'booking') {
+                await executeWithRetry(async () => {
+                    return await (supabase.rpc as any)('submit_booking_receipt_secure', {
+                        p_booking_id: itemId,
                         p_receipt_url: uploaded.url,
                     });
                 });
@@ -353,8 +360,11 @@ export const orderService = {
             .select('*, publisher:profiles!personalized_products_publisher_id_fkey(name)')
             .is('deleted_at', null)
             .order('sort_order');
-            
-        if (error) return [];
+
+        if (error) {
+            console.error('Fetch personalized products error', error);
+            throw new Error(error.message || 'تعذر تحميل المنتجات.');
+        }
         return data as PersonalizedProduct[];
     },
 

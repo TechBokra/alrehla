@@ -1,6 +1,6 @@
 import React from 'react';
-import { Input } from '@alrehla/ui/input';
 import FormField from '@alrehla/ui/form-field';
+import { DatePicker as SharedDatePicker } from '@alrehla/ui/date-picker';
 
 interface DatePickerProps {
     startDate: string;
@@ -13,20 +13,19 @@ const DatePicker: React.FC<DatePickerProps> = ({ startDate, endDate, onStartDate
     return (
         <div className="grid grid-cols-2 gap-4">
             <FormField label="من تاريخ" htmlFor="start-date">
-                <Input
+                <SharedDatePicker
                     id="start-date"
-                    type="date"
                     value={startDate}
-                    onChange={(e) => onStartDateChange(e.target.value)}
+                    max={endDate || undefined}
+                    onChange={onStartDateChange}
                 />
             </FormField>
             <FormField label="إلى تاريخ" htmlFor="end-date">
-                <Input
+                <SharedDatePicker
                     id="end-date"
-                    type="date"
                     value={endDate}
-                    onChange={(e) => onEndDateChange(e.target.value)}
-                    min={startDate}
+                    min={startDate || undefined}
+                    onChange={onEndDateChange}
                 />
             </FormField>
         </div>

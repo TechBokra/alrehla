@@ -118,7 +118,9 @@ const PublisherProductCard = ({
     </CardContent>
     <CardFooter className="pt-0">
       <Button
-        href={`/enha-lak/order/${encodeURIComponent(product.key)}`}
+        href={product.product_type === 'library_book'
+          ? `/enha-lak/library/${encodeURIComponent(product.key)}`
+          : `/enha-lak/custom/${encodeURIComponent(product.key)}`}
         size="sm"
         className="w-full"
       >
@@ -284,7 +286,7 @@ const PublisherPublicProfilePage = ({
             <p className="text-muted-foreground">
               لم يتم إضافة منتجات لهذه الدار حتى الآن.
             </p>
-            <Button href="/enha-lak/store" variant="link" className="mt-2">
+            <Button href="/enha-lak/library" variant="link" className="mt-2">
               تصفح باقي المتجر
             </Button>
           </div>

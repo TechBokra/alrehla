@@ -15,8 +15,9 @@ import MyLibraryPanel from '../../../components/account/MyLibraryPanel';
 import PaymentModal from '../../../components/PaymentModal';
 import { LayoutDashboard, Settings, Bell, Users, GalleryVertical, BookOpen } from 'lucide-react';
 import { Card } from '@alrehla/ui/card';
-import { STAFF_ROLES } from '../../../lib/roles';
+import { canAccessAdmin, canAccessInstructorPanel } from '../../../lib/roles';
 import { redirectToAdminPanel } from '../../../lib/adminPanelUrl';
+import { redirectToInstructorPanel } from '../../../lib/instructorPanelUrl';
 
 type AccountTab = 'dashboard' | 'myLibrary' | 'portfolio' | 'familyCenter' | 'settings' | 'notifications';
 
@@ -44,17 +45,20 @@ const AccountPage: React.FC = () => {
     const shouldRedirect = useMemo(() => {
         if (!isLoggedIn || !currentUser) return false;
 
-        // إذا كان طالباً أو موظفاً أو ناشراً، يجب توجيهه للوحة الخاصة به
+        // إذا كان طالباً أو مدرباً أو موظفاً، يجب توجيهه للوحة الخاصة به
         if (currentUser.role === 'student') return '/student/dashboard';
-
-        // الناشرون والموظفون يذهبون إلى لوحة الإدارة
-        if (STAFF_ROLES.includes(currentUser.role) || currentUser.role === 'publisher') return 'admin-panel';
+        if (canAccessInstructorPanel(currentUser.role)) return 'instructor-panel';
+        if (canAccessAdmin(currentUser.role)) return 'admin-panel';
 
         return false;
     }, [isLoggedIn, currentUser]);
 
     // توجيه فوري
     useEffect(() => {
+        if (shouldRedirect === 'instructor-panel') {
+            redirectToInstructorPanel();
+            return;
+        }
         if (shouldRedirect === 'admin-panel') {
             redirectToAdminPanel();
             return;

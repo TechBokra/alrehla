@@ -5,7 +5,7 @@ import { useSchedulingMutations } from '../../hooks/mutations/useSchedulingMutat
 import type { Subscription } from '../../lib/database.types';
 import { Button } from '@alrehla/ui/button';
 import FormField from '@alrehla/ui/form-field';
-import { Input } from '@alrehla/ui/input';
+import { DatePicker } from '@alrehla/ui/date-picker';
 import { Select } from '@alrehla/ui/native-select';
 import { Textarea } from '@alrehla/ui/textarea';
 import Modal from '@alrehla/ui/modal';
@@ -103,7 +103,7 @@ export const SessionSchedulerModal: React.FC<SessionSchedulerModalProps> = ({ is
                         </FormField>
                     </div>
                      <FormField label="تاريخ البدء" htmlFor="startDate">
-                        <Input type="date" id="startDate" value={startDate} onChange={e => setStartDate(e.target.value)} required />
+                        <DatePicker id="startDate" value={startDate} onChange={setStartDate} required />
                     </FormField>
                     <FormField label="استثناءات (تواريخ بصيغة YYYY-MM-DD مفصولة بفاصلة)" htmlFor="exceptions">
                         <Textarea id="exceptions" value={exceptions} onChange={e => setExceptions(e.target.value)} rows={2} placeholder="مثال: 2025-10-06, 2025-12-25" />

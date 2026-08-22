@@ -6,6 +6,7 @@ import { useInstructorMutations } from '../../hooks/mutations/useInstructorMutat
 import type { Instructor, AvailableSlots } from '../../lib/database.types';
 import { Select } from '@alrehla/ui/native-select';
 import { Button } from '@alrehla/ui/button';
+import { DatePicker } from '@alrehla/ui/date-picker';
 
 // تعديل المواعيد لتكون كل ساعة بدلاً من كل نصف ساعة
 const timeSlots = Array.from({ length: 15 }, (_, i) => {
@@ -59,7 +60,11 @@ const AvailabilityManager: React.FC = () => {
                     <option value="">-- اختر مدرب --</option>
                     {instructors.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
                 </Select>
-                <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="w-full p-2 border rounded-lg bg-white" />
+                <DatePicker
+                    id="availability-date"
+                    value={selectedDate}
+                    onChange={setSelectedDate}
+                />
             </div>
 
             {selectedInstructorId && (

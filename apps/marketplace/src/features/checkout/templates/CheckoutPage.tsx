@@ -135,11 +135,16 @@ const CheckoutPage: React.FC = () => {
                 }
 
                 // Inject productKey and selected add-ons for authoritative server pricing.
+                const formData = item.payload.formData || {};
+                const storedDetails = item.payload.details || {};
                 const finalDetails = {
-                    ...item.payload.details,
+                    ...storedDetails,
                     ...uploadedImages,
                     productKey: item.payload.productKey,
                     addons: item.payload.selectedAddons || [],
+                    productType: storedDetails.productType || formData.productType,
+                    journey: storedDetails.journey || (storedDetails.productType === 'library_book' ? 'library' : 'custom'),
+                    format: storedDetails.format || formData.deliveryType || 'printed',
                 };
 
                 const shippingCost = item.payload.shippingPrice || 0;

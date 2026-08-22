@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Calendar, ArrowLeft } from 'lucide-react';
 import AdminSection from '../AdminSection';
 import { Button } from '@alrehla/ui/button';
+import { getMarketplaceUrl } from '../../../lib/marketplaceUrl';
 
 const AgendaWidget = React.forwardRef<HTMLElement, { bookings: any[], attachments: any[] } & React.HTMLAttributes<HTMLElement>>(
     ({ bookings, attachments, ...props }, ref) => {
@@ -53,7 +54,7 @@ const AgendaWidget = React.forwardRef<HTMLElement, { bookings: any[], attachment
                                         <p className="font-semibold text-sm">{session.childName}</p>
                                         <p className="text-xs text-muted-foreground">{new Date(session.session_date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })} - {session.packageName}</p>
                                     </div>
-                                    <Button as={Link} href={`/session/${session.id}`} size="sm" variant="outline">
+                                    <Button as={Link} href={getMarketplaceUrl(`/session/${session.id}`)} size="sm" variant="outline">
                                         انضم
                                     </Button>
                                 </div>
@@ -73,7 +74,7 @@ const AgendaWidget = React.forwardRef<HTMLElement, { bookings: any[], attachment
                                         <p className="font-semibold text-sm truncate max-w-[150px]">{att.file_name}</p>
                                         <p className="text-xs text-muted-foreground">من: {att.childName}</p>
                                     </div>
-                                    <Button as={Link} href={`/journey/${att.booking_id}`} size="sm" variant="ghost">
+                                    <Button as={Link} href={getMarketplaceUrl(`/journey/${att.booking_id}`)} size="sm" variant="ghost">
                                         <span className="hidden sm:inline">مراجعة</span>
                                         <ArrowLeft size={16} className="sm:mr-1" />
                                     </Button>

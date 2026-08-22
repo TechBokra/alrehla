@@ -1,7 +1,8 @@
 import type { UserProfile, UserRole } from './database.types';
-import { canAccessAdmin } from './roles';
+import { canAccessAdmin, canAccessInstructorPanel } from './roles';
 import { getAdminPanelUrl } from './adminPanelUrl';
 import { getStudentPanelUrl } from './studentPanelUrl';
+import { getInstructorPanelUrl } from './instructorPanelUrl';
 
 const AUTH_REDIRECT_PATH = '/auth/redirect';
 const ACCOUNT_DASHBOARD_PATH = '/';
@@ -10,7 +11,7 @@ export interface DashboardDestination {
   href: string;
   external: boolean;
   label: string;
-  panel: 'admin' | 'student' | 'marketplace';
+  panel: 'admin' | 'student' | 'instructor' | 'marketplace';
 }
 
 export const isExternalUrl = (value: string) => /^https?:\/\//i.test(value);
@@ -61,6 +62,15 @@ export const getDashboardDestinationForRole = (
       external: true,
       label: 'لوحة الطالب',
       panel: 'student',
+    };
+  }
+
+  if (canAccessInstructorPanel(role)) {
+    return {
+      href: getInstructorPanelUrl('/'),
+      external: true,
+      label: 'لوحة المدرب',
+      panel: 'instructor',
     };
   }
 

@@ -3,6 +3,8 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { getAdminPanelUrl } from '../../../lib/adminPanelUrl';
+import { getInstructorPanelUrl } from '../../../lib/instructorPanelUrl';
+import { getDashboardDestinationForRole } from '../../../lib/dashboardRedirect';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -86,6 +88,15 @@ const SessionPage: React.FC = () => {
     const [finishNotes, setFinishNotes] = useState('');
     const [isSubmittingFinish, setIsSubmittingFinish] = useState(false);
     const [allowedWindow, setAllowedWindow] = useState(10);
+    const [accessRefreshNonce, setAccessRefreshNonce] = useState(0);
+    const [roomAccess, setRoomAccess] = useState<{
+        allowed: boolean;
+        reason: 'allowed' | 'too_early' | 'expired' | 'booking_inactive' | 'session_closed';
+        join_allowed_at: string;
+        join_expires_at: string;
+        domain: string | null;
+        room_name: string | null;
+    } | null>(null);
 
     const isInstructor = currentUser?.role === 'instructor' || currentUser?.role === 'super_admin' || currentUser?.role === 'creative_writing_supervisor';
     
@@ -106,7 +117,8 @@ const SessionPage: React.FC = () => {
         }
     }, []);
 
-    // 2. Validate Session & State
+    // 2. Ask the server to authorize both the participant and the time window.
+    // The server only returns a room name while access is currently allowed.
     useEffect(() => {
         if (authLoading || sessionLoading || settingsLoading) return;
 
@@ -121,35 +133,41 @@ const SessionPage: React.FC = () => {
             return;
         }
         
-        if (sessionData.status === 'completed' || sessionData.status === 'missed') {
-            setStatus('ended');
-            return;
-        }
+        let cancelled = false;
+        const validateAccess = async () => {
+            try {
+                const access = await bookingService.authorizeSessionJoin(sessionId);
+                if (cancelled) return;
+                setRoomAccess(access);
+                const allowedAt = new Date(access.join_allowed_at);
+                const sessionStart = new Date(sessionData.session_date);
+                setJoinTime(allowedAt);
+                setAllowedWindow(Math.max(0, Math.round((+sessionStart - +allowedAt) / 60000)));
 
-        const startTime = new Date(sessionData.session_date);
-        
-        // تحديد نافذة الدخول: 
-        // المدربين والمشرفين: 30 دقيقة قبل الموعد للتجهيز
-        // الطلاب: 10 دقائق قبل الموعد (كما هو مطلوب)
-        const joinMinutesBefore = isInstructor ? 30 : 10;
-        setAllowedWindow(joinMinutesBefore);
+                if (access.allowed && access.domain && access.room_name) {
+                    setStatus('active');
+                } else if (access.reason === 'too_early') {
+                    setStatus('waiting');
+                } else if (access.reason === 'expired' || access.reason === 'session_closed') {
+                    setStatus('ended');
+                } else {
+                    setError('قاعة الجلسة غير متاحة قبل تأكيد الحجز.');
+                    setStatus('error');
+                }
+            } catch (accessError) {
+                if (cancelled) return;
+                setError(accessError instanceof Error ? accessError.message : 'لا تملك صلاحية دخول هذه الجلسة.');
+                setStatus('error');
+            }
+        };
 
-        const calculatedJoinTime = new Date(startTime.getTime() - joinMinutesBefore * 60000);
-        const now = new Date();
-
-        setJoinTime(calculatedJoinTime);
-
-        if (now < calculatedJoinTime) {
-            setStatus('waiting');
-        } else {
-            setStatus('active');
-        }
-
-    }, [authLoading, sessionLoading, settingsLoading, currentUser, sessionData, jitsiSettings, router, isInstructor]);
+        validateAccess();
+        return () => { cancelled = true; };
+    }, [authLoading, sessionLoading, settingsLoading, currentUser, sessionData, sessionId, router, accessRefreshNonce]);
 
     // 3. Initialize Jitsi
     useEffect(() => {
-        if (status !== 'active' || !jitsiScriptLoaded || !jitsiSettings || !sessionData || !currentUser || jitsiApiRef.current) {
+        if (status !== 'active' || !jitsiScriptLoaded || !jitsiSettings || !roomAccess?.allowed || !roomAccess.domain || !roomAccess.room_name || !sessionData || !currentUser || jitsiApiRef.current) {
             return;
         }
 
@@ -166,7 +184,7 @@ const SessionPage: React.FC = () => {
             if (window.JitsiMeetExternalAPI && jitsiContainerRef.current) {
                 try {
                     const options = {
-                        roomName: `${jitsiSettings.room_prefix}${sessionData.id}`,
+                        roomName: roomAccess.room_name,
                         width: '100%',
                         height: '100%',
                         parentNode: jitsiContainerRef.current,
@@ -188,7 +206,7 @@ const SessionPage: React.FC = () => {
                         },
                     };
 
-                    jitsiApiRef.current = new window.JitsiMeetExternalAPI(jitsiSettings.domain, options);
+                    jitsiApiRef.current = new window.JitsiMeetExternalAPI(roomAccess.domain, options);
                     
                     // Listen for hangup
                     jitsiApiRef.current.addEventListener('videoConferenceLeft', () => {
@@ -212,7 +230,7 @@ const SessionPage: React.FC = () => {
                 jitsiApiRef.current = null;
             }
         };
-    }, [status, currentUser, sessionData, jitsiSettings, jitsiScriptLoaded, isInstructor, router]);
+    }, [status, currentUser, sessionData, jitsiSettings, roomAccess, jitsiScriptLoaded, isInstructor, router]);
 
     const handleFinishSession = async () => {
         if (!sessionId || !sessionData) return;
@@ -227,7 +245,12 @@ const SessionPage: React.FC = () => {
             if (sessionData.booking_id) {
                 router.push(`/journey/${sessionData.booking_id}`);
             } else {
-                 window.location.assign(getAdminPanelUrl()); 
+                const dest = getDashboardDestinationForRole(currentUser?.role);
+                if (dest.external) {
+                    window.location.assign(dest.href);
+                } else {
+                    router.push(dest.href);
+                }
             }
         } catch (e) {
             addToast('حدث خطأ أثناء إنهاء الجلسة.', 'error');
@@ -254,7 +277,7 @@ const SessionPage: React.FC = () => {
                     <CardContent className="space-y-6">
                         <div className="bg-black/30 p-4 rounded-xl border border-white/10">
                             <p className="text-sm text-gray-300 mb-1">يبدأ الدخول خلال:</p>
-                            {joinTime && <CountdownTimer targetDate={joinTime} onComplete={() => setStatus('active')} />}
+                            {joinTime && <CountdownTimer targetDate={joinTime} onComplete={() => setAccessRefreshNonce(value => value + 1)} />}
                         </div>
                         
                         <div className="flex flex-col gap-2 text-sm text-gray-300">
@@ -300,7 +323,18 @@ const SessionPage: React.FC = () => {
                     <CardContent>
                         <p className="text-muted-foreground mb-6">شكراً لحضورك. نتمنى أن تكون الجلسة مفيدة وممتعة.</p>
                         <div className="flex flex-col gap-3">
-                            <Button asChild variant="default"><Link href="/account">العودة للوحة التحكم</Link></Button>
+                            {(() => {
+                                const dashboardDest = getDashboardDestinationForRole(currentUser?.role);
+                                return (
+                                    <Button asChild variant="default">
+                                        {dashboardDest.external ? (
+                                            <a href={dashboardDest.href}>العودة للوحة التحكم</a>
+                                        ) : (
+                                            <Link href={dashboardDest.href}>العودة للوحة التحكم</Link>
+                                        )}
+                                    </Button>
+                                );
+                            })()}
                             {sessionData?.booking_id && (
                                 <Button asChild variant="outline"><Link href={`/journey/${sessionData.booking_id}`}>الذهاب لصفحة الرحلة</Link></Button>
                             )}

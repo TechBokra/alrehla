@@ -2,13 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Save, Eye, Calendar, User, Image as ImageIcon, Type, Globe, FileText, Clock } from 'lucide-react';
+import { ArrowLeft, Save, Eye, Calendar, User, Image as ImageIcon, Type, Globe, FileText } from 'lucide-react';
 import { useAdminBlogPosts } from '../../hooks/queries/admin/useAdminContentQuery';
 import { useContentMutations } from '../../hooks/mutations/useContentMutations';
 import PageLoader from '@alrehla/ui/page-loader';
 import { Button } from '@alrehla/ui/button';
 import FormField from '@alrehla/ui/form-field';
 import { Input } from '@alrehla/ui/input';
+import { DateTimePicker } from '@alrehla/ui/date-time-picker';
 import { Textarea } from '@alrehla/ui/textarea';
 import { Select } from '@alrehla/ui/native-select';
 import { Card, CardContent, CardHeader, CardTitle } from '@alrehla/ui/card';
@@ -122,16 +123,6 @@ const AdminBlogPostEditorPage: React.FC = () => {
         });
     };
 
-    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const dateValue = e.target.value;
-        if (dateValue) {
-            const date = new Date(dateValue);
-            setPost(prev => ({ ...prev, published_at: date.toISOString() }));
-        } else {
-            setPost(prev => ({ ...prev, published_at: null }));
-        }
-    };
-
     const handleImageChange = (key: string, value: any) => {
         setPost(prev => ({ ...prev, image_url: value }));
     };
@@ -170,16 +161,6 @@ const AdminBlogPostEditorPage: React.FC = () => {
         } catch (error: any) {
             console.error("Failed to save post", error);
         }
-    };
-
-    // Helper to format ISO date to datetime-local input value (YYYY-MM-DDTHH:mm)
-    const getFormattedDate = (isoString: string | null | undefined) => {
-        if (!isoString) return '';
-        const date = new Date(isoString);
-        // Adjust for timezone offset to display correctly in local time
-        const offset = date.getTimezoneOffset() * 60000;
-        const localISOTime = (new Date(date.getTime() - offset)).toISOString().slice(0, 16);
-        return localISOTime;
     };
 
     const isSaving = createBlogPost.isPending || updateBlogPost.isPending;
@@ -266,16 +247,11 @@ const AdminBlogPostEditorPage: React.FC = () => {
                             </FormField>
 
                             <FormField label="تاريخ النشر" htmlFor="published_at">
-                                <div className="relative">
-                                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                                    <Input 
-                                        id="published_at" 
-                                        type="datetime-local"
-                                        value={getFormattedDate(post.published_at)} 
-                                        onChange={handleDateChange} 
-                                        className="pr-10" 
-                                    />
-                                </div>
+                                <DateTimePicker
+                                    id="published_at"
+                                    value={post.published_at || ''}
+                                    onChange={(value) => setPost(prev => ({ ...prev, published_at: value || null }))}
+                                />
                                 <p className="text-[10px] text-muted-foreground mt-1">
                                     إذا اخترت تاريخاً مستقبلياً، لن يظهر المقال للزوار حتى يحين الموعد.
                                 </p>

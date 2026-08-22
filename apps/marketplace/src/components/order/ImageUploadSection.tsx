@@ -10,9 +10,11 @@ import { getFieldError } from './form-types';
 interface ImageUploadSectionProps {
     imageSlots: ImageSlotConfig[] | null;
     form: OrderFormApi;
+    title?: string;
+    description?: string;
 }
 
-const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ imageSlots, form }) => {
+const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ imageSlots, form, title = 'صور التخصيص (للطفل)', description }) => {
 
     if (!imageSlots || imageSlots.length === 0) {
         return null;
@@ -20,7 +22,8 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({ imageSlots, for
 
     return (
         <div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">صور التخصيص (للطفل)</h3>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">{title}</h3>
+            {description && <p className="mb-6 text-sm text-muted-foreground">{description}</p>}
             <form.Subscribe selector={(state: any) => state.fieldMeta}>
                 {(fieldMeta: any) => Object.keys(fieldMeta).some(key => imageSlots.some(slot => slot.id === key && fieldMeta[key]?.errors?.length > 0)) && (
                     <div className="text-red-600 text-sm mb-4 bg-red-50 p-3 rounded-lg">يرجى رفع الصور المطلوبة.</div>

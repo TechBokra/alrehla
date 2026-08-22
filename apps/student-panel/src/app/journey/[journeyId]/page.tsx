@@ -1,12 +1,11 @@
-export const dynamic = 'force-dynamic';
+import { redirect } from 'next/navigation';
+import { getMarketplaceUrl } from '@/lib/marketplaceUrl';
 
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import TrainingJourneyPage from '@/features/journey';
-
-export default function JourneyPage() {
-  return (
-    <ProtectedRoute studentOnly>
-      <TrainingJourneyPage />
-    </ProtectedRoute>
-  );
+export default async function JourneyPage({
+  params,
+}: {
+  params: Promise<{ journeyId: string }>;
+}) {
+  const { journeyId } = await params;
+  redirect(getMarketplaceUrl(`/journey/${journeyId}`));
 }

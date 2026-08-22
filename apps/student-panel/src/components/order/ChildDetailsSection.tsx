@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import FormField from '@alrehla/ui/form-field';
 import { Input } from '@alrehla/ui/input';
+import { DatePicker } from '@alrehla/ui/date-picker';
 import { Select } from '@alrehla/ui/native-select';
 import type { ChildProfile, UserProfile } from '../../lib/database.types';
 import { UserPlus, User as UserIcon } from 'lucide-react';
@@ -149,25 +150,25 @@ const ChildDetailsSection: React.FC<ChildDetailsSectionProps> = ({
                     {form ? (
                         <form.Field name="childBirthDate">
                             {(field: any) => (<>
-                                <Input
+                                <DatePicker
                                     id="childBirthDate"
-                                    type="date"
                                     max={today}
+                                    fromYear={1900}
                                     value={field.state.value || ''}
-                                    onChange={(event) => field.handleChange(event.target.value)}
+                                    onChange={(date) => field.handleChange(date)}
                                     onBlur={field.handleBlur}
                                 />
                                 {getFieldError(field) && <p className="text-sm font-medium text-destructive">{getFieldError(field)}</p>}
                             </>)}
                         </form.Field>
                     ) : (
-                        <Input
+                        <DatePicker
                             id="childBirthDate"
-                            type="date"
                             name="childBirthDate"
                             max={today}
+                            fromYear={1900}
                             value={formData?.childBirthDate || ''}
-                            onChange={handleChange}
+                            onChange={(date) => handleChange?.({ target: { name: 'childBirthDate', value: date } } as any)}
                         />
                     )}
                 </FormField>

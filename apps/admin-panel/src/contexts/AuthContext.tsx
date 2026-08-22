@@ -4,6 +4,7 @@ import React, {
   createContext,
   useState,
   useEffect,
+  useRef,
   useContext,
   ReactNode,
   useMemo,
@@ -30,6 +31,29 @@ export type { UserProfile, ChildProfile, UserRole };
 
 const CLERK_ENABLED = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 const CLERK_CALLBACK_PATH = "/sso-callback";
+const AUTH_BOOT_TIMEOUT_MS = 10_000;
+const AUTH_SYNC_TIMEOUT_MS = 15_000;
+
+export type AuthStatus = "loading" | "authenticated" | "unauthenticated" | "error";
+
+async function withTimeout<T>(
+  operation: Promise<T>,
+  timeoutMs: number,
+  timeoutMessage: string,
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
 
 interface AuthContextType {
   currentUser: UserProfile | null;
@@ -46,6 +70,8 @@ interface AuthContextType {
   signInWithGoogle: (redirectUrl?: string) => Promise<void>;
   updateCurrentUser: (updatedData: Partial<UserProfile>) => void;
   loading: boolean;
+  authStatus: AuthStatus;
+  retryAuthSync: () => void;
   error: string | null;
   hasAdminAccess: boolean;
   permissions: Permissions;
@@ -100,8 +126,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     useState<ChildProfile | null>(null);
   const [childProfiles, setChildProfiles] = useState<ChildProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authStatus, setAuthStatus] = useState<AuthStatus>("loading");
   const [error, setError] = useState<string | null>(null);
   const [pendingEmailVerification, setPendingEmailVerification] = useState(false);
+  const [authRetryKey, setAuthRetryKey] = useState(0);
+  const initialAuthDoneRef = useRef(false);
+  const profileSyncRef = useRef<{
+    clerkUserId: string;
+    promise: Promise<UserProfile>;
+  } | null>(null);
 
 
 
@@ -167,29 +200,76 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     const email = getClerkEmail(activeClerkUser);
     if (!email) throw new Error("لم نتمكن من قراءة البريد الإلكتروني من Clerk.");
 
-    const accessToken = await getClerkAccessToken();
-    if (!accessToken) {
-      throw new Error(
-        "تم تسجيل الدخول في Clerk، لكن رمز الجلسة لم يجهز بعد. أعد المحاولة بعد لحظة.",
-      );
+    const clerkUserId = activeClerkUser?.id || email;
+    const existingSync = profileSyncRef.current;
+    if (existingSync?.clerkUserId === clerkUserId) {
+      return existingSync.promise;
     }
 
-    const user = await authService.getOrCreateClerkUserProfile({
-      email,
-      name: getClerkName(activeClerkUser, email),
-    });
+    const operation = (async () => {
+      const accessToken = await getClerkAccessToken();
+      if (!accessToken) {
+        throw new Error(
+          "تم تسجيل الدخول في Clerk، لكن رمز الجلسة لم يجهز بعد. أعد المحاولة بعد لحظة.",
+        );
+      }
 
-    setCurrentUser(user);
-    await fetchUserData(user);
-    return user;
+      const user = await authService.getOrCreateClerkUserProfile({
+        email,
+        name: getClerkName(activeClerkUser, email),
+      });
+
+      setCurrentUser(user);
+      await fetchUserData(user);
+      return user;
+    })();
+
+    const syncPromise = withTimeout(
+      operation,
+      AUTH_SYNC_TIMEOUT_MS,
+      "تعذر إكمال التحقق من الحساب خلال الوقت المتوقع. تحقق من اتصال Supabase وإعدادات Clerk ثم أعد المحاولة.",
+    );
+
+    profileSyncRef.current = { clerkUserId, promise: syncPromise };
+
+    try {
+      return await syncPromise;
+    } catch (syncError) {
+      if (profileSyncRef.current?.promise === syncPromise) {
+        profileSyncRef.current = null;
+      }
+      throw syncError;
+    }
   }, [fetchUserData, getClerkAccessToken]);
 
   const syncActiveClerkUser = useCallback(async () => {
-    await (clerk as any)?.load?.();
+    await withTimeout(
+      Promise.resolve().then(() => (clerk as any)?.load?.()),
+      AUTH_BOOT_TIMEOUT_MS,
+      "تعذر تحميل جلسة Clerk. تحقق من اتصال الشبكة ثم أعد المحاولة.",
+    );
     const activeClerkUser = (clerk as any)?.user || clerkUser;
     if (!activeClerkUser) throw new Error("تم تسجيل الدخول، لكن جلسة Clerk لم تجهز بعد.");
-    return syncClerkProfile(activeClerkUser);
+    const user = await syncClerkProfile(activeClerkUser);
+    setAuthStatus("authenticated");
+    return user;
   }, [clerk, clerkUser, syncClerkProfile]);
+
+  useEffect(() => {
+    if (!CLERK_ENABLED || (clerkUserLoaded && clerkSessionLoaded)) return;
+
+    const timeoutId = setTimeout(() => {
+      if (clerkUserLoaded && clerkSessionLoaded) return;
+
+      setLoading(false);
+      setAuthStatus("error");
+      setError(
+        "تعذر تحميل جلسة Clerk. تحقق من اتصال الشبكة ومفاتيح Clerk ثم أعد المحاولة.",
+      );
+    }, AUTH_BOOT_TIMEOUT_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [authRetryKey, clerkSessionLoaded, clerkUserLoaded]);
 
   useEffect(() => {
     if (!CLERK_ENABLED) return;
@@ -199,25 +279,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     const syncSession = async () => {
       try {
-        setLoading(true);
+        if (!initialAuthDoneRef.current) {
+          setLoading(true);
+          setAuthStatus("loading");
+        }
         setError(null);
 
         if (!clerkUser) {
           setCurrentUser(null);
           resetSecondaryUserData();
+          profileSyncRef.current = null;
+          setAuthStatus("unauthenticated");
           return;
         }
 
         const user = await syncClerkProfile(clerkUser);
         if (cancelled) return;
         setCurrentUser(user);
+        setAuthStatus("authenticated");
       } catch (e: any) {
         if (!cancelled) {
+          setCurrentUser(null);
+          resetSecondaryUserData();
           const msg = e.message || "تعذر مزامنة جلسة المستخدم.";
           setError(msg);
+          setAuthStatus("error");
           console.error("Clerk session sync error", e);
         }
       } finally {
+        initialAuthDoneRef.current = true;
         if (!cancelled) setLoading(false);
       }
     };
@@ -227,7 +317,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     return () => {
       cancelled = true;
     };
-  }, [clerkSessionLoaded, clerkUser, clerkUserLoaded, resetSecondaryUserData, syncClerkProfile]);
+  }, [
+    authRetryKey,
+    clerkSessionLoaded,
+    clerkUser,
+    clerkUserLoaded,
+    resetSecondaryUserData,
+    syncClerkProfile,
+  ]);
 
   useEffect(() => {
     if (CLERK_ENABLED) return;
@@ -235,14 +332,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setCurrentUser(null);
     resetSecondaryUserData();
     setError("Clerk هو مزود المصادقة الوحيد حالياً. أضف NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY لتفعيل تسجيل الدخول.");
+    setAuthStatus("error");
     setLoading(false);
   }, [resetSecondaryUserData]);
+
+  const retryAuthSync = useCallback(() => {
+    initialAuthDoneRef.current = false;
+    profileSyncRef.current = null;
+    setError(null);
+    setAuthStatus("loading");
+    setLoading(true);
+    setAuthRetryKey((value) => value + 1);
+  }, []);
 
   const signIn = async (
     email: string,
     password: string,
   ): Promise<UserProfile | null> => {
     setLoading(true);
+    setAuthStatus("loading");
     setError(null);
 
     try {
@@ -271,6 +379,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     } catch (e: any) {
       const msg = e.message || "بيانات الدخول غير صحيحة";
       setError(msg);
+      setAuthStatus("error");
       addToast(msg, "error");
       return null;
     } finally {
@@ -286,6 +395,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   ): Promise<UserProfile | null> => {
     void role;
     setLoading(true);
+    setAuthStatus("loading");
     setError(null);
     setPendingEmailVerification(false);
 
@@ -325,6 +435,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       throw new Error("Clerk هو مزود إنشاء الحسابات الوحيد حالياً. تحقق من إعداد NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.");
     } catch (e: any) {
       setError(e.message);
+      setAuthStatus("error");
       addToast(e.message, "error");
       return null;
     } finally {
@@ -333,11 +444,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const signInWithGoogle = async (redirectUrl: string = "/auth/redirect") => {
+    setAuthStatus("loading");
     setError(null);
 
     if (!CLERK_ENABLED || !clerkSignIn) {
       const msg = "تسجيل الدخول عبر Google يحتاج إعداد Clerk أولاً.";
       setError(msg);
+      setAuthStatus("error");
       addToast(msg, "error");
       return;
     }
@@ -354,6 +467,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     } catch (e: any) {
       const msg = getClerkErrorMessage(e);
       setError(msg);
+      setAuthStatus("error");
       addToast(msg, "error");
       throw e;
     }
@@ -365,6 +479,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     } finally {
       setCurrentUser(null);
       resetSecondaryUserData();
+      profileSyncRef.current = null;
+      setAuthStatus("unauthenticated");
+      setError(null);
       clearSupabaseAccessTokenProvider();
       queryClient.clear();
       addToast("تم تسجيل الخروج بنجاح.", "info");
@@ -400,17 +517,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     const userRole = currentUser?.role || "user";
     const currentPermissions = getPermissions(userRole);
 
-    const allowedAdminRoles = [
-      "super_admin",
-      "general_supervisor",
-      "instructor",
-      "enha_lak_supervisor",
-      "creative_writing_supervisor",
-      "publisher",
-      "content_editor",
-      "support_agent",
-    ];
-
     return {
       currentUser,
       currentChildProfile,
@@ -421,6 +527,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       signInWithGoogle,
       updateCurrentUser,
       loading,
+      authStatus,
+      retryAuthSync,
       error,
       hasAdminAccess: canAccessAdmin(userRole),
       permissions: currentPermissions,
@@ -438,12 +546,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     currentUser,
     currentChildProfile,
     loading,
+    authStatus,
+    retryAuthSync,
     error,
     childProfiles,
     isProfileComplete,
     profileModalOpen,
     isProfileMandatory,
     pendingEmailVerification,
+    signOut,
+    signIn,
+    signUp,
+    signInWithGoogle,
+    updateCurrentUser,
+    triggerProfileUpdate,
+    closeProfileModal,
   ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

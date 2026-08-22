@@ -14,6 +14,7 @@ import { ArrowLeft, Save, Link as LinkIcon, BookOpen, ExternalLink, Users } from
 import DetailRow from '../../components/shared/DetailRow';
 import { formatDate, getStatusColor } from '../../utils/helpers';
 import type { BookingStatus } from '../../lib/database.types';
+import { getMarketplaceUrl } from '../../lib/marketplaceUrl';
 
 const createNavigate = (router: ReturnType<typeof useRouter>) => (
     href: string | number,
@@ -29,7 +30,7 @@ const createNavigate = (router: ReturnType<typeof useRouter>) => (
     else router.push(target);
 };
 
-const bookingStatuses: BookingStatus[] = ["بانتظار الدفع", "مؤكد", "مكتمل", "ملغي"];
+const bookingStatuses: BookingStatus[] = ["بانتظار الدفع", "بانتظار المراجعة", "مؤكد", "مكتمل", "ملغي"];
 
 const AdminBookingDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -96,8 +97,8 @@ const AdminBookingDetailPage: React.FC = () => {
                 </div>
             </div>
             
-            {/* زر الدخول لمساحة العمل للمراجعة */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
+            {/* مساحة العمل لا تصبح نشطة قبل التأكيد. */}
+            {(booking.status === 'مؤكد' || booking.status === 'مكتمل') && <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
                         <Users size={20} />
@@ -109,14 +110,14 @@ const AdminBookingDetailPage: React.FC = () => {
                 </div>
                 <Button 
                     as={Link} 
-                    href={`/journey/${booking.id}`} 
+                    href={getMarketplaceUrl(`/journey/${booking.id}`)}
                     variant="outline" 
                     className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50"
                     icon={<ExternalLink size={16} />}
                 >
                     دخول للمراجعة
                 </Button>
-            </div>
+            </div>}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <Card>

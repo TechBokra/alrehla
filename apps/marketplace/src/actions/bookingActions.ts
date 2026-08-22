@@ -44,6 +44,7 @@ const JOURNEY_ROLES = [
   'parent',
   'student',
   'instructor',
+  'creative_writing_supervisor',
   ...MARKETPLACE_ROLES.databaseAdmins,
 ] as const satisfies readonly UserRole[];
 
@@ -134,6 +135,14 @@ export const getBookingAvailability = async () =>
     apiBookingService.getBookingAvailability(),
   );
 
+export const getBookingQuote = async (packageName: string, instructorId: number) => {
+  const safePackageName = parseActionInput(z.string().trim().min(1).max(160), packageName);
+  const safeInstructorId = parseActionInput(numericIdSchema, instructorId);
+  return withPublicAction('booking.getBookingQuote', () =>
+    apiBookingService.getBookingQuote(safePackageName, safeInstructorId),
+  );
+};
+
 export const updateBookingStatus = async (
   bookingId: string,
   newStatus: any,
@@ -152,6 +161,30 @@ export const updateBookingStatus = async (
       return result;
     },
     MARKETPLACE_ROLES.bookingManagers,
+  );
+};
+
+export const authorizeJourneyAccess = async (bookingId: string) => {
+  const id = parseActionInput(resourceIdSchema, bookingId);
+  return withMarketplaceAction(
+    'booking.authorizeJourneyAccess',
+    async (context) => {
+      const { booking } = await requireBookingAccess(context, id);
+      if (!['مؤكد', 'مكتمل'].includes(booking.status)) {
+        actionError('مساحة العمل غير متاحة قبل تأكيد الحجز.');
+      }
+      return { authorized: true, status: booking.status };
+    },
+    JOURNEY_ROLES,
+  );
+};
+
+export const authorizeSessionJoin = async (sessionId: string) => {
+  const id = parseActionInput(z.string().uuid(), sessionId);
+  return withMarketplaceAction(
+    'booking.authorizeSessionJoin',
+    () => apiBookingService.authorizeSessionJoin(id),
+    JOURNEY_ROLES,
   );
 };
 

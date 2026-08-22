@@ -7,6 +7,7 @@ import { BookOpen, ArrowLeft, Clock } from 'lucide-react';
 import type { CreativeWritingBooking, ScheduledSession, CreativeWritingPackage } from '../../lib/database.types';
 import { formatDate } from '../../utils/helpers';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@alrehla/ui/card';
+import { getMarketplaceUrl } from '../../lib/marketplaceUrl';
 
 type EnrichedStudentBooking = CreativeWritingBooking & {
     sessions: ScheduledSession[];
@@ -73,7 +74,7 @@ const StudentJourneyCard = React.forwardRef<HTMLElement, StudentJourneyCardProps
                     </div>
                 </CardContent>
                  <CardFooter>
-                     <Link to={`/journey/${journey.id}`} className="flex items-center justify-center gap-2 bg-purple-600 text-white text-sm font-bold py-2 px-4 rounded-full hover:bg-purple-700 transition-colors w-full sm:w-auto">
+                     <Link to={getMarketplaceUrl(`/journey/${journey.id}`)} className="flex items-center justify-center gap-2 bg-purple-600 text-white text-sm font-bold py-2 px-4 rounded-full hover:bg-purple-700 transition-colors w-full sm:w-auto">
                         <span>افتح مساحة العمل</span>
                         <ArrowLeft size={16} />
                     </Link>

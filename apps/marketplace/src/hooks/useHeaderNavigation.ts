@@ -19,7 +19,8 @@ export const useHeaderNavigation = () => {
     const enhaLakNavLinks = [
         { key: 'back', to: '/', text: 'الرئيسية', icon: React.createElement(ArrowLeft, { size: 16 }) },
         { key: 'enha-lak-home', to: '/enha-lak', text: 'عن المشروع' },
-        { key: 'enha-lak-store', to: '/enha-lak/store', text: 'المتجر' },
+        { key: 'enha-lak-custom', to: '/enha-lak/custom', text: 'أنت البطل هنا' },
+        { key: 'enha-lak-library', to: '/enha-lak/library', text: 'المكتبة العامة' },
         { key: 'enha-lak-subscription', to: '/enha-lak/subscription', text: 'صندوق الرحلة' },
     ];
     

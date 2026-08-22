@@ -15,6 +15,9 @@
     "start": "turbo run start",
     "build:marketplace": "pnpm --filter @alrehla/marketplace build",
     "build:admin": "pnpm --filter @alrehla/admin-panel build",
+    "dev:instructor": "pnpm --filter @alrehla/instructor-panel dev",
+    "build:instructor": "pnpm --filter @alrehla/instructor-panel build",
+    "start:instructor": "pnpm --filter @alrehla/instructor-panel start",
     "dev:student": "pnpm --filter @alrehla/student-panel dev",
     "build:student": "pnpm --filter @alrehla/student-panel build",
     "start:student": "pnpm --filter @alrehla/student-panel start"

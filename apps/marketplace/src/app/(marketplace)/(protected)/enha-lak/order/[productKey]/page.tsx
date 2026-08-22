@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { getPersonalizedProducts } from '@/actions/publicActions';
+import { getEnhaLakData } from '@/services/enhaLakPublicService';
 import OrderPage from '@/features/enha-lak-order';
 import { requireMarketplaceAuth } from '@/lib/server/requireAuth';
 import type { OrderData } from '@/hooks/queries/public/usePageDataQuery';
@@ -14,7 +14,7 @@ export default async function Page() {
   let initialOrderData: OrderData | undefined;
   try {
     initialOrderData = {
-      personalizedProducts: await getPersonalizedProducts(),
+      personalizedProducts: (await getEnhaLakData()).personalizedProducts,
     };
   } catch {
     initialOrderData = undefined;

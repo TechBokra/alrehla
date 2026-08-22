@@ -4,7 +4,9 @@ import React, { useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import PageLoader from '@alrehla/ui/page-loader';
 import { getAdminPanelUrl } from '../../lib/adminPanelUrl';
+import { getInstructorPanelUrl } from '../../lib/instructorPanelUrl';
 import { getMarketplaceUrl } from '../../lib/marketplaceUrl';
+import { canAccessAdmin, canAccessInstructorPanel } from '../../lib/roles';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -47,6 +49,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (currentUser.role !== 'student') {
+    if (canAccessInstructorPanel(currentUser.role)) {
+      return <ExternalRedirect to={getInstructorPanelUrl('/')} text="هذه اللوحة مخصصة للطلاب. جاري تحويلك إلى لوحة المدربين..." />;
+    }
+    if (canAccessAdmin(currentUser.role)) {
+      return <ExternalRedirect to={getAdminPanelUrl('/')} text="هذه اللوحة مخصصة للطلاب. جاري تحويلك إلى لوحة التحكم..." />;
+    }
     return <ExternalRedirect to={getMarketplaceUrl('/account')} text="هذه اللوحة مخصصة للطلاب فقط..." />;
   }
 

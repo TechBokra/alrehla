@@ -4,6 +4,7 @@ import React, {
   createContext,
   useState,
   useEffect,
+  useRef,
   useContext,
   ReactNode,
   useMemo,
@@ -16,7 +17,7 @@ import {
   useSignUp as useClerkSignUp,
   useUser as useClerkUser,
 } from "@clerk/nextjs";
-import { getPermissions, Permissions, type UserRole } from "../lib/roles";
+import { canAccessAdmin, canAccessInstructorPanel, getPermissions, Permissions, type UserRole } from "../lib/roles";
 import type { ChildProfile, UserProfile } from "../lib/database.types";
 import { useToast } from "./ToastContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -48,6 +49,7 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   hasAdminAccess: boolean;
+  hasInstructorAccess: boolean;
   permissions: Permissions;
   childProfiles: ChildProfile[];
   isParent: boolean;
@@ -102,6 +104,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingEmailVerification, setPendingEmailVerification] = useState(false);
+  const initialAuthDoneRef = useRef(false);
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [isProfileMandatory, setIsProfileMandatory] = useState(false);
@@ -206,7 +209,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     const syncSession = async () => {
       try {
-        setLoading(true);
+        if (!initialAuthDoneRef.current) {
+          setLoading(true);
+        }
         setError(null);
 
         if (!clerkUser) {
@@ -225,6 +230,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           console.error("Clerk session sync error", e);
         }
       } finally {
+        initialAuthDoneRef.current = true;
         if (!cancelled) setLoading(false);
       }
     };
@@ -407,17 +413,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     const userRole = currentUser?.role || "user";
     const currentPermissions = getPermissions(userRole);
 
-    const allowedAdminRoles = [
-      "super_admin",
-      "general_supervisor",
-      "instructor",
-      "enha_lak_supervisor",
-      "creative_writing_supervisor",
-      "publisher",
-      "content_editor",
-      "support_agent",
-    ];
-
     return {
       currentUser,
       currentChildProfile,
@@ -429,7 +424,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       updateCurrentUser,
       loading: loading || clerkSignInFetchStatus === "fetching" || clerkSignUpFetchStatus === "fetching",
       error,
-      hasAdminAccess: allowedAdminRoles.includes(userRole),
+      hasAdminAccess: canAccessAdmin(userRole),
+      hasInstructorAccess: canAccessInstructorPanel(userRole),
       permissions: currentPermissions,
       childProfiles,
       isParent: childProfiles.length > 0,

@@ -201,8 +201,29 @@ export const hasPermission = (role: UserRole, permission: keyof Permissions): bo
   return Boolean(getPermissions(role)[permission]);
 };
 
-export const isAdminRole = (role: UserRole): boolean => STAFF_ROLES.includes(role);
+export const ADMIN_PANEL_ROLES: UserRole[] = [
+  'super_admin',
+  'general_supervisor',
+  'enha_lak_supervisor',
+  'creative_writing_supervisor',
+  'content_editor',
+  'support_agent',
+  'publisher',
+];
+
+export const INSTRUCTOR_PANEL_ROLES: UserRole[] = ['instructor'];
+export const STUDENT_PANEL_ROLES: UserRole[] = ['student'];
+
+export const isAdminRole = (role: UserRole): boolean => ADMIN_PANEL_ROLES.includes(role);
 
 export const canAccessAdmin = (role?: UserRole | null): boolean => {
-  return Boolean(role && isAdminRole(role));
+  return Boolean(role && ADMIN_PANEL_ROLES.includes(role));
+};
+
+export const canAccessInstructorPanel = (role?: UserRole | null): boolean => {
+  return Boolean(role && INSTRUCTOR_PANEL_ROLES.includes(role));
+};
+
+export const canAccessStudentPanel = (role?: UserRole | null): boolean => {
+  return Boolean(role && STUDENT_PANEL_ROLES.includes(role));
 };

@@ -11,13 +11,17 @@ import { useShippingCosts } from '../../../hooks/queries/public/useProductDataQu
 import { createOrderSchema, OrderFormValues } from '../../../lib/schemas';
 import { EGYPTIAN_GOVERNORATES } from '../../../utils/governorates';
 import * as userActions from '../../../actions/userActions';
+import { getOrderJourney, getOrderSteps, type OrderJourney } from '../lib/orderJourneyConfig';
 
 export interface UseOrderPageProps {
   initialOrderData?: OrderData;
+  productKey?: string;
+  expectedJourney?: OrderJourney;
 }
 
-export function useOrderPage({ initialOrderData }: UseOrderPageProps = {}) {
-  const { productKey } = useParams<{ productKey: string }>();
+export function useOrderPage({ initialOrderData, productKey: productKeyOverride, expectedJourney }: UseOrderPageProps = {}) {
+  const { productKey: routeProductKey } = useParams<{ productKey: string }>();
+  const productKey = productKeyOverride || routeProductKey;
   const router = useRouter();
   const { addItemToCart } = useCart();
   const { addToast } = useToast();
@@ -33,8 +37,8 @@ export function useOrderPage({ initialOrderData }: UseOrderPageProps = {}) {
 
   // Get current product
   const product = useMemo(
-    () => data?.personalizedProducts.find((p) => p.key === productKey),
-    [data, productKey],
+    () => data?.personalizedProducts.find((p) => p.key === productKey && (!expectedJourney || getOrderJourney(p) === expectedJourney)),
+    [data, productKey, expectedJourney],
   );
 
   const storyGoals = useMemo(() => product?.story_goals || [], [product?.story_goals]);
@@ -85,20 +89,11 @@ export function useOrderPage({ initialOrderData }: UseOrderPageProps = {}) {
     });
   }, [addonProducts]);
 
-  // --- Dynamic Steps Logic ---
-  const isLibraryBook = product?.product_type === 'library_book';
+  // --- Journey-specific steps ---
+  const journey: OrderJourney = getOrderJourney(product);
+  const isLibraryBook = journey === 'library';
 
-  const steps = useMemo(() => {
-    const baseSteps = [
-      { key: 'child', title: 'بيانات الطفل' },
-      // Only show story customization for Hero Stories
-      !isLibraryBook ? { key: 'story', title: 'تخصيص القصة' } : null,
-      { key: 'addons', title: 'إضافات' },
-      { key: 'delivery', title: 'الشحن' },
-      { key: 'review', title: 'المراجعة' },
-    ];
-    return baseSteps.filter(Boolean) as { key: string; title: string }[];
-  }, [isLibraryBook]);
+  const steps = useMemo(() => getOrderSteps(journey), [journey]);
 
   // Reset form when child is selected
   useEffect(() => {
@@ -192,10 +187,16 @@ export function useOrderPage({ initialOrderData }: UseOrderPageProps = {}) {
         const imageFields = product.image_slots.map((slot) => slot.id);
         fieldsToValidate = [...fieldsToValidate, ...imageFields];
       }
+      if (isLibraryBook && product.text_fields) {
+        fieldsToValidate = [
+          ...fieldsToValidate,
+          ...product.text_fields.filter((field) => field.required).map((field) => field.id),
+        ];
+      }
     }
 
     // Validation for story customization only if step exists
-    if (currentStepKey === 'story' && !isLibraryBook) {
+    if (currentStepKey === 'story' && journey === 'custom') {
       fieldsToValidate = ['storyValue', 'customGoal'];
       if (product.text_fields) {
         fieldsToValidate = [
@@ -245,8 +246,8 @@ export function useOrderPage({ initialOrderData }: UseOrderPageProps = {}) {
     } else {
       // Optional: visual feedback if validation fails silently (though fields usually turn red)
       if (
-        (!isLibraryBook && currentStepKey === 'story') ||
-        (isLibraryBook && currentStepKey === 'child')
+        (journey === 'custom' && currentStepKey === 'story') ||
+        (journey === 'library' && currentStepKey === 'child')
       ) {
         // Check if image errors exist
         if (product.image_slots?.some((slot) => form.getFieldMeta(slot.id)?.errors?.length)) {
@@ -410,6 +411,8 @@ export function useOrderPage({ initialOrderData }: UseOrderPageProps = {}) {
             productTitle: product.title,
             isPrinted: data.deliveryType === 'printed',
             productType: product.product_type,
+            journey,
+            format: data.deliveryType,
             childId: selectedChildId,
           },
         },
@@ -436,6 +439,7 @@ export function useOrderPage({ initialOrderData }: UseOrderPageProps = {}) {
     step,
     currentStepKey,
     isLibraryBook,
+    journey,
     selectedChildId,
     setSelectedChildId,
     selectedAddons,

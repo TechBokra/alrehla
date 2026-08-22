@@ -59,7 +59,9 @@ export const createOrderSchema = (product: PersonalizedProduct | undefined) => {
     customGoal: z.string().optional(),
   };
 
-  // 2. Dynamic Text Fields
+  const isLibraryBook = product.product_type === 'library_book';
+
+  // 2. Dynamic fields. Library fields are limited to configured cover fields.
   if (product.text_fields) {
     product.text_fields.forEach((field) => {
       if (field.required) {
@@ -70,8 +72,8 @@ export const createOrderSchema = (product: PersonalizedProduct | undefined) => {
     });
   }
 
-  // 3. Goal Config Validation
-  if (product.goal_config !== 'none') {
+  // 3. Goal Config Validation (custom journey only)
+  if (!isLibraryBook && product.goal_config !== 'none') {
     schemaObject.storyValue = z.string().min(1, "الهدف من القصة مطلوب");
   }
 
@@ -94,7 +96,7 @@ export const createOrderSchema = (product: PersonalizedProduct | undefined) => {
   // Add Refinements (Cross-field validation)
   return baseSchema.superRefine((data, ctx) => {
     // Custom Goal Validation
-    if (product.goal_config === 'custom' || (product.goal_config === 'predefined_and_custom' && data.storyValue === 'custom')) {
+    if (!isLibraryBook && (product.goal_config === 'custom' || (product.goal_config === 'predefined_and_custom' && data.storyValue === 'custom'))) {
       if (!data.customGoal || data.customGoal.trim() === '') {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

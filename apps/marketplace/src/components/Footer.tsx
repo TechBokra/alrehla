@@ -1,14 +1,9 @@
-'use client';
+import Link from 'next/link';
+import { Facebook, Instagram, Twitter } from 'lucide-react';
+import { getMarketplaceShellData } from '../services/marketplaceShellService';
 
-import { Link } from '@/lib/router-compat';
-import { Facebook, Instagram, Loader2, Twitter } from 'lucide-react';
-import React from 'react';
-import { usePublicSettings } from '../hooks/queries/public/usePublicDataQuery';
-
-const Footer: React.FC = () => {
-  const { data, isLoading } = usePublicSettings();
-  const socialLinks = data?.socialLinks;
-  const siteContent = data?.siteContent;
+const Footer = async () => {
+  const { socialLinks, siteContent } = await getMarketplaceShellData();
 
   // دالة للتحقق من وجود رابط حقيقي وغير فارغ
   const hasLink = (url: string | null | undefined) => url && url.trim() !== '' && url !== '#';
@@ -30,7 +25,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-2 text-sm">
               <li>
                 <Link
-                  to="/about"
+                  href="/about"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   رحلتنا
@@ -38,7 +33,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <Link
-                  to="/blog"
+                  href="/blog"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   المدونة
@@ -46,7 +41,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <Link
-                  to="/support"
+                  href="/support"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   الدعم
@@ -54,7 +49,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <Link
-                  to="/join-us"
+                  href="/join-us"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   انضم إلينا
@@ -68,7 +63,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-2 text-sm">
               <li>
                 <Link
-                  to="/enha-lak/store"
+                  href="/enha-lak"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   قصص "إنها لك"
@@ -76,7 +71,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <Link
-                  to="/creative-writing"
+                  href="/creative-writing"
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   برنامج "بداية الرحلة"
@@ -87,10 +82,7 @@ const Footer: React.FC = () => {
 
           <div>
             <h3 className="text-lg font-bold mb-4">تابعنا</h3>
-            {isLoading ? (
-              <Loader2 className="animate-spin text-muted-foreground" />
-            ) : (
-              <div className="flex gap-4">
+            <div className="flex gap-4">
                 {hasLink(socialLinks?.facebook_url) && (
                   <a
                     href={socialLinks!.facebook_url}
@@ -131,8 +123,7 @@ const Footer: React.FC = () => {
                       لم يتم ربط حسابات تواصل
                     </span>
                   )}
-              </div>
-            )}
+            </div>
           </div>
         </div>
 
@@ -142,10 +133,10 @@ const Footer: React.FC = () => {
             {siteContent?.footer?.copyrightText || 'منصة الرحلة. جميع الحقوق محفوظة.'}
           </p>
           <div className="flex gap-4 items-center">
-            <Link to="/privacy" className="hover:text-primary transition-colors">
+            <Link href="/privacy" className="hover:text-primary transition-colors">
               الخصوصية
             </Link>
-            <Link to="/terms" className="hover:text-primary transition-colors">
+            <Link href="/terms" className="hover:text-primary transition-colors">
               الشروط
             </Link>
             <span className="text-border">|</span>
@@ -156,4 +147,4 @@ const Footer: React.FC = () => {
   );
 };
 
-export default React.memo(Footer);
+export default Footer;
