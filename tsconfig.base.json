@@ -67,6 +67,18 @@
       ],
       "@alrehla/utils/*": [
         "packages/utils/src/*"
+      ],
+      "@alrehla/forms": [
+        "packages/forms/src/index.ts"
+      ],
+      "@alrehla/forms/*": [
+        "packages/forms/src/*"
+      ],
+      "@alrehla/mutations": [
+        "packages/mutations/src/index.ts"
+      ],
+      "@alrehla/mutations/*": [
+        "packages/mutations/src/*"
       ]
     }
   }

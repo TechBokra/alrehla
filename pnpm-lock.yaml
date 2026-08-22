@@ -153,6 +153,12 @@ importers:
       '@alrehla/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@alrehla/forms':
+        specifier: workspace:*
+        version: link:../../packages/forms
+      '@alrehla/mutations':
+        specifier: workspace:*
+        version: link:../../packages/mutations
       '@alrehla/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -195,9 +201,6 @@ importers:
       sonner:
         specifier: ^2.0.7
         version: 2.0.7(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      uuid:
-        specifier: ^11.0.0
-        version: 11.1.1
       zod:
         specifier: ^3.23.8
         version: 3.25.76
@@ -479,6 +482,38 @@ importers:
       '@alrehla/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      typescript:
+        specifier: ^5.5.3
+        version: 5.9.3
+
+  packages/forms:
+    dependencies:
+      '@alrehla/ui':
+        specifier: workspace:*
+        version: link:../ui
+      '@tanstack/react-form':
+        specifier: 1.33.3
+        version: 1.33.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react:
+        specifier: '>=18'
+        version: 18.3.1
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.5.3
+        version: 5.9.3
+
+  packages/mutations:
+    dependencies:
+      '@tanstack/react-query':
+        specifier: ^5.56.0
+        version: 5.101.2(react@18.3.1)
+      react:
+        specifier: '>=18'
+        version: 18.3.1
     devDependencies:
       typescript:
         specifier: ^5.5.3

@@ -8,9 +8,11 @@ import type {
     Instructor
 } from '../../../lib/database.types';
 
+export const sessionDetailsKey = (sessionId: string | undefined) => ['sessionDetails', sessionId] as const;
+
 export const useSessionDetails = (sessionId: string | undefined) => {
     return useQuery({
-        queryKey: ['sessionDetails', sessionId],
+        queryKey: sessionDetailsKey(sessionId),
         queryFn: async () => {
             if (!sessionId) return null;
             const { data } = await supabase

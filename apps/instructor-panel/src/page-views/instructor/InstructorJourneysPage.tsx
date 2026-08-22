@@ -1,18 +1,22 @@
 'use client';
 
 import React from 'react';
-import { useInstructorData } from '../../hooks/queries/instructor/useInstructorDataQuery';
+import { useInstructorJourneys } from '../../hooks/queries/instructor/useInstructorJourneys';
 import PageLoader from '@alrehla/ui/page-loader';
 import InstructorJourneysPanel from '../../components/instructor/InstructorJourneysPanel';
 
 const InstructorJourneysPage: React.FC = () => {
-    const { data, isLoading } = useInstructorData();
+    const { instructor, bookings, isLoading, error } = useInstructorJourneys();
 
-    if (isLoading || !data) {
+    if (isLoading) {
         return <PageLoader text="جاري تحميل الرحلات..." />;
     }
+
+    if (error) {
+        return <div className="p-8 text-center text-red-600">تعذر تحميل بيانات الرحلات.</div>;
+    }
     
-    if (!data.instructor) {
+    if (!instructor) {
         return (
             <div className="text-center py-16 bg-white border rounded-2xl p-6 max-w-lg mx-auto">
                 <p className="text-red-600 font-bold mb-2">لم يتم العثور على ملف المدرب الخاص بك.</p>
@@ -24,7 +28,7 @@ const InstructorJourneysPage: React.FC = () => {
     return (
         <div className="animate-fadeIn space-y-8">
              <h1 className="text-3xl font-extrabold text-foreground">رحلات الطلاب</h1>
-            <InstructorJourneysPanel instructorBookings={data.bookings as any[]} />
+            <InstructorJourneysPanel instructorBookings={bookings as any[]} />
         </div>
     );
 };

@@ -88,7 +88,11 @@ const WeeklySessionsWidget: React.FC<WeeklySessionsWidgetProps> = ({ sessions, i
 
     return (
         <div className="space-y-6">
-            <GoogleCalendarSyncModal isOpen={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} />
+            <GoogleCalendarSyncModal
+                isOpen={isSyncModalOpen}
+                onClose={() => setIsSyncModalOpen(false)}
+                sessions={sessions}
+            />
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border shadow-sm">
                 <div>

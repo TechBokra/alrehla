@@ -1,11 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@clerk/nextjs';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { useToast } from '../../contexts/ToastContext';
 
 const NotificationListener: React.FC = () => {
-    const { currentUser } = useAuth();
+    const { userId } = useAuth();
     const queryClient = useQueryClient();
     const { addToast } = useToast();
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -16,9 +16,9 @@ const NotificationListener: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (!currentUser) return;
+        if (!userId) return;
 
-        const channelName = `notifications:user:${currentUser.id}`;
+        const channelName = `notifications:user:${userId}`;
         
         const channel = supabase
             .channel(channelName)
@@ -28,7 +28,7 @@ const NotificationListener: React.FC = () => {
                     event: 'INSERT',
                     schema: 'public',
                     table: 'notifications',
-                    filter: `user_id=eq.${currentUser.id}`,
+                    filter: `user_id=eq.${userId}`,
                 },
                 (payload) => {
                     const newNotification = payload.new as any;
@@ -50,7 +50,7 @@ const NotificationListener: React.FC = () => {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [currentUser?.id, queryClient, addToast]); 
+    }, [userId, queryClient, addToast]); 
 
     return null; 
 };

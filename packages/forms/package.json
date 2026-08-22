@@ -1,0 +1,25 @@
+{
+  "name": "@alrehla/forms",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@alrehla/ui": "workspace:*",
+    "@tanstack/react-form": "1.33.3",
+    "zod": "^3.25.76"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3"
+  }
+}

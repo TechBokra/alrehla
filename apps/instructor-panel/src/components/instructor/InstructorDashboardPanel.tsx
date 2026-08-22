@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useInstructorData } from '../../hooks/queries/instructor/useInstructorDataQuery';
+import { useInstructorOverview } from '../../hooks/queries/instructor/useInstructorOverview';
 import PageLoader from '@alrehla/ui/page-loader';
 import StatCard from '../ui/StatCard';
 import { Calendar, BookOpen, Award, Star } from 'lucide-react';
@@ -9,33 +9,24 @@ import WeeklySessionsWidget from './WeeklySessionsWidget';
 import { Card, CardContent, CardHeader, CardTitle } from '@alrehla/ui/card';
 
 const InstructorDashboardPanel: React.FC = () => {
-    const { data, isLoading } = useInstructorData();
+    const {
+        instructor,
+        bookings,
+        allScheduledSessions,
+        upcomingSessionsCount,
+        activeJourneysCount,
+        introSessionsThisMonth,
+        introSessionGoalMet,
+        isLoading,
+        error,
+    } = useInstructorOverview();
 
-    const bookings = data?.bookings;
-    const instructor = data?.instructor;
-    const introSessionsThisMonth = data?.introSessionsThisMonth;
-
-    const allScheduledSessions = useMemo(() => {
-        return (bookings || []).flatMap((b: any) => 
-            (b.sessions || []).map((s: any) => ({
-                ...s,
-                child_name: b.child_profiles?.name,
-                package_name: b.package_name
-            }))
-        );
-    }, [bookings]);
-
-    const upcomingSessionsCount = useMemo(() => {
-        return allScheduledSessions.filter((s: any) => 
-            s.status === 'upcoming' && new Date(s.session_date) >= new Date()
-        ).length;
-    }, [allScheduledSessions]);
-
-    const activeJourneysCount = (bookings || []).filter((b: any) => b.status === 'مؤكد').length;
-    const introSessionGoalMet = (introSessionsThisMonth || 0) >= 1;
-
-    if (isLoading || !data) {
+    if (isLoading) {
         return <PageLoader text="جاري تحميل لوحة التحكم..." />;
+    }
+
+    if (error) {
+        return <div className="p-8 text-center text-red-600">تعذر تحميل بيانات لوحة التحكم.</div>;
     }
     
     if (!instructor) {

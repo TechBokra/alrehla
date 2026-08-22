@@ -15,7 +15,7 @@ import {
     LogOut,
     ExternalLink
 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useClerk, useUser } from '@clerk/nextjs';
 import { getMarketplaceUrl } from '../../lib/marketplaceUrl';
 import { Button } from '@alrehla/ui/button';
 import { AlrehlaLogo } from '@alrehla/ui';
@@ -70,7 +70,10 @@ const InstructorSidebar: React.FC<InstructorSidebarProps> = ({
     isMobileOpen,
     onMobileClose,
 }) => {
-    const { currentUser, signOut } = useAuth();
+    const { user } = useUser();
+    const { signOut } = useClerk();
+
+    const userName = user?.fullName || user?.firstName || user?.primaryEmailAddress?.emailAddress || 'المدرب';
 
     return (
         <aside
@@ -134,11 +137,11 @@ const InstructorSidebar: React.FC<InstructorSidebarProps> = ({
                     isCollapsed ? 'justify-center p-2' : ''
                 }`}>
                     <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
-                        {currentUser?.name?.charAt(0) || 'م'}
+                        {userName.charAt(0)}
                     </div>
                     {!isCollapsed && (
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold truncate text-foreground">{currentUser?.name}</p>
+                            <p className="text-xs font-bold truncate text-foreground">{userName}</p>
                             <p className="text-[10px] text-muted-foreground truncate">مدرب معتمد</p>
                         </div>
                     )}
@@ -146,7 +149,7 @@ const InstructorSidebar: React.FC<InstructorSidebarProps> = ({
                         <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => void signOut()}
+                            onClick={() => void signOut({ redirectUrl: '/login' })}
                             className="h-7 w-7 text-muted-foreground hover:text-destructive"
                             title="تسجيل الخروج"
                         >

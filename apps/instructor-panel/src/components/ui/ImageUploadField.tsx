@@ -9,7 +9,7 @@ import { useToast } from '../../contexts/ToastContext';
 interface ImageUploadFieldProps {
     label: string;
     fieldKey: string;
-    currentUrl?: any; 
+    currentUrl?: string | File | null | { url: string };
     onUrlChange: (fieldKey: string, value: string | File | null) => void;
     recommendedSize?: string; 
 }

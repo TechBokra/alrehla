@@ -1,60 +1,17 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { DollarSign, Landmark, TrendingUp, ArrowUpRight, Wallet, History } from 'lucide-react';
 import InstructorSection from './InstructorSection';
 import { Button } from '@alrehla/ui/button';
-import type { Instructor, CreativeWritingBooking, ServiceOrder, InstructorPayout } from '../../lib/database.types';
+import type { InstructorFinancialSummary } from '../../hooks/queries/instructor/useInstructorFinancials';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@alrehla/ui/table';
 import { formatDate } from '../../utils/helpers';
 import { Card, CardHeader, CardTitle, CardContent } from '@alrehla/ui/card';
 
 interface InstructorFinancialsPanelProps {
-    bookings: CreativeWritingBooking[];
-    serviceOrders: ServiceOrder[];
-    payouts: InstructorPayout[];
-    instructor: Instructor;
+    financialSummary: InstructorFinancialSummary;
 }
 
-const InstructorFinancialsPanel: React.FC<InstructorFinancialsPanelProps> = ({ bookings, serviceOrders, payouts, instructor }) => {
-    
-    const financialSummary = useMemo(() => {
-        const bookingEarnings = (bookings || [])
-            .filter(b => b.status === 'مكتمل')
-            .map(b => {
-                const netAmount = instructor.package_rates?.[b.package_name] || (instructor.rate_per_session || 0 * 1);
-                return { 
-                    ...b, 
-                    netAmount, 
-                    type: 'جلسة/باقة',
-                    date: b.booking_date
-                };
-            });
-
-        const serviceEarnings = (serviceOrders || [])
-            .filter(o => o.status === 'مكتمل')
-            .map(o => {
-                const netAmount = instructor.service_rates?.[o.service_id] || (o.total * 0.7);
-                return { 
-                    ...o, 
-                    netAmount, 
-                    type: 'خدمة',
-                    date: o.created_at,
-                    package_name: (o as any).service_name || 'خدمة'
-                };
-            });
-
-        const totalEarned = [...bookingEarnings, ...serviceEarnings].reduce((sum, item) => sum + item.netAmount, 0);
-        const totalPaid = (payouts || []).reduce((sum, p) => sum + p.amount, 0);
-        const outstanding = totalEarned - totalPaid;
-
-        return {
-            totalEarned,
-            totalPaid,
-            outstanding,
-            recentItems: [...bookingEarnings, ...serviceEarnings]
-                .sort((a, b) => new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime())
-                .slice(0, 10)
-        };
-    }, [bookings, serviceOrders, payouts, instructor]);
+const InstructorFinancialsPanel: React.FC<InstructorFinancialsPanelProps> = ({ financialSummary }) => {
 
     return (
         <div className="space-y-8 animate-fadeIn">

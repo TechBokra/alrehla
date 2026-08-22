@@ -1,8 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAppMutation } from '@alrehla/mutations';
 import { useToast } from '../../contexts/ToastContext';
 import { bookingService } from '../../services/bookingService';
 import { supabase } from '../../lib/supabaseClient';
 import { communicationService } from '../../services/communicationService';
+import { instructorKeys } from '../queries/instructor/instructorKeys';
 import type { WeeklySchedule, AvailableSlots } from '../../lib/database.types';
 
 export const useInstructorMutations = () => {
@@ -21,7 +23,7 @@ export const useInstructorMutations = () => {
              if(error) throw new Error(error.message);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['instructorData'] });
+            queryClient.invalidateQueries({ queryKey: instructorKeys.profiles() });
             addToast('تم إرسال طلب تحديث الجدول للمراجعة.', 'success');
         },
         onError: (err: Error) => addToast(`فشل إرسال الطلب: ${err.message}`, 'error')
@@ -36,7 +38,7 @@ export const useInstructorMutations = () => {
              if(error) throw new Error(error.message);
          },
          onSuccess: () => {
-             queryClient.invalidateQueries({ queryKey: ['instructorData'] });
+             queryClient.invalidateQueries({ queryKey: instructorKeys.profiles() });
              addToast('تم تحديث التوافر.', 'success');
          },
          onError: (err: Error) => addToast(`فشل التحديث: ${err.message}`, 'error')
@@ -50,15 +52,19 @@ export const useInstructorMutations = () => {
              if(error) throw new Error(error.message);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['instructorData'] });
+            queryClient.invalidateQueries({ queryKey: instructorKeys.profiles() });
             addToast('تم تحديث مواعيد الجلسات التعريفية.', 'success');
         },
         onError: (err: Error) => addToast(`فشل التحديث: ${err.message}`, 'error')
     });
 
     // 3. Profile & Pricing Updates
-    const requestProfileUpdate = useMutation({
-        mutationFn: async ({ instructorId, updates, justification }: { instructorId: number, updates: any, justification: string }) => {
+    const requestProfileUpdate = useAppMutation({
+        mutationFn: async ({ instructorId, updates, justification }: {
+            instructorId: number;
+            updates: object;
+            justification: string;
+        }) => {
              const { error } = await (supabase.from('instructors') as any)
                 .update({ 
                     profile_update_status: 'pending',
@@ -67,20 +73,24 @@ export const useInstructorMutations = () => {
                 .eq('id', instructorId);
              if(error) throw new Error(error.message);
         },
-        onSuccess: () => {
-             queryClient.invalidateQueries({ queryKey: ['instructorData'] });
-             addToast('تم إرسال طلب تحديث الملف/الأسعار.', 'success');
+        errorMessage: 'تعذر إرسال طلب تحديث الملف/الأسعار.',
+        invalidate: [instructorKeys.profiles()],
+        notifier: {
+            error: (message) => addToast(message, 'error'),
+            success: (message) => addToast(message, 'success'),
         },
-        onError: (err: Error) => addToast(`فشل الإرسال: ${err.message}`, 'error')
+        successMessage: 'تم إرسال طلب تحديث الملف/الأسعار.',
     });
 
     // 4. Session Requests (Reschedule / Support)
-    const submitRescheduleRequest = useMutation({
+    const submitRescheduleRequest = useAppMutation({
         mutationFn: bookingService.submitRescheduleRequest,
-        onSuccess: () => {
-             addToast('تم إرسال طلب تغيير الموعد.', 'success');
+        errorMessage: 'تعذر إرسال طلب تغيير الموعد.',
+        notifier: {
+            error: (message) => addToast(message, 'error'),
+            success: (message) => addToast(message, 'success'),
         },
-        onError: (err: Error) => addToast(`فشل الإرسال: ${err.message}`, 'error')
+        successMessage: 'تم إرسال طلب تغيير الموعد.',
     });
 
     const createSupportSessionRequest = useMutation({

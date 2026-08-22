@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useClerk, useUser } from '@clerk/nextjs';
 import { useUserNotifications } from '../../hooks/queries/user/useUserDataQuery';
 import { useNotificationMutations } from '../../hooks/mutations/useNotificationMutations';
 import Link from 'next/link';
@@ -20,9 +20,13 @@ const InstructorNavbar: React.FC<InstructorNavbarProps> = ({
     isSidebarCollapsed,
     onSidebarToggle,
 }) => {
-    const { currentUser, signOut } = useAuth();
+    const { user } = useUser();
+    const { signOut } = useClerk();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+    const userName = user?.fullName || user?.firstName || user?.primaryEmailAddress?.emailAddress || 'المدرب';
+    const userEmail = user?.primaryEmailAddress?.emailAddress || '';
     
     const menuRef = useRef<HTMLDivElement>(null);
     const notificationsRef = useRef<HTMLDivElement>(null);
@@ -103,18 +107,18 @@ const InstructorNavbar: React.FC<InstructorNavbarProps> = ({
                             className="flex items-center gap-2 p-1.5 rounded-full hover:bg-accent"
                         >
                             <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                                {currentUser?.name?.charAt(0) || 'م'}
+                                {userName.charAt(0)}
                             </div>
                             <span className="hidden md:inline-block text-xs font-semibold text-foreground max-w-[120px] truncate">
-                                {currentUser?.name || 'المدرب'}
+                                {userName}
                             </span>
                         </Button>
 
                         {isMenuOpen && (
                             <div className="absolute left-0 mt-2 w-48 rounded-xl bg-card border shadow-lg py-1.5 z-50 animate-fadeIn text-right">
                                 <div className="px-4 py-2 border-b">
-                                    <p className="text-xs font-bold text-foreground truncate">{currentUser?.name}</p>
-                                    <p className="text-[10px] text-muted-foreground truncate">{currentUser?.email}</p>
+                                    <p className="text-xs font-bold text-foreground truncate">{userName}</p>
+                                    <p className="text-[10px] text-muted-foreground truncate">{userEmail}</p>
                                 </div>
                                 <Link
                                     href="/profile"
@@ -127,7 +131,7 @@ const InstructorNavbar: React.FC<InstructorNavbarProps> = ({
                                 <button
                                     onClick={() => {
                                         setIsMenuOpen(false);
-                                        void signOut();
+                                        void signOut({ redirectUrl: '/login' });
                                     }}
                                     className="w-full flex items-center gap-2 px-4 py-2 text-xs text-destructive hover:bg-destructive/10"
                                 >

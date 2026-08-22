@@ -1,9 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { useSession } from '@clerk/nextjs';
 import { ToastProvider } from '@/contexts/ToastContext';
+import {
+  clearSupabaseAccessTokenProvider,
+  setSupabaseAccessTokenProvider,
+} from '@/lib/supabaseClient';
 
 const createQueryClient = () =>
   new QueryClient({
@@ -18,15 +22,38 @@ const createQueryClient = () =>
     },
   });
 
+function SupabaseClerkSync() {
+  const { session } = useSession();
+
+  useEffect(() => {
+    if (session) {
+      setSupabaseAccessTokenProvider(async () => {
+        try {
+          return (await session.getToken()) || null;
+        } catch {
+          return null;
+        }
+      });
+    } else {
+      clearSupabaseAccessTokenProvider();
+    }
+
+    return () => {
+      clearSupabaseAccessTokenProvider();
+    };
+  }, [session]);
+
+  return null;
+}
+
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(createQueryClient);
 
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <SupabaseClerkSync />
+        {children}
       </ToastProvider>
     </QueryClientProvider>
   );

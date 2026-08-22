@@ -16,8 +16,8 @@ interface InstructorPricingPanelProps {
 }
 
 const InstructorPricingPanel: React.FC<InstructorPricingPanelProps> = ({ instructor }) => {
-    const { data: cwSettings, isLoading: cwLoading } = useAdminCWSettings();
-    const { data: pricingConfig, isLoading: pricingLoading } = useAdminPricingSettings();
+    const { data: cwSettings, isLoading: cwLoading, error: cwError } = useAdminCWSettings();
+    const { data: pricingConfig, isLoading: pricingLoading, error: pricingError } = useAdminPricingSettings();
     const { requestProfileUpdate } = useInstructorMutations();
     
     const [serviceRates, setServiceRates] = useState<Record<string, string>>({});
@@ -53,6 +53,7 @@ const InstructorPricingPanel: React.FC<InstructorPricingPanelProps> = ({ instruc
     };
 
     if (cwLoading || pricingLoading) return <PageLoader />;
+    if (cwError || pricingError) return <div className="p-8 text-center text-red-600">تعذر تحميل إعدادات التسعير.</div>;
 
     const { standaloneServices = [], packages = [] } = cwSettings || {};
     const instructorServices = standaloneServices.filter((s: any) => s.provider_type === 'instructor');

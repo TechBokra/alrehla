@@ -3,8 +3,7 @@ import { Calendar, Copy, Check, Info, Smartphone, Laptop, Download, AlertTriangl
 import Modal from '@alrehla/ui/modal';
 import { Button } from '@alrehla/ui/button';
 import { useToast } from '../../contexts/ToastContext';
-import { useAuth } from '../../contexts/AuthContext';
-import { useInstructorData } from '../../hooks/queries/instructor/useInstructorDataQuery';
+import { useAuth } from '@clerk/nextjs';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@alrehla/ui/tabs';
 import { DEFAULT_CONFIG } from '../../lib/config';
 import { getMarketplaceUrl } from '../../lib/marketplaceUrl';
@@ -12,18 +11,26 @@ import { getMarketplaceUrl } from '../../lib/marketplaceUrl';
 interface GoogleCalendarSyncModalProps {
     isOpen: boolean;
     onClose: () => void;
+    sessions: CalendarSession[];
 }
 
-const GoogleCalendarSyncModal: React.FC<GoogleCalendarSyncModalProps> = ({ isOpen, onClose }) => {
-    const { currentUser } = useAuth();
-    const { data } = useInstructorData();
+interface CalendarSession {
+    id: string;
+    status: string;
+    session_date: string;
+    child_name?: string;
+    package_name?: string;
+}
+
+const GoogleCalendarSyncModal: React.FC<GoogleCalendarSyncModalProps> = ({ isOpen, onClose, sessions }) => {
+    const { userId } = useAuth();
     const { addToast } = useToast();
     const [copied, setCopied] = useState(false);
 
     const projectUrl = DEFAULT_CONFIG.supabase.projectUrl;
     
     const baseApiUrl = `${projectUrl}/functions/v1/instructor-calendar`;
-    const params = `id=${currentUser?.id}&t=${Date.now()}&ext=.ics`;
+    const params = `id=${userId || ''}&t=${Date.now()}&ext=.ics`;
     const httpsUrl = baseApiUrl + '?' + params;
     
     const googleSubscribeUrl = `https://calendar.google.com/calendar/r/settings/addbyurl?cid=${encodeURIComponent(httpsUrl)}`;
@@ -36,33 +43,28 @@ const GoogleCalendarSyncModal: React.FC<GoogleCalendarSyncModalProps> = ({ isOpe
     };
 
     const handleDownloadIcs = () => {
-        if (!data?.bookings) {
+        if (sessions.length === 0) {
             addToast('لا توجد بيانات لإنشاء الملف', 'error');
             return;
         }
 
-        const bookings = data.bookings;
         let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Alrehla//Instructor Calendar//AR\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\n";
         
-        bookings.forEach((booking: any) => {
-            if (booking.sessions) {
-                booking.sessions.forEach((session: any) => {
-                    if (session.status === 'upcoming' || session.status === 'completed') {
-                        const startDate = new Date(session.session_date);
-                        const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-                        
-                        const format = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-                        
-                        icsContent += "BEGIN:VEVENT\n";
-                        icsContent += `UID:${session.id}\n`;
-                        icsContent += `DTSTAMP:${format(new Date())}\n`;
-                        icsContent += `DTSTART:${format(startDate)}\n`;
-                        icsContent += `DTEND:${format(endDate)}\n`;
-                        icsContent += `SUMMARY:${booking.package_name} - ${booking.child_profiles?.name || 'طالب'}\n`;
-                        icsContent += `DESCRIPTION:جلسة تدريبية على منصة الرحلة.\nرابط الجلسة: ${getMarketplaceUrl(`/session/${session.id}`)}\n`;
-                        icsContent += "END:VEVENT\n";
-                    }
-                });
+        sessions.forEach((session) => {
+            if (session.status === 'upcoming' || session.status === 'completed') {
+                const startDate = new Date(session.session_date);
+                const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+
+                const format = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+                icsContent += "BEGIN:VEVENT\n";
+                icsContent += `UID:${session.id}\n`;
+                icsContent += `DTSTAMP:${format(new Date())}\n`;
+                icsContent += `DTSTART:${format(startDate)}\n`;
+                icsContent += `DTEND:${format(endDate)}\n`;
+                icsContent += `SUMMARY:${session.package_name} - ${session.child_name || 'طالب'}\n`;
+                icsContent += `DESCRIPTION:جلسة تدريبية على منصة الرحلة.\nرابط الجلسة: ${getMarketplaceUrl(`/session/${session.id}`)}\n`;
+                icsContent += "END:VEVENT\n";
             }
         });
 

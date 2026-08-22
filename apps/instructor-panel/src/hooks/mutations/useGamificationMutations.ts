@@ -9,7 +9,6 @@ export const useGamificationMutations = () => {
     const awardBadge = useMutation({
         mutationFn: gamificationService.awardBadge,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['instructorData'] });
             queryClient.invalidateQueries({ queryKey: ['sessionDetails'] });
             addToast('تم منح الشارة للطالب بنجاح! 🏆 وجهودكم كمدربين محل تقدير.', 'success');
         },
