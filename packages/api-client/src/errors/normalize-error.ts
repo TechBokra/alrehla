@@ -76,7 +76,27 @@ const classify = (
 const isCancelled = (error: ErrorRecord): boolean => {
   const name = getString(error.name)?.toLowerCase();
   const code = getString(error.code)?.toUpperCase();
-  return name === 'aborterror' || code === 'ABORT_ERR' || code === 'ERR_CANCELED';
+  const message = getString(error.message)?.toLowerCase();
+  return (
+    name === 'aborterror' ||
+    code === 'ABORT_ERR' ||
+    code === 'ERR_CANCELED' ||
+    message?.includes('aborterror') === true
+  );
+};
+
+const isNetworkFailure = (error: ErrorRecord): boolean => {
+  const code = getString(error.code)?.toUpperCase();
+  const message = getString(error.message)?.toLowerCase() ?? '';
+  return (
+    code === 'ECONNRESET' ||
+    code === 'ECONNREFUSED' ||
+    code === 'ETIMEDOUT' ||
+    code === 'ENOTFOUND' ||
+    code === 'EAI_AGAIN' ||
+    message.includes('network') ||
+    message.includes('failed to fetch')
+  );
 };
 
 export const normalizeApiError = (
@@ -93,7 +113,7 @@ export const normalizeApiError = (
     });
   }
 
-  if (error instanceof TypeError) {
+  if (error instanceof TypeError || (isRecord(error) && isNetworkFailure(error))) {
     return new ApiError('تعذر الوصول إلى الخادم.', {
       type: 'network',
       code: 'NETWORK_ERROR',

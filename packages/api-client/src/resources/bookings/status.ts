@@ -26,7 +26,7 @@ export const canonicalToDatabaseStatus: Record<CanonicalBookingStatus, DatabaseB
   cancelled: 'ملغي',
 };
 
-export type BookingStatusInput = CanonicalBookingStatus | DatabaseBookingStatus;
+export type BookingStatusInput = CanonicalBookingStatus;
 
 const contractError = (value: unknown, direction: 'database' | 'canonical') =>
   new ApiError(
@@ -41,18 +41,17 @@ const contractError = (value: unknown, direction: 'database' | 'canonical') =>
   );
 
 export const toCanonicalBookingStatus = (value: unknown): CanonicalBookingStatus => {
-  if (typeof value !== 'string' || !(value in databaseToCanonicalStatus)) {
+  if (typeof value !== 'string') {
     throw contractError(value, 'database');
   }
-  return databaseToCanonicalStatus[value as DatabaseBookingStatus];
+  const status = (databaseToCanonicalStatus as Partial<Record<string, CanonicalBookingStatus>>)[value];
+  if (!status) throw contractError(value, 'database');
+  return status;
 };
 
 export const toDatabaseBookingStatus = (value: unknown): DatabaseBookingStatus => {
   if (typeof value !== 'string') throw contractError(value, 'canonical');
-  if (value in canonicalToDatabaseStatus) {
-    return canonicalToDatabaseStatus[value as CanonicalBookingStatus];
-  }
-  if (value in databaseToCanonicalStatus) return value as DatabaseBookingStatus;
-  throw contractError(value, 'canonical');
+  const status = (canonicalToDatabaseStatus as Partial<Record<string, DatabaseBookingStatus>>)[value];
+  if (!status) throw contractError(value, 'canonical');
+  return status;
 };
-

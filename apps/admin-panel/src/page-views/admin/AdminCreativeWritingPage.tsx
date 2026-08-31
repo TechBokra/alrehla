@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import ErrorState from '@alrehla/ui/error-state';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@alrehla/ui/tabs';
 import { useDebounce } from '../../hooks/useDebounce';
+import { toCanonicalBookingStatus } from '@alrehla/api-client/resources/bookings';
 
 const createNavigate = (router: ReturnType<typeof useRouter>) => (
     href: string | number,
@@ -103,7 +104,7 @@ const AdminCreativeWritingPage: React.FC = () => {
                                                         <TableCell>
                                                             <Select
                                                                 value={booking.status}
-                                                                onChange={e => updateBookingStatus.mutate({ bookingId: booking.id, newStatus: e.target.value as BookingStatus })}
+                                                                onChange={e => updateBookingStatus.mutate({ bookingId: booking.id, newStatus: toCanonicalBookingStatus(e.target.value) })}
                                                                 className={`p-1 text-xs font-bold ${getStatusColor(booking.status)}`}
                                                             >
                                                                 {["بانتظار الدفع", "مؤكد", "مكتمل", "ملغي"].map(s => <option key={s} value={s}>{s}</option>)}

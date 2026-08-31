@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link as LinkIcon } from 'lucide-react';
 import { useBookingMutations } from '../../hooks/mutations/useBookingMutations';
+import { toCanonicalBookingStatus } from '@alrehla/api-client/resources/bookings';
 import type { CreativeWritingBooking, BookingStatus } from '../../lib/database.types';
 import { formatDate, getStatusColor } from '../../utils/helpers';
 import Modal from '@alrehla/ui/modal';
@@ -26,7 +27,7 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen
     if (!booking) return null;
 
     const handleStatusChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-        await updateBookingStatus.mutateAsync({ bookingId: booking.id, newStatus: e.target.value as BookingStatus });
+        await updateBookingStatus.mutateAsync({ bookingId: booking.id, newStatus: toCanonicalBookingStatus(e.target.value) });
     };
     
     const statuses: BookingStatus[] = ["بانتظار الدفع", "مؤكد", "مكتمل", "ملغي"];

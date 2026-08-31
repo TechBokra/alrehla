@@ -9,4 +9,4 @@ export const createBrowserApiClient = (options: ClientOptions = {}): ApiClient =
     accessToken: options.accessToken,
     fetch: options.fetch,
     allowMissingCredentials: options.allowMissingCredentials,
-  }) as unknown as ApiClient;
+  });

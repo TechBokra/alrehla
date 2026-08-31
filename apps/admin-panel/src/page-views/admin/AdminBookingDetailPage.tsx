@@ -15,6 +15,7 @@ import DetailRow from '../../components/shared/DetailRow';
 import { formatDate, getStatusColor } from '../../utils/helpers';
 import type { BookingStatus } from '../../lib/database.types';
 import { getMarketplaceUrl } from '../../lib/marketplaceUrl';
+import { toCanonicalBookingStatus } from '@alrehla/api-client/resources/bookings';
 
 const createNavigate = (router: ReturnType<typeof useRouter>) => (
     href: string | number,
@@ -65,7 +66,7 @@ const AdminBookingDetailPage: React.FC = () => {
     const handleSave = async () => {
         const promises = [];
         if (status !== booking.status) {
-            promises.push(updateBookingStatus.mutateAsync({ bookingId: booking.id, newStatus: status }));
+            promises.push(updateBookingStatus.mutateAsync({ bookingId: booking.id, newStatus: toCanonicalBookingStatus(status) }));
         }
         if (progressNotes !== (booking.progress_notes || '')) {
             promises.push(updateBookingProgressNotes.mutateAsync({ bookingId: booking.id, notes: progressNotes }));

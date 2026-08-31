@@ -1,7 +1,7 @@
 
 import { supabase, getCurrentAppProfileId } from '../lib/supabaseClient';
 import { reportingService } from './reportingService';
-import type { UserProfile, ChildProfile, UserRole, PublisherProfile } from '@alrehla/types';
+import { USER_ROLES, type UserProfile, type ChildProfile, type UserRole, type PublisherProfile } from '@alrehla/types';
 import { toAdminUserRows } from '../adapters/admin-user-row';
 import type { AdminUserListResult } from '../view-models/user';
 
@@ -36,6 +36,9 @@ export interface GetUsersOptions {
     search?: string;
     roleFilter?: string;
 }
+
+const isUserRole = (value: string): value is UserRole =>
+    USER_ROLES.some((role) => role === value);
 
 export interface AdminUserRelationsResult {
     users: UserProfile[];
@@ -82,8 +85,10 @@ export const userService = {
                     query = query.in('role', ['super_admin', 'general_supervisor', 'instructor', 'content_editor', 'support_agent', 'enha_lak_supervisor', 'creative_writing_supervisor']);
                 } else if (roleFilter === 'customers') {
                      query = query.in('role', ['user', 'parent']);
-                } else {
+                } else if (isUserRole(roleFilter)) {
                     query = query.eq('role', roleFilter);
+                } else {
+                    return { users: [], count: 0 };
                 }
             }
 

@@ -1,6 +1,20 @@
 
 export type UserRole = 'user' | 'parent' | 'student' | 'instructor' | 'super_admin' | 'general_supervisor' | 'enha_lak_supervisor' | 'creative_writing_supervisor' | 'content_editor' | 'support_agent' | 'publisher';
 
+export const USER_ROLES = [
+    'user',
+    'parent',
+    'student',
+    'instructor',
+    'super_admin',
+    'general_supervisor',
+    'enha_lak_supervisor',
+    'creative_writing_supervisor',
+    'content_editor',
+    'support_agent',
+    'publisher',
+] as const;
+
 export const ACCOUNT_TYPES = ['parent', 'student'] as const;
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
@@ -311,8 +325,8 @@ export type SessionStatus = 'upcoming' | 'completed' | 'missed';
 
 export interface ScheduledSession {
     id: string;
-    booking_id?: string;
-    subscription_id?: string;
+    booking_id?: string | null;
+    subscription_id?: string | null;
     child_id: number;
     instructor_id: number;
     session_date: string; // ISO
@@ -322,6 +336,8 @@ export interface ScheduledSession {
     // Virtuals from joins
     child_name?: string;
     instructor_name?: string;
+    child_profiles?: { name: string } | null;
+    instructors?: { name: string } | null;
     package_name?: string;
     type?: string;
     booking_status?: string;
@@ -598,180 +614,184 @@ export type EnrichedChildProfile = ChildProfile & {
     student_email?: string;
 }
 
+type DatabaseRelationship = {
+  foreignKeyName: string
+  columns: string[]
+  isOneToOne?: boolean
+  referencedRelation: string
+  referencedColumns: string[]
+}
+
+type DatabaseTable<
+  Row extends object,
+  Relationships extends DatabaseRelationship[] = [],
+> = {
+  Row: Row & Record<string, unknown>
+  Insert: Partial<Row> & Record<string, unknown>
+  Update: Partial<Row> & Record<string, unknown>
+  Relationships: Relationships
+}
+
+type BookingRelationships = [
+  {
+    foreignKeyName: 'fk_bookings_child'
+    columns: ['child_id']
+    isOneToOne: true
+    referencedRelation: 'child_profiles'
+    referencedColumns: ['id']
+  },
+  {
+    foreignKeyName: 'fk_bookings_instructor'
+    columns: ['instructor_id']
+    isOneToOne: true
+    referencedRelation: 'instructors'
+    referencedColumns: ['id']
+  },
+  {
+    foreignKeyName: 'fk_bookings_user'
+    columns: ['user_id']
+    isOneToOne: true
+    referencedRelation: 'profiles'
+    referencedColumns: ['id']
+  },
+]
+
+type OrderRelationships = [
+  {
+    foreignKeyName: 'fk_orders_child'
+    columns: ['child_id']
+    isOneToOne: true
+    referencedRelation: 'child_profiles'
+    referencedColumns: ['id']
+  },
+  {
+    foreignKeyName: 'fk_orders_user'
+    columns: ['user_id']
+    isOneToOne: true
+    referencedRelation: 'profiles'
+    referencedColumns: ['id']
+  },
+]
+
+type ScheduledSessionRelationships = [
+  {
+    foreignKeyName: 'scheduled_sessions_booking_id_fkey'
+    columns: ['booking_id']
+    isOneToOne: true
+    referencedRelation: 'bookings'
+    referencedColumns: ['id']
+  },
+  {
+    foreignKeyName: 'scheduled_sessions_child_id_fkey'
+    columns: ['child_id']
+    isOneToOne: true
+    referencedRelation: 'child_profiles'
+    referencedColumns: ['id']
+  },
+  {
+    foreignKeyName: 'scheduled_sessions_instructor_id_fkey'
+    columns: ['instructor_id']
+    isOneToOne: true
+    referencedRelation: 'instructors'
+    referencedColumns: ['id']
+  },
+]
+
+type EnsureClerkProfileArgs = {
+  p_email: string
+  p_name: string
+}
+
+type CalculateBookingPriceArgs = {
+  p_package_name: string
+  p_instructor_id: number
+}
+
+type BookingSlotAvailabilityArgs = {
+  p_instructor_id: number
+  p_booking_date: string
+  p_booking_time: string
+}
+
+type CreateBookingArgs = {
+  p_user_id: string
+  p_child_id: number
+  p_instructor_id: number
+  p_package_name: string
+  p_booking_date: string
+  p_booking_time: string
+  p_receipt_url: string | null
+  p_expected_total: number
+}
+
+type BookingIdArgs = {
+  p_booking_id: string
+}
+
+type UpdateBookingStatusArgs = {
+  p_booking_id: string
+  p_new_status: DatabaseBookingStatus
+}
+
+type SessionIdArgs = {
+  p_session_id: string
+}
+
 export interface Database {
   public: {
     Tables: {
-      profiles: {
-        Row: UserProfile
-        Insert: Partial<UserProfile>
-        Update: Partial<UserProfile>
-      };
-      public_profiles: {
-        Row: PublicProfile
-        Insert: Partial<PublicProfile>
-        Update: Partial<PublicProfile>
-      };
-      child_profiles: {
-        Row: ChildProfile
-        Insert: Partial<ChildProfile>
-        Update: Partial<ChildProfile>
-      };
-      parent_student_links: {
-        Row: ParentStudentLink
-        Insert: Partial<ParentStudentLink>
-        Update: Partial<ParentStudentLink>
-      };
-      instructors: {
-        Row: Instructor
-        Insert: Partial<Instructor>
-        Update: Partial<Instructor>
-      };
-      publisher_profiles: {
-        Row: PublisherProfile
-        Insert: Partial<PublisherProfile>
-        Update: Partial<PublisherProfile>
-      };
-      personalized_products: {
-        Row: PersonalizedProduct
-        Insert: Partial<PersonalizedProduct>
-        Update: Partial<PersonalizedProduct>
-      };
-      orders: {
-        Row: Order
-        Insert: Partial<Order>
-        Update: Partial<Order>
-      };
-      bookings: {
-        Row: CreativeWritingBooking
-        Insert: Partial<CreativeWritingBooking>
-        Update: Partial<CreativeWritingBooking>
-      };
-      site_settings: {
-        Row: SiteSetting
-        Insert: Partial<SiteSetting>
-        Update: Partial<SiteSetting>
-      };
-      audit_logs: {
-        Row: AuditLog
-        Insert: Partial<AuditLog>
-        Update: Partial<AuditLog>
-      };
-      instructor_payouts: {
-        Row: InstructorPayout
-        Insert: Partial<InstructorPayout>
-        Update: Partial<InstructorPayout>
-      };
-      publisher_payouts: {
-        Row: PublisherPayout
-        Insert: Partial<PublisherPayout>
-        Update: Partial<PublisherPayout>
-      };
-      creative_writing_packages: {
-        Row: CreativeWritingPackage
-        Insert: Partial<CreativeWritingPackage>
-        Update: Partial<CreativeWritingPackage>
-      };
-      standalone_services: {
-        Row: StandaloneService
-        Insert: Partial<StandaloneService>
-        Update: Partial<StandaloneService>
-      };
-      subscription_plans: {
-        Row: SubscriptionPlan
-        Insert: Partial<SubscriptionPlan>
-        Update: Partial<SubscriptionPlan>
-      };
-      subscriptions: {
-        Row: Subscription
-        Insert: Partial<Subscription>
-        Update: Partial<Subscription>
-      };
-      service_orders: {
-        Row: ServiceOrder
-        Insert: Partial<ServiceOrder>
-        Update: Partial<ServiceOrder>
-      };
-      scheduled_sessions: {
-        Row: ScheduledSession
-        Insert: Partial<ScheduledSession>
-        Update: Partial<ScheduledSession>
-      };
-      blog_posts: {
-        Row: BlogPost
-        Insert: Partial<BlogPost>
-        Update: Partial<BlogPost>
-      };
-      support_tickets: {
-        Row: SupportTicket
-        Insert: Partial<SupportTicket>
-        Update: Partial<SupportTicket>
-      };
-      join_requests: {
-        Row: JoinRequest
-        Insert: Partial<JoinRequest>
-        Update: Partial<JoinRequest>
-      };
-      support_session_requests: {
-        Row: SupportSessionRequest
-        Insert: Partial<SupportSessionRequest>
-        Update: Partial<SupportSessionRequest>
-      };
-      notifications: {
-        Row: Notification
-        Insert: Partial<Notification>
-        Update: Partial<Notification>
-      };
-      badges: {
-        Row: Badge
-        Insert: Partial<Badge>
-        Update: Partial<Badge>
-      };
-      child_badges: {
-        Row: ChildBadge
-        Insert: Partial<ChildBadge>
-        Update: Partial<ChildBadge>
-      };
-      comparison_items: {
-        Row: ComparisonItem
-        Insert: Partial<ComparisonItem>
-        Update: Partial<ComparisonItem>
-      };
-      session_messages: {
-        Row: SessionMessage
-        Insert: Partial<SessionMessage>
-        Update: Partial<SessionMessage>
-      };
-      session_attachments: {
-        Row: SessionAttachment
-        Insert: Partial<SessionAttachment>
-        Update: Partial<SessionAttachment>
-      };
+      profiles: DatabaseTable<UserProfile>;
+      public_profiles: DatabaseTable<PublicProfile>;
+      public_settings: DatabaseTable<{ key: string; value: Json; }>;
+      child_profiles: DatabaseTable<ChildProfile>;
+      parent_student_links: DatabaseTable<ParentStudentLink>;
+      instructors: DatabaseTable<Instructor>;
+      publisher_profiles: DatabaseTable<PublisherProfile>;
+      personalized_products: DatabaseTable<PersonalizedProduct>;
+      orders: DatabaseTable<Order, OrderRelationships>;
+      bookings: DatabaseTable<CreativeWritingBooking, BookingRelationships>;
+      site_settings: DatabaseTable<SiteSetting>;
+      audit_logs: DatabaseTable<AuditLog>;
+      instructor_payouts: DatabaseTable<InstructorPayout>;
+      publisher_payouts: DatabaseTable<PublisherPayout>;
+      creative_writing_packages: DatabaseTable<CreativeWritingPackage>;
+      standalone_services: DatabaseTable<StandaloneService>;
+      subscription_plans: DatabaseTable<SubscriptionPlan>;
+      subscriptions: DatabaseTable<Subscription>;
+      service_orders: DatabaseTable<ServiceOrder>;
+      scheduled_sessions: DatabaseTable<ScheduledSession, ScheduledSessionRelationships>;
+      blog_posts: DatabaseTable<BlogPost>;
+      support_tickets: DatabaseTable<SupportTicket>;
+      join_requests: DatabaseTable<JoinRequest>;
+      support_session_requests: DatabaseTable<SupportSessionRequest>;
+      notifications: DatabaseTable<Notification>;
+      badges: DatabaseTable<Badge>;
+      child_badges: DatabaseTable<ChildBadge>;
+      comparison_items: DatabaseTable<ComparisonItem>;
+      session_messages: DatabaseTable<SessionMessage>;
+      session_attachments: DatabaseTable<SessionAttachment>;
+      [tableName: string]: DatabaseTable<object, DatabaseRelationship[]>;
     };
+    Views: {};
     Functions: {
       current_app_profile_id: {
         Args: Record<string, never>
         Returns: string | null
       };
+      reload_schema_cache: {
+        Args: Record<string, never>
+        Returns: null
+      };
       ensure_clerk_profile: {
-        Args: {
-          p_email: string
-          p_name: string
-        }
+        Args: EnsureClerkProfileArgs
         Returns: UserProfile
       };
       calculate_booking_price: {
-        Args: {
-          p_package_name: string
-          p_instructor_id: number
-        }
+        Args: CalculateBookingPriceArgs
         Returns: number
       };
       is_booking_slot_available_secure: {
-        Args: {
-          p_instructor_id: number
-          p_booking_date: string
-          p_booking_time: string
-        }
+        Args: BookingSlotAvailabilityArgs
         Returns: boolean
       };
       get_booking_availability_secure: {
@@ -779,35 +799,19 @@ export interface Database {
         Returns: BookingAvailability[]
       };
       create_booking_secure: {
-        Args: {
-          p_user_id: string
-          p_child_id: number
-          p_instructor_id: number
-          p_package_name: string
-          p_booking_date: string
-          p_booking_time: string
-          p_receipt_url: string | null
-          p_expected_total: number
-        }
+        Args: CreateBookingArgs
         Returns: BookingCreationResult
       };
       confirm_booking_secure: {
-        Args: {
-          p_booking_id: string
-        }
+        Args: BookingIdArgs
         Returns: BookingConfirmationResult
       };
       update_booking_status_secure: {
-        Args: {
-          p_booking_id: string
-          p_new_status: DatabaseBookingStatus
-        }
+        Args: UpdateBookingStatusArgs
         Returns: BookingStatusUpdateResult
       };
       authorize_session_join_secure: {
-        Args: {
-          p_session_id: string
-        }
+        Args: SessionIdArgs
         Returns: SessionJoinAuthorizationResult
       };
     }

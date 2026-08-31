@@ -14,6 +14,13 @@ import { unstable_cache } from 'next/cache';
 export const ENHA_LAK_REVALIDATE_SECONDS = 300;
 export const ENHA_LAK_CACHE_TAG = 'marketplace:enha-lak';
 
+const isSiteContent = (value: unknown): value is SiteContent =>
+  typeof value === 'object' &&
+  value !== null &&
+  !Array.isArray(value) &&
+  ['portalPage', 'aboutPage', 'enhaLakPage', 'creativeWritingPage', 'supportPage', 'privacyPage', 'termsPage', 'footer']
+    .every((key) => key in value);
+
 const PUBLIC_PRODUCT_COLUMNS = [
   'id',
   'key',
@@ -92,7 +99,7 @@ const readEnhaLakData = async (): Promise<EnhaLakPublicData> => {
   );
 
   return {
-    siteContent: ((settings as { value?: SiteContent } | null)?.value ?? null) as SiteContent | null,
+    siteContent: settings && isSiteContent(settings.value) ? settings.value : null,
     personalizedProducts,
   };
 };

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeApiError } from '../src/errors';
 import { bookingKeys } from '../src/query-keys';
+import { canonicalizeQueryParams } from '../src/query-keys/factory';
 import {
   canonicalToDatabaseStatus,
   databaseToCanonicalStatus,
@@ -16,6 +17,11 @@ describe('api-client contracts', () => {
     expect(bookingKeys.list({ page: 1, search: undefined })).toEqual(
       bookingKeys.list({ page: 1 }),
     );
+    expect(canonicalizeQueryParams({
+      search: 'x',
+      callback: () => undefined,
+      values: ['a', undefined, () => undefined],
+    })).toEqual({ search: 'x', values: ['a'] });
   });
 
   it('maps every verified database booking status in both directions', () => {
@@ -35,6 +41,9 @@ describe('api-client contracts', () => {
     expect(() => toDatabaseBookingStatus('future_status')).toThrowError(
       expect.objectContaining({ code: 'BOOKING_STATUS_CONTRACT_ERROR', type: 'contract' }),
     );
+    expect(() => toDatabaseBookingStatus('مكتمل')).toThrowError(
+      expect.objectContaining({ code: 'BOOKING_STATUS_CONTRACT_ERROR', type: 'contract' }),
+    );
   });
 
   it('preserves backend error semantics', () => {
@@ -52,4 +61,3 @@ describe('api-client contracts', () => {
     expect(error.details).toEqual({ constraint: 'bookings_active_instructor_slot_unique' });
   });
 });
-

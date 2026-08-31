@@ -19,6 +19,18 @@ export interface GetOrdersOptions {
     statusFilter?: string;
 }
 
+const isOrderStatus = (value: string): value is OrderStatus => [
+    'بانتظار الدفع',
+    'بانتظار المراجعة',
+    'قيد التجهيز',
+    'يحتاج مراجعة',
+    'قيد التنفيذ',
+    'تم الشحن',
+    'تم التسليم',
+    'مكتمل',
+    'ملغي',
+].some((status) => status === value);
+
 interface CreateOrderPayload { 
     userId: string; 
     childId: number | null; 
@@ -73,8 +85,10 @@ export const orderService = {
                 query = query.in('status', ['مكتمل', 'تم التسليم']);
             } else if (statusFilter === 'cancelled') {
                 query = query.eq('status', 'ملغي');
-            } else {
+            } else if (isOrderStatus(statusFilter)) {
                 query = query.eq('status', statusFilter);
+            } else {
+                return { orders: [], count: 0 };
             }
         }
 

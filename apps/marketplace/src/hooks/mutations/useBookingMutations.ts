@@ -6,10 +6,10 @@ import {
     createBooking as createBookingResource,
     updateBookingStatus as updateBookingStatusResource,
 } from '@alrehla/api-client/resources/bookings';
+import type { CanonicalBookingStatus } from '@alrehla/api-client/resources/bookings';
 import { useToast } from '../../contexts/ToastContext';
 import { bookingService } from '../../services/bookingService';
 import { apiClient } from '../../lib/supabase/client';
-import type { BookingStatus } from '../../lib/database.types';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const useBookingMutations = () => {
@@ -48,9 +48,9 @@ export const useBookingMutations = () => {
         errorMessage: 'فشل إنشاء الحجز.',
     });
     
-    const updateBookingStatus = useAppMutation<any, { bookingId: string, newStatus: BookingStatus }>({
+    const updateBookingStatus = useAppMutation<any, { bookingId: string, newStatus: CanonicalBookingStatus }>({
         mutationKey: ['bookings', 'update-status'],
-        mutationFn: (payload: { bookingId: string, newStatus: BookingStatus }) => updateBookingStatusResource(apiClient, payload.bookingId, payload.newStatus),
+        mutationFn: (payload: { bookingId: string, newStatus: CanonicalBookingStatus }) => updateBookingStatusResource(apiClient, payload.bookingId, payload.newStatus),
         invalidate: [bookingKeys.lists(), bookingKeys.availability(), bookingKeys.sessions()],
         notifier,
         successMessage: 'تم تحديث حالة الحجز.',

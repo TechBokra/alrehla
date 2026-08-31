@@ -13,4 +13,4 @@ export const createServerApiClient = ({
   accessToken,
   fetch,
 }: ServerApiClientOptions): ApiClient =>
-  createServerSupabaseClient({ accessToken, fetch }) as unknown as ApiClient;
+  createServerSupabaseClient({ accessToken, fetch });

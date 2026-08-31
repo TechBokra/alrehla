@@ -1,16 +1,6 @@
 import type { ApiClient, RequestOptions } from '../../clients';
-import { ApiError, normalizeApiError } from '../../errors';
-import { applyAbortSignal, optionalResult } from '../../shared';
-import type {
-  BookingAvailability,
-  BookingConfirmationResult,
-  BookingCreationResult,
-  ChildProfile,
-  CreativeWritingBooking,
-  Instructor,
-  ScheduledSession,
-  SessionJoinAuthorizationResult,
-} from '@alrehla/types';
+import { normalizeApiError } from '../../errors';
+import { applyAbortSignal } from '../../shared';
 import {
   authorizeSessionJoinSecure,
   calculateBookingPrice,
@@ -21,6 +11,12 @@ import {
   updateBookingStatusSecure,
 } from '../../rpc';
 import type {
+  BookingAvailability,
+  Instructor,
+  ScheduledSession,
+  SessionJoinAuthorizationResult,
+} from '@alrehla/types';
+import type {
   BookingListResult,
   BookingMutationResult,
   BookingRecord,
@@ -29,81 +25,69 @@ import type {
   ListScheduledSessionsParams,
 } from './types';
 import {
+  contractError,
+  normalizeBookingAvailability,
+  normalizeBookingConfirmationResult,
+  normalizeBookingCreationResult,
+  normalizeBookingMutationResult,
+  normalizeBookingPackage,
+  normalizeBookingRecord,
+  normalizeBookingStatusUpdateResult,
+  normalizeInstructor,
+  normalizeScheduledSession,
+  normalizeSessionJoinAuthorizationResult,
+} from './normalize';
+import {
   canonicalToDatabaseStatus,
-  toCanonicalBookingStatus,
   toDatabaseBookingStatus,
   type BookingStatusInput,
 } from './status';
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
-
-const first = <T>(value: T | T[] | null): T | null => (Array.isArray(value) ? value[0] || null : value);
-
-const contractError = (message: string, details?: unknown) =>
-  new ApiError(message, {
-    type: 'contract',
-    code: 'API_CONTRACT_ERROR',
-    details,
-  });
-
-const normalizeDatabaseStatus = (value: unknown) => {
-  const status = toCanonicalBookingStatus(value);
-  return {
-    status,
-    databaseStatus: canonicalToDatabaseStatus[status],
-  };
+const requireIdentifier = (value: unknown, name: string): string => {
+  if (typeof value !== 'string' || !value.trim()) throw contractError(`المعرّف ${name} غير صالح.`, value);
+  return value;
 };
 
-const normalizeBooking = (value: unknown): BookingRecord => {
-  if (!isRecord(value) || typeof value.id !== 'string') {
-    throw contractError('نتيجة الحجز المُرجعة من الخادم غير صالحة.', value);
+const requirePositiveInteger = (value: unknown, name: string): number => {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {
+    throw contractError(`المعرّف ${name} غير صالح.`, value);
   }
-  const normalizedStatus = normalizeDatabaseStatus(value.status);
-  return {
-    ...(value as Omit<CreativeWritingBooking, 'status'>),
-    id: value.id,
-    ...normalizedStatus,
-  } as BookingRecord;
+  return value;
 };
 
-const normalizeMutation = (value: unknown): BookingMutationResult => {
-  const result = first(value as Record<string, unknown> | Record<string, unknown>[] | null);
-  if (!result || typeof result.id !== 'string') {
-    throw contractError('نتيجة عملية الحجز المُرجعة من الخادم غير صالحة.', value);
+const requireNonNegativeNumber = (value: unknown, name: string): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    throw contractError(`القيمة ${name} غير صالحة.`, value);
   }
-  const normalizedStatus = normalizeDatabaseStatus(result.status);
-  return {
-    ...result,
-    id: result.id,
-    ...normalizedStatus,
-  };
+  return value;
 };
 
 const escapeIlike = (value: string) => value.replace(/[\\%,()]/g, (character) => `\\${character}`);
 
-const applyBookingFilters = (query: any, params: ListBookingsParams) => {
-  let next = query;
-  if (params.status && params.status !== 'all') {
-    if (params.status === 'active') {
-      next = next.neq('status', 'ملغي').neq('status', 'مكتمل');
-    } else if (params.status === 'archived') {
-      next = next.or('status.eq.ملغي,status.eq.مكتمل');
-    } else {
-      next = next.eq('status', toDatabaseBookingStatus(params.status));
-    }
+const validateListParams = (params: ListBookingsParams): void => {
+  if (params.instructorId !== undefined) requirePositiveInteger(params.instructorId, 'المدرب');
+  if (params.childProfileId !== undefined) requirePositiveInteger(params.childProfileId, 'الطفل');
+  if (params.userId !== undefined) requireIdentifier(params.userId, 'المستخدم');
+  params.statuses?.forEach((status) => toDatabaseBookingStatus(status));
+};
+
+const validateCreateInput = (input: CreateBookingInput): void => {
+  requireIdentifier(input.userId, 'المستخدم');
+  requirePositiveInteger(input.childProfileId, 'الطفل');
+  requirePositiveInteger(input.instructorId, 'المدرب');
+  if (typeof input.packageName !== 'string' || !input.packageName.trim()) {
+    throw contractError('اسم باقة الحجز غير صالح.', input.packageName);
   }
-  if (params.statuses?.length) {
-    next = next.in('status', params.statuses.map(toDatabaseBookingStatus));
+  if (typeof input.bookingDate !== 'string' || !input.bookingDate.trim()) {
+    throw contractError('تاريخ الحجز غير صالح.', input.bookingDate);
   }
-  if (params.instructorId !== undefined) next = next.eq('instructor_id', params.instructorId);
-  if (params.userId !== undefined) next = next.eq('user_id', params.userId);
-  if (params.childProfileId !== undefined) next = next.eq('child_id', params.childProfileId);
-  if (params.search?.trim()) {
-    const search = escapeIlike(params.search.trim());
-    next = next.or(`id.ilike.%${search}%,package_name.ilike.%${search}%`);
+  if (typeof input.bookingTime !== 'string' || !input.bookingTime.trim()) {
+    throw contractError('وقت الحجز غير صالح.', input.bookingTime);
   }
-  return next;
+  if (input.receiptUrl !== undefined && input.receiptUrl !== null && typeof input.receiptUrl !== 'string') {
+    throw contractError('إيصال الحجز غير صالح.', input.receiptUrl);
+  }
+  requireNonNegativeNumber(input.expectedTotal, 'إجمالي الحجز');
 };
 
 const getBookingSelect =
@@ -120,12 +104,39 @@ export const listBookings = async (
   const to = from + pageSize - 1;
 
   try {
+    validateListParams(params);
     let query = client.from('bookings').select(getBookingSelect, { count: 'exact' });
-    query = applyBookingFilters(query, params).order('created_at', { ascending: false }).range(from, to);
+    if (params.status && params.status !== 'all') {
+      if (params.status === 'active') {
+        query = query
+          .neq('status', canonicalToDatabaseStatus.cancelled)
+          .neq('status', canonicalToDatabaseStatus.completed);
+      } else if (params.status === 'archived') {
+        query = query.or(
+          `status.eq.${canonicalToDatabaseStatus.cancelled},status.eq.${canonicalToDatabaseStatus.completed}`,
+        );
+      } else {
+        query = query.eq('status', toDatabaseBookingStatus(params.status));
+      }
+    }
+    if (params.statuses?.length) {
+      query = query.in('status', params.statuses.map(toDatabaseBookingStatus));
+    }
+    if (params.instructorId !== undefined) query = query.eq('instructor_id', params.instructorId);
+    if (params.userId !== undefined) query = query.eq('user_id', params.userId);
+    if (params.childProfileId !== undefined) query = query.eq('child_id', params.childProfileId);
+    if (params.search?.trim()) {
+      const search = escapeIlike(params.search.trim());
+      query = query.or(`id.ilike.%${search}%,package_name.ilike.%${search}%`);
+    }
+    query = query.order('created_at', { ascending: false }).range(from, to);
     const result = await applyAbortSignal(query, options.signal);
     if (result.error) throw result.error;
+    if (!Array.isArray(result.data)) {
+      throw contractError('قائمة الحجوزات المُرجعة من الخادم غير صالحة.', result.data);
+    }
     return {
-      rows: ((result.data || []) as unknown[]).map(normalizeBooking),
+      rows: result.data.map(normalizeBookingRecord),
       total: result.count ?? 0,
     };
   } catch (error) {
@@ -138,11 +149,12 @@ export const getBooking = async (
   bookingId: string,
   options: RequestOptions = {},
 ): Promise<BookingRecord | null> => {
+  const normalizedBookingId = requireIdentifier(bookingId, 'الحجز');
   try {
-    const query = client.from('bookings').select(getBookingSelect).eq('id', bookingId).maybeSingle();
+    const query = client.from('bookings').select(getBookingSelect).eq('id', normalizedBookingId).maybeSingle();
     const result = await applyAbortSignal(query, options.signal);
     if (result.error) throw result.error;
-    return result.data ? normalizeBooking(result.data) : null;
+    return result.data ? normalizeBookingRecord(result.data) : null;
   } catch (error) {
     throw normalizeApiError(error, 'تعذر قراءة الحجز.');
   }
@@ -153,9 +165,10 @@ export const createBooking = async (
   input: CreateBookingInput,
   options: RequestOptions = {},
 ): Promise<BookingMutationResult> => {
+  validateCreateInput(input);
   try {
     const result = await createBookingSecure(client, input, options);
-    return normalizeMutation(result as BookingCreationResult);
+    return normalizeBookingMutationResult(normalizeBookingCreationResult(result));
   } catch (error) {
     throw normalizeApiError(error, 'تعذر إنشاء الحجز.');
   }
@@ -166,13 +179,19 @@ export const quoteBooking = async (
   packageName: string,
   instructorId: number,
   options: RequestOptions = {},
-) => calculateBookingPrice(client, { packageName, instructorId }, options);
+): Promise<number> => {
+  if (typeof packageName !== 'string' || !packageName.trim()) {
+    throw contractError('اسم باقة التسعير غير صالح.', packageName);
+  }
+  requirePositiveInteger(instructorId, 'المدرب');
+  return calculateBookingPrice(client, { packageName, instructorId }, options);
+};
 
 export const getBookingAvailability = async (
   client: ApiClient,
   options: RequestOptions = {},
 ): Promise<{ bookings: BookingAvailability[] }> => ({
-  bookings: await getBookingAvailabilitySecure(client, options),
+  bookings: normalizeBookingAvailability(await getBookingAvailabilitySecure(client, options)),
 });
 
 export const checkBookingSlotAvailability = async (
@@ -181,15 +200,23 @@ export const checkBookingSlotAvailability = async (
   bookingDate: string,
   bookingTime: string,
   options: RequestOptions = {},
-) => isBookingSlotAvailableSecure(client, { instructorId, bookingDate, bookingTime }, options);
+): Promise<boolean> => {
+  requirePositiveInteger(instructorId, 'المدرب');
+  if (typeof bookingDate !== 'string' || !bookingDate.trim()) throw contractError('تاريخ الموعد غير صالح.', bookingDate);
+  if (typeof bookingTime !== 'string' || !bookingTime.trim()) throw contractError('وقت الموعد غير صالح.', bookingTime);
+  return isBookingSlotAvailableSecure(client, { instructorId, bookingDate, bookingTime }, options);
+};
 
 export const confirmBooking = async (
   client: ApiClient,
   bookingId: string,
   options: RequestOptions = {},
 ): Promise<BookingMutationResult> => {
+  const normalizedBookingId = requireIdentifier(bookingId, 'الحجز');
   try {
-    return normalizeMutation(await confirmBookingSecure(client, bookingId, options) as BookingConfirmationResult);
+    return normalizeBookingMutationResult(
+      normalizeBookingConfirmationResult(await confirmBookingSecure(client, normalizedBookingId, options)),
+    );
   } catch (error) {
     throw normalizeApiError(error, 'تعذر تأكيد الحجز.');
   }
@@ -201,14 +228,15 @@ export const updateBookingStatus = async (
   status: BookingStatusInput,
   options: RequestOptions = {},
 ): Promise<BookingMutationResult> => {
-  const databaseStatus = toDatabaseBookingStatus(status);
-  if (databaseStatus === canonicalToDatabaseStatus.confirmed) {
-    return confirmBooking(client, bookingId, options);
-  }
+  const normalizedBookingId = requireIdentifier(bookingId, 'الحجز');
+  toDatabaseBookingStatus(status);
+  if (status === 'confirmed') return confirmBooking(client, normalizedBookingId, options);
 
   try {
-    return normalizeMutation(
-      await updateBookingStatusSecure(client, { bookingId, databaseStatus }, options) as unknown as Record<string, unknown>,
+    return normalizeBookingMutationResult(
+      normalizeBookingStatusUpdateResult(
+        await updateBookingStatusSecure(client, { bookingId: normalizedBookingId, status }, options),
+      ),
     );
   } catch (error) {
     throw normalizeApiError(error, 'تعذر تحديث حالة الحجز.');
@@ -220,6 +248,12 @@ export const listScheduledSessions = async (
   params: ListScheduledSessionsParams = {},
   options: RequestOptions = {},
 ): Promise<ScheduledSession[]> => {
+  if (params.sessionId) requireIdentifier(params.sessionId, 'الجلسة');
+  if (params.bookingId) requireIdentifier(params.bookingId, 'الحجز');
+  params.bookingIds?.forEach((bookingId) => requireIdentifier(bookingId, 'الحجز'));
+  if (params.childProfileId !== undefined) requirePositiveInteger(params.childProfileId, 'الطفل');
+  if (params.instructorId !== undefined) requirePositiveInteger(params.instructorId, 'المدرب');
+
   try {
     let query = client.from('scheduled_sessions').select('*, instructors(name), child_profiles(name)');
     if (params.sessionId) query = query.eq('id', params.sessionId);
@@ -230,7 +264,10 @@ export const listScheduledSessions = async (
     query = query.order('session_date', { ascending: true });
     const result = await applyAbortSignal(query, options.signal);
     if (result.error) throw result.error;
-    return (result.data || []) as ScheduledSession[];
+    if (!Array.isArray(result.data)) {
+      throw contractError('قائمة الجلسات المجدولة المُرجعة من الخادم غير صالحة.', result.data);
+    }
+    return result.data.map(normalizeScheduledSession);
   } catch (error) {
     throw normalizeApiError(error, 'تعذر تحميل الجلسات المجدولة.');
   }
@@ -241,8 +278,11 @@ export const authorizeSessionJoin = async (
   sessionId: string,
   options: RequestOptions = {},
 ): Promise<SessionJoinAuthorizationResult> => {
+  const normalizedSessionId = requireIdentifier(sessionId, 'الجلسة');
   try {
-    return await authorizeSessionJoinSecure(client, sessionId, options);
+    return normalizeSessionJoinAuthorizationResult(
+      await authorizeSessionJoinSecure(client, normalizedSessionId, options),
+    );
   } catch (error) {
     throw normalizeApiError(error, 'تعذر التحقق من صلاحية دخول الجلسة.');
   }
@@ -253,12 +293,17 @@ export const getBookingInstructor = async (
   instructorId: number,
   options: RequestOptions = {},
 ): Promise<Instructor | null> => {
-  const result = await applyAbortSignal(
-    client.from('instructors').select('*').eq('id', instructorId).is('deleted_at', null).maybeSingle(),
-    options.signal,
-  );
-  if (result.error) throw normalizeApiError(result.error, 'تعذر قراءة المدرب.');
-  return (result.data || null) as Instructor | null;
+  requirePositiveInteger(instructorId, 'المدرب');
+  try {
+    const result = await applyAbortSignal(
+      client.from('instructors').select('*').eq('id', instructorId).is('deleted_at', null).maybeSingle(),
+      options.signal,
+    );
+    if (result.error) throw result.error;
+    return normalizeInstructor(result.data);
+  } catch (error) {
+    throw normalizeApiError(error, 'تعذر قراءة المدرب.');
+  }
 };
 
 export const getBookingPackage = async (
@@ -266,10 +311,23 @@ export const getBookingPackage = async (
   packageName: string,
   options: RequestOptions = {},
 ): Promise<{ name: string } | null> => {
-  const result = await applyAbortSignal(
-    client.from('creative_writing_packages').select('name').eq('name', packageName).eq('is_active', true).is('deleted_at', null).maybeSingle(),
-    options.signal,
-  );
-  if (result.error) throw normalizeApiError(result.error, 'تعذر قراءة باقة الكتابة.');
-  return result.data as { name: string } | null;
+  if (typeof packageName !== 'string' || !packageName.trim()) {
+    throw contractError('اسم الباقة غير صالح.', packageName);
+  }
+  try {
+    const result = await applyAbortSignal(
+      client
+        .from('creative_writing_packages')
+        .select('name')
+        .eq('name', packageName)
+        .eq('is_active', true)
+        .is('deleted_at', null)
+        .maybeSingle(),
+      options.signal,
+    );
+    if (result.error) throw result.error;
+    return normalizeBookingPackage(result.data);
+  } catch (error) {
+    throw normalizeApiError(error, 'تعذر قراءة باقة الكتابة.');
+  }
 };

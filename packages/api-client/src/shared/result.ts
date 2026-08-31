@@ -30,14 +30,13 @@ export const optionalResult = <T>(
 };
 
 export const applyAbortSignal = async <T>(
-  request: PromiseLike<T>,
+  request: PromiseLike<T> & {
+    abortSignal?: (requestSignal: AbortSignal) => PromiseLike<T>;
+  },
   signal?: AbortSignal,
 ): Promise<T> => {
-  const abortable = request as PromiseLike<T> & {
-    abortSignal?: (requestSignal: AbortSignal) => PromiseLike<T>;
-  };
-  const executable = signal && abortable.abortSignal
-    ? abortable.abortSignal(signal)
+  const executable = signal && request.abortSignal
+    ? request.abortSignal(signal)
     : request;
   return await executable;
 };

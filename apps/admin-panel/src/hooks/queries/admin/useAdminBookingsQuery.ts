@@ -1,14 +1,16 @@
 
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { bookingKeys } from '@alrehla/api-client/query-keys';
-import { listBookings, type BookingStatusInput } from '@alrehla/api-client/resources/bookings';
+import { listBookings } from '@alrehla/api-client/resources/bookings';
 import { apiClient } from '../../../lib/supabaseClient';
+
+type AdminBookingStatusFilter = 'all' | 'active' | 'archived';
 
 interface UseAdminBookingsOptions {
     page?: number;
     pageSize?: number;
     search?: string;
-    statusFilter?: string;
+    statusFilter?: AdminBookingStatusFilter;
 }
 
 export const useAdminRawCwBookings = (options: UseAdminBookingsOptions = {}) => useQuery({
@@ -18,7 +20,7 @@ export const useAdminRawCwBookings = (options: UseAdminBookingsOptions = {}) => 
             page: options.page,
             pageSize: options.pageSize,
             search: options.search,
-            status: options.statusFilter as BookingStatusInput | 'all' | 'active' | 'archived' | undefined,
+            status: options.statusFilter,
         });
         return {
             bookings: result.rows.map(booking => ({ ...booking, status: booking.databaseStatus })),

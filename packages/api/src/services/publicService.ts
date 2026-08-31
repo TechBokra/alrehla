@@ -116,9 +116,10 @@ export const publicService = {
             .is('deleted_at', null)
             .eq('is_active', true)
             .eq('approval_status', 'approved')
-            .order('sort_order');
+            .order('sort_order')
+            .overrideTypes<PersonalizedProduct[]>();
         
-        return (data as PersonalizedProduct[] || [])
+        return (data || [])
             .map(p => ({
                 ...p,
                 publisher: p.publisher ? p.publisher : { name: 'الرحلة' }
@@ -141,8 +142,8 @@ export const publicService = {
             { data: services },
             { data: settings }
         ] = await Promise.all([
-            supabase.from('instructors').select(PUBLIC_INSTRUCTOR_COLUMNS).is('deleted_at', null),
-            supabase.from('creative_writing_packages').select(PUBLIC_PACKAGE_COLUMNS),
+            supabase.from('instructors').select(PUBLIC_INSTRUCTOR_COLUMNS).is('deleted_at', null).overrideTypes<Instructor[]>(),
+            supabase.from('creative_writing_packages').select(PUBLIC_PACKAGE_COLUMNS).overrideTypes<CreativeWritingPackage[]>(),
             supabase.from('standalone_services').select(PUBLIC_SERVICE_COLUMNS),
             supabase.from('public_settings').select('key,value')
         ]);
@@ -247,12 +248,14 @@ export const publicService = {
                 .from('instructors')
                 .select(PUBLIC_INSTRUCTOR_COLUMNS)
                 .is('deleted_at', null)
+                .overrideTypes<Instructor[]>()
                 .then(r => r.data || []),
             this.getBlogPosts(),
             this.getPersonalizedProducts(),
             supabase
                 .from('creative_writing_packages')
                 .select(PUBLIC_PACKAGE_COLUMNS)
+                .overrideTypes<CreativeWritingPackage[]>()
                 .then(r => r.data || []),
             this.getSubscriptionPlans(),
             supabase
@@ -283,11 +286,11 @@ export const publicService = {
         const displayPublishers = (publishers && publishers.length > 0) ? (publishers as PublisherProfile[]) : [];
 
         return {
-            instructors: instructors as Instructor[],
+            instructors,
             publishers: displayPublishers,
             blogPosts,
             personalizedProducts,
-            creativeWritingPackages: packages as CreativeWritingPackage[],
+            creativeWritingPackages: packages,
             subscriptionPlans: plans,
             standaloneServices: services as StandaloneService[],
             badges: badges as any[],

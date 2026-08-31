@@ -3,12 +3,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppMutation } from '@alrehla/mutations';
 import { bookingKeys, sessionKeys } from '@alrehla/api-client/query-keys';
 import {
-    createBooking as createBookingResource,
-    updateBookingStatus as updateBookingStatusResource,
+  createBooking as createBookingResource,
+  updateBookingStatus as updateBookingStatusResource,
 } from '@alrehla/api-client/resources/bookings';
+import type { CanonicalBookingStatus } from '@alrehla/api-client/resources/bookings';
 import { useToast } from '../../contexts/ToastContext';
 import { bookingService } from '../../services/bookingService';
-import type { BookingStatus } from '../../lib/database.types';
 import { apiClient } from '../../lib/supabaseClient';
 
 export const useBookingMutations = () => {
@@ -37,7 +37,7 @@ export const useBookingMutations = () => {
         errorMessage: 'فشل إنشاء الحجز.',
     });
     
-    const updateBookingStatus = useAppMutation<any, { bookingId: string, newStatus: BookingStatus }>({
+    const updateBookingStatus = useAppMutation<any, { bookingId: string, newStatus: CanonicalBookingStatus }>({
         mutationKey: ['bookings', 'update-status'],
         mutationFn: (payload) => updateBookingStatusResource(apiClient, payload.bookingId, payload.newStatus),
         invalidate: [bookingKeys.lists(), bookingKeys.availability(), bookingKeys.sessions()],
