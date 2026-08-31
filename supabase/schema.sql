@@ -190,11 +190,13 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
   start_date TIMESTAMPTZ,
   end_date TIMESTAMPTZ,
   next_renewal_date TIMESTAMPTZ,
-  status TEXT DEFAULT 'pending_payment',
+  status TEXT DEFAULT 'pending_payment'
+    CHECK (status IN ('pending_payment', 'pending_review', 'active', 'paused', 'cancelled')),
   total NUMERIC(10, 2),
   shipping_cost NUMERIC(10, 2) DEFAULT 0,
   shipping_address JSONB DEFAULT '{}'::jsonb,
   details JSONB DEFAULT '{}'::jsonb,
+  receipt_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -1139,7 +1141,7 @@ CREATE OR REPLACE FUNCTION public.create_order_secure(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_order_id TEXT;
@@ -1155,6 +1157,7 @@ DECLARE
   v_product_key TEXT;
   v_service_id BIGINT;
   v_assigned_instructor_id BIGINT;
+  v_plan_id BIGINT;
   v_plan_price NUMERIC(10, 2);
   v_plan_duration INTEGER;
   v_subscription_id UUID;
@@ -1185,7 +1188,7 @@ BEGIN
     v_summary := v_summary || COALESCE(v_item->>'summary', v_product_key, v_item->>'planName', 'طلب');
 
     IF v_item->>'type' = 'subscription' THEN
-      SELECT price, duration_months INTO v_plan_price, v_plan_duration
+      SELECT id, price, duration_months INTO v_plan_id, v_plan_price, v_plan_duration
       FROM public.subscription_plans
       WHERE name = COALESCE(v_item->>'planName', v_item->'details'->>'planName')
         AND deleted_at IS NULL;
@@ -1195,20 +1198,30 @@ BEGIN
       END IF;
 
       v_total := v_total + v_plan_price;
-      v_subscription_id := COALESCE(NULLIF(v_item->'details'->>'subscriptionId', '')::uuid, gen_random_uuid());
+      v_subscription_id := COALESCE(NULLIF(v_item->'details'->>'subscriptionId', '')::uuid, public.gen_random_uuid());
 
-      INSERT INTO public.subscriptions (id, user_id, child_id, plan_name, status, start_date, end_date, next_renewal_date)
+      INSERT INTO public.subscriptions (id, user_id, child_id, plan_id, plan_name, status, total, start_date, end_date, next_renewal_date)
       VALUES (
         v_subscription_id,
         p_user_id,
         p_child_id,
+        v_plan_id,
         COALESCE(v_item->>'planName', v_item->'details'->>'planName'),
         'pending_payment',
+        v_plan_price,
         NOW(),
         NOW() + make_interval(months => COALESCE(v_plan_duration, 1)),
         NOW() + INTERVAL '1 month'
       )
-      ON CONFLICT (id) DO UPDATE SET status = 'pending_payment', updated_at = NOW();
+      ON CONFLICT (id) DO UPDATE
+      SET plan_id = EXCLUDED.plan_id,
+          plan_name = EXCLUDED.plan_name,
+          status = 'pending_payment',
+          total = EXCLUDED.total,
+          start_date = EXCLUDED.start_date,
+          end_date = EXCLUDED.end_date,
+          next_renewal_date = EXCLUDED.next_renewal_date,
+          updated_at = NOW();
 
       v_details := v_details || jsonb_build_object('subscriptionId', v_subscription_id);
     ELSE
@@ -1919,7 +1932,7 @@ CREATE OR REPLACE FUNCTION public.create_order_secure(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_order_id TEXT;
@@ -1936,6 +1949,7 @@ DECLARE
   v_addon_key TEXT;
   v_service_id BIGINT;
   v_assigned_instructor_id BIGINT;
+  v_plan_id BIGINT;
   v_plan_price NUMERIC(10, 2);
   v_plan_duration INTEGER;
   v_subscription_id UUID;
@@ -1974,7 +1988,7 @@ BEGIN
     v_summary := v_summary || COALESCE(v_item->>'summary', v_product_key, v_item->>'planName', 'طلب');
 
     IF v_item->>'type' = 'subscription' THEN
-      SELECT price, duration_months INTO v_plan_price, v_plan_duration
+      SELECT id, price, duration_months INTO v_plan_id, v_plan_price, v_plan_duration
       FROM public.subscription_plans
       WHERE name = COALESCE(v_item->>'planName', v_item->'details'->>'planName')
         AND is_active = TRUE
@@ -2016,20 +2030,30 @@ BEGIN
         v_total := v_total + v_price;
       END LOOP;
 
-      v_subscription_id := COALESCE(NULLIF(v_item->'details'->>'subscriptionId', '')::uuid, gen_random_uuid());
+      v_subscription_id := COALESCE(NULLIF(v_item->'details'->>'subscriptionId', '')::uuid, public.gen_random_uuid());
 
-      INSERT INTO public.subscriptions (id, user_id, child_id, plan_name, status, start_date, end_date, next_renewal_date)
+      INSERT INTO public.subscriptions (id, user_id, child_id, plan_id, plan_name, status, total, start_date, end_date, next_renewal_date)
       VALUES (
         v_subscription_id,
         p_user_id,
         p_child_id,
+        v_plan_id,
         COALESCE(v_item->>'planName', v_item->'details'->>'planName'),
         'pending_payment',
+        v_plan_price,
         NOW(),
         NOW() + make_interval(months => COALESCE(v_plan_duration, 1)),
         NOW() + INTERVAL '1 month'
       )
-      ON CONFLICT (id) DO UPDATE SET status = 'pending_payment', updated_at = NOW();
+      ON CONFLICT (id) DO UPDATE
+      SET plan_id = EXCLUDED.plan_id,
+          plan_name = EXCLUDED.plan_name,
+          status = 'pending_payment',
+          total = EXCLUDED.total,
+          start_date = EXCLUDED.start_date,
+          end_date = EXCLUDED.end_date,
+          next_renewal_date = EXCLUDED.next_renewal_date,
+          updated_at = NOW();
 
       v_details := v_details || jsonb_build_object('subscriptionId', v_subscription_id);
     ELSE
@@ -2171,6 +2195,8 @@ $$;
 ALTER TABLE public.subscriptions
   ADD COLUMN IF NOT EXISTS receipt_url TEXT;
 
+-- The dedicated and checkout creation entrypoints remain temporarily for
+-- compatibility; their future consolidation is deferred to Phase 2C.
 CREATE OR REPLACE FUNCTION public.create_subscription_secure(
   p_user_id UUID,
   p_child_id BIGINT,
@@ -2179,7 +2205,7 @@ CREATE OR REPLACE FUNCTION public.create_subscription_secure(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_plan public.subscription_plans;
@@ -2240,6 +2266,7 @@ BEGIN
     'id', v_subscription.id,
     'user_id', v_subscription.user_id,
     'child_id', v_subscription.child_id,
+    'plan_id', v_subscription.plan_id,
     'plan_name', v_subscription.plan_name,
     'status', v_subscription.status,
     'total', v_subscription.total,
@@ -2251,6 +2278,8 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS public.update_subscription_status_secure(UUID, TEXT);
+
 CREATE OR REPLACE FUNCTION public.update_subscription_status_secure(
   p_subscription_id UUID,
   p_action TEXT
@@ -2258,12 +2287,16 @@ CREATE OR REPLACE FUNCTION public.update_subscription_status_secure(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_subscription public.subscriptions;
   v_next_status TEXT;
 BEGIN
+  IF public.current_app_profile_id() IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
   SELECT * INTO v_subscription
   FROM public.subscriptions
   WHERE id = p_subscription_id
@@ -2303,8 +2336,10 @@ BEGIN
   RETURN jsonb_build_object(
     'id', v_subscription.id,
     'user_id', v_subscription.user_id,
+    'plan_id', v_subscription.plan_id,
     'plan_name', v_subscription.plan_name,
     'status', v_subscription.status,
+    'total', v_subscription.total,
     'receipt_url', v_subscription.receipt_url
   );
 END;
@@ -2317,12 +2352,16 @@ CREATE OR REPLACE FUNCTION public.submit_subscription_receipt(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_subscription public.subscriptions;
   v_receipt TEXT := NULLIF(trim(p_receipt_url), '');
 BEGIN
+  IF public.current_app_profile_id() IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
   IF v_receipt IS NULL OR length(v_receipt) > 5000 THEN
     RAISE EXCEPTION 'Invalid receipt URL';
   END IF;
@@ -2349,15 +2388,25 @@ BEGIN
   RETURN jsonb_build_object(
     'id', v_subscription.id,
     'user_id', v_subscription.user_id,
+    'plan_id', v_subscription.plan_id,
+    'plan_name', v_subscription.plan_name,
     'status', v_subscription.status,
+    'total', v_subscription.total,
     'receipt_url', v_subscription.receipt_url
   );
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.create_order_secure(UUID, BIGINT, JSONB, TEXT, JSONB) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.create_order_secure(UUID, BIGINT, JSONB, TEXT, JSONB) FROM anon;
+GRANT EXECUTE ON FUNCTION public.create_order_secure(UUID, BIGINT, JSONB, TEXT, JSONB) TO authenticated;
+
 REVOKE ALL ON FUNCTION public.create_subscription_secure(UUID, BIGINT, TEXT) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.create_subscription_secure(UUID, BIGINT, TEXT) FROM anon;
 REVOKE ALL ON FUNCTION public.update_subscription_status_secure(UUID, TEXT) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.update_subscription_status_secure(UUID, TEXT) FROM anon;
 REVOKE ALL ON FUNCTION public.submit_subscription_receipt(UUID, TEXT) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.submit_subscription_receipt(UUID, TEXT) FROM anon;
 GRANT EXECUTE ON FUNCTION public.create_subscription_secure(UUID, BIGINT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.update_subscription_status_secure(UUID, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.submit_subscription_receipt(UUID, TEXT) TO authenticated;

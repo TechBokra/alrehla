@@ -347,16 +347,60 @@ export interface Subscription {
     id: string;
     user_id: string;
     child_id: number;
+    plan_id: number | null;
     plan_name: string;
     start_date: string;
     end_date: string;
     next_renewal_date?: string;
     status: 'active' | 'paused' | 'cancelled' | 'pending_payment' | 'pending_review';
+    total: number | null;
+    shipping_cost?: number | null;
+    shipping_address?: Json;
+    details?: Json;
     receipt_url: string | null;
+    created_at?: string;
+    updated_at?: string;
     
     // Virtuals
     user_name?: string;
     child_name?: string;
+}
+
+export type SubscriptionStatus = Subscription['status'];
+export type SubscriptionAction = 'pause' | 'reactivate' | 'cancel';
+
+export interface SubscriptionCreationResult {
+    id: string;
+    user_id: string;
+    child_id: number;
+    plan_id: number;
+    plan_name: string;
+    status: 'pending_payment';
+    total: number;
+    start_date: string;
+    end_date: string;
+    next_renewal_date: string;
+    receipt_url: string | null;
+}
+
+export interface SubscriptionStatusUpdateResult {
+    id: string;
+    user_id: string;
+    plan_id: number | null;
+    plan_name: string | null;
+    status: SubscriptionStatus;
+    total: number | null;
+    receipt_url: string | null;
+}
+
+export interface SubscriptionReceiptSubmissionResult {
+    id: string;
+    user_id: string;
+    plan_id: number | null;
+    plan_name: string | null;
+    status: SubscriptionStatus;
+    total: number | null;
+    receipt_url: string;
 }
 
 export interface ServiceOrder {
@@ -737,6 +781,22 @@ type SessionIdArgs = {
   p_session_id: string
 }
 
+type CreateSubscriptionArgs = {
+  p_user_id: string
+  p_child_id: number
+  p_plan_name: string
+}
+
+type UpdateSubscriptionStatusArgs = {
+  p_subscription_id: string
+  p_action: SubscriptionAction
+}
+
+type SubmitSubscriptionReceiptArgs = {
+  p_subscription_id: string
+  p_receipt_url: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -813,6 +873,18 @@ export interface Database {
       authorize_session_join_secure: {
         Args: SessionIdArgs
         Returns: SessionJoinAuthorizationResult
+      };
+      create_subscription_secure: {
+        Args: CreateSubscriptionArgs
+        Returns: SubscriptionCreationResult
+      };
+      update_subscription_status_secure: {
+        Args: UpdateSubscriptionStatusArgs
+        Returns: SubscriptionStatusUpdateResult
+      };
+      submit_subscription_receipt: {
+        Args: SubmitSubscriptionReceiptArgs
+        Returns: SubscriptionReceiptSubmissionResult
       };
     }
   }
