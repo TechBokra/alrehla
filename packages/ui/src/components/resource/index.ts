@@ -12,3 +12,4 @@ export * from './resource-density-menu';
 export * from './resource-delete-dialog';
 export * from './resource-form-host';
 export * from './resource-preview';
+export * from './resource-sortable-header';

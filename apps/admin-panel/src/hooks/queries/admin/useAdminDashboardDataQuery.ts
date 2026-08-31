@@ -3,6 +3,8 @@ import { useQueries } from '@tanstack/react-query';
 import { listBookings, listScheduledSessions } from '@alrehla/api-client/resources/bookings';
 import { apiClient, supabase } from '../../../lib/supabaseClient';
 import { publicService } from '../../../services/publicService';
+import { scopeResourceKey } from '@alrehla/admin-core/resource';
+import { adminDashboardKeys } from './keys';
 
 const queries = [
     { 
@@ -60,7 +62,7 @@ const queries = [
 export const useAdminDashboardData = () => {
     const results = useQueries({
         queries: queries.map(q => ({
-            queryKey: ['adminDashboard', q.key],
+            queryKey: scopeResourceKey('global', adminDashboardKeys.entry(q.key)),
             queryFn: q.fn,
         })),
     });

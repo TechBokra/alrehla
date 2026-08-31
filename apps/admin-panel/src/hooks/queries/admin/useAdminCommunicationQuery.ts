@@ -6,14 +6,17 @@ import { userService } from '../../../services/userService';
 import { bookingService } from '../../../services/bookingService';
 import { supabase } from '../../../lib/supabaseClient';
 import type { ServiceOrderWithRelations } from '../../../lib/database.types';
+import { scopeResourceKey } from '@alrehla/admin-core/resource';
+import { supportKeys } from '../../../features/support/api/queries';
+import { joinRequestKeys } from '../../../features/join-requests/api/queries';
 
 export const useAdminSupportTickets = () => useQuery({
-    queryKey: ['adminSupportTickets'],
+    queryKey: scopeResourceKey('global', supportKeys.all),
     queryFn: () => communicationService.getAllSupportTickets(),
 });
 
 export const useAdminJoinRequests = () => useQuery({
-    queryKey: ['adminJoinRequests'],
+    queryKey: scopeResourceKey('global', joinRequestKeys.all),
     queryFn: () => communicationService.getAllJoinRequests(),
 });
 

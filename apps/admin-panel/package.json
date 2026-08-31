@@ -9,7 +9,8 @@
     "start": "next start -p 3001",
     "preview": "next start -p 3001",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "@alrehla/api": "workspace:*",
@@ -47,6 +48,7 @@
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
     "typescript": "^5.5.3",
+    "vitest": "^3.2.7",
     "@types/node": "26.1.0"
   }
 }

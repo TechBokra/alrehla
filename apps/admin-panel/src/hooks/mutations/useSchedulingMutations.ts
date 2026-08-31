@@ -1,5 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../contexts/ToastContext';
+import { scopeResourceKey } from '@alrehla/admin-core/resource';
+import { adminDashboardKeys } from '../queries/admin/keys';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -16,7 +18,7 @@ export const useSchedulingMutations = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['adminScheduledSessions'] });
-            queryClient.invalidateQueries({ queryKey: ['adminDashboard', 'scheduledSessions'] }); // for dashboard widget
+            queryClient.invalidateQueries({ queryKey: scopeResourceKey('global', adminDashboardKeys.entry('scheduledSessions')) }); // for dashboard widget
             addToast('تم جدولة الجلسات بنجاح.', 'success');
         },
         onError: (err: Error) => {
