@@ -1,6 +1,6 @@
 'use client';
 
-import PageComponent from '@/page-views/admin/AdminUsersPage';
+import PageComponent from '@/features/users';
 import PermissionGate from '@/components/auth/PermissionGate';
 
 export default function RoutePage() {

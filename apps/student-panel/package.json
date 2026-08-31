@@ -13,6 +13,9 @@
   },
   "dependencies": {
     "@alrehla/api": "workspace:*",
+    "@alrehla/api-client": "workspace:*",
+    "@alrehla/mutations": "workspace:*",
+    "@alrehla/supabase": "workspace:*",
     "@alrehla/auth": "workspace:*",
     "@alrehla/config": "workspace:*",
     "@alrehla/types": "workspace:*",

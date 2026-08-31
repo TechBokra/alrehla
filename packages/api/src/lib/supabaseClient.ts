@@ -1,5 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@alrehla/types";
+import { createPublicSupabaseClient } from '@alrehla/supabase/public';
 import {
   captureSupabaseError,
   shouldIgnoreError,
@@ -243,21 +242,11 @@ const monitoredSupabaseFetch = async (
   );
 };
 
-export const supabase = createClient<Database>(
-  EFFECTIVE_SUPABASE_URL,
-  EFFECTIVE_SUPABASE_PUBLISHABLE_KEY,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-    global: {
-      fetch: monitoredSupabaseFetch,
-    },
-    accessToken: getRequestAccessToken,
-  },
-);
+export const supabase = createPublicSupabaseClient({
+  allowMissingCredentials: true,
+  accessToken: getRequestAccessToken,
+  fetch: monitoredSupabaseFetch,
+});
 
 export const getCurrentAppProfileId = async (): Promise<string | null> => {
   try {

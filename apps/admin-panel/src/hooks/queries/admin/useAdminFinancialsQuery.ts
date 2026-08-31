@@ -1,17 +1,19 @@
 
 import { useQuery } from '@tanstack/react-query';
+import { bookingKeys } from '@alrehla/api-client/query-keys';
+import { listBookings } from '@alrehla/api-client/resources/bookings';
 import { orderService } from '../../../services/orderService';
 import { bookingService } from '../../../services/bookingService';
-import { supabase } from '../../../lib/supabaseClient';
+import { apiClient, supabase } from '../../../lib/supabaseClient';
 
 export const useAdminFinancialsQuery = () => {
     return useQuery({
-        queryKey: ['adminFinancials'],
+        queryKey: [...bookingKeys.lists(), 'financials'],
         queryFn: async () => {
             // Fetch real data directly
             const [orders, bookings, subscriptions, serviceOrders, instructors, packagesResult, servicesResult] = await Promise.all([
                 orderService.getAllOrders(),
-                bookingService.getAllBookings(),
+                listBookings(apiClient, { pageSize: 100 }),
                 orderService.getAllSubscriptions(),
                 orderService.getAllServiceOrders(),
                 bookingService.getAllInstructors(),
@@ -27,7 +29,10 @@ export const useAdminFinancialsQuery = () => {
 
             return { 
                 orders, 
-                bookings, 
+                bookings: {
+                    bookings: bookings.rows.map(booking => ({ ...booking, status: booking.databaseStatus })),
+                    count: bookings.total || 0,
+                },
                 subscriptions, 
                 payouts: payouts || [], 
                 instructors, 

@@ -34,6 +34,12 @@ export interface UserProfile {
     created_at: string;
 }
 
+/** Safe read model exposed by the public_profiles view. */
+export interface PublicProfile {
+    id: string;
+    name: string;
+}
+
 export interface ChildProfile {
     id: number;
     user_id: string; // Parent ID
@@ -231,6 +237,54 @@ export interface OrderWithRelations extends Order {
 }
 
 export type BookingStatus = "بانتظار الدفع" | "مؤكد" | "مكتمل" | "ملغي" | "بانتظار المراجعة";
+
+/** Values persisted by the current Booking database/RPC contract. */
+export type DatabaseBookingStatus = BookingStatus;
+
+export interface BookingAvailability {
+    instructor_id: number;
+    booking_date: string;
+    booking_time: string;
+    status: 'reserved' | string;
+}
+
+export interface BookingCreationResult {
+    id: string;
+    user_id: string;
+    child_id: number;
+    instructor_id: number;
+    package_name: string;
+    booking_date: string;
+    booking_time: string;
+    total: number;
+    status: DatabaseBookingStatus;
+    receipt_url: string | null;
+    created_at: string;
+}
+
+export interface BookingConfirmationResult {
+    id: string;
+    status: DatabaseBookingStatus;
+    session_count: number;
+    idempotent: boolean;
+}
+
+export interface BookingStatusUpdateResult {
+    id: string;
+    status: DatabaseBookingStatus;
+    released_future_sessions: number;
+}
+
+export interface SessionJoinAuthorizationResult {
+    allowed: boolean;
+    reason: 'allowed' | 'too_early' | 'expired' | 'booking_inactive' | 'session_closed';
+    session_id: string;
+    session_date: string;
+    join_allowed_at: string;
+    join_expires_at: string;
+    domain: string | null;
+    room_name: string | null;
+}
 
 export interface CreativeWritingBooking {
     id: string;
@@ -552,6 +606,11 @@ export interface Database {
         Insert: Partial<UserProfile>
         Update: Partial<UserProfile>
       };
+      public_profiles: {
+        Row: PublicProfile
+        Insert: Partial<PublicProfile>
+        Update: Partial<PublicProfile>
+      };
       child_profiles: {
         Row: ChildProfile
         Insert: Partial<ChildProfile>
@@ -686,6 +745,70 @@ export interface Database {
         Row: SessionAttachment
         Insert: Partial<SessionAttachment>
         Update: Partial<SessionAttachment>
+      };
+    };
+    Functions: {
+      current_app_profile_id: {
+        Args: Record<string, never>
+        Returns: string | null
+      };
+      ensure_clerk_profile: {
+        Args: {
+          p_email: string
+          p_name: string
+        }
+        Returns: UserProfile
+      };
+      calculate_booking_price: {
+        Args: {
+          p_package_name: string
+          p_instructor_id: number
+        }
+        Returns: number
+      };
+      is_booking_slot_available_secure: {
+        Args: {
+          p_instructor_id: number
+          p_booking_date: string
+          p_booking_time: string
+        }
+        Returns: boolean
+      };
+      get_booking_availability_secure: {
+        Args: Record<string, never>
+        Returns: BookingAvailability[]
+      };
+      create_booking_secure: {
+        Args: {
+          p_user_id: string
+          p_child_id: number
+          p_instructor_id: number
+          p_package_name: string
+          p_booking_date: string
+          p_booking_time: string
+          p_receipt_url: string | null
+          p_expected_total: number
+        }
+        Returns: BookingCreationResult
+      };
+      confirm_booking_secure: {
+        Args: {
+          p_booking_id: string
+        }
+        Returns: BookingConfirmationResult
+      };
+      update_booking_status_secure: {
+        Args: {
+          p_booking_id: string
+          p_new_status: DatabaseBookingStatus
+        }
+        Returns: BookingStatusUpdateResult
+      };
+      authorize_session_join_secure: {
+        Args: {
+          p_session_id: string
+        }
+        Returns: SessionJoinAuthorizationResult
       };
     }
   }

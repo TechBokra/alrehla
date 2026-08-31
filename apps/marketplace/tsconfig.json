@@ -75,6 +75,12 @@
       ],
       "@alrehla/utils/*": [
         "../../packages/utils/src/*"
+      ],
+      "@alrehla/mutations": [
+        "../../packages/mutations/src/index.ts"
+      ],
+      "@alrehla/mutations/*": [
+        "../../packages/mutations/src/*"
       ]
     },
     "strictNullChecks": false

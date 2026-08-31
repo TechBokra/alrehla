@@ -1,6 +1,7 @@
 "use server";
 
 import { clerkClient } from '@clerk/nextjs/server';
+import { ensureClerkProfile } from '@alrehla/api-client/resources/auth';
 import { userService as apiUserService } from '@alrehla/api/services/userService';
 import type { UserProfile, UserRole } from '@alrehla/types';
 import {
@@ -125,25 +126,6 @@ const getDatabaseErrorMessage = (error: unknown) => {
   return 'تعذر حفظ بيانات حساب الطالب.';
 };
 
-const toSafeProfile = (profile: Record<string, any>): UserProfile => ({
-  id: String(profile.id),
-  clerk_user_id: profile.clerk_user_id || null,
-  email: String(profile.email || ''),
-  email_verified: profile.email_verified ?? null,
-  name: String(profile.name || ''),
-  role: profile.role as UserRole,
-  account_type: profile.account_type || undefined,
-  global_role: profile.global_role || null,
-  phone: profile.phone || undefined,
-  address: profile.address || undefined,
-  city: profile.city || undefined,
-  country: profile.country || undefined,
-  governorate: profile.governorate || undefined,
-  timezone: profile.timezone || undefined,
-  currency: profile.currency || undefined,
-  created_at: String(profile.created_at || ''),
-});
-
 const definedEntries = <T extends Record<string, unknown>>(value: T) =>
   Object.fromEntries(
     Object.entries(value).filter(([, entry]) => entry !== undefined),
@@ -154,7 +136,7 @@ const definedEntries = <T extends Record<string, unknown>>(value: T) =>
  * The browser supplies no identity, email, name, or role input.
  */
 export const syncCurrentClerkProfile = async () =>
-  withClerkSessionAction('user.syncCurrentClerkProfile', async ({ clerkUserId, supabase }) => {
+  withClerkSessionAction('user.syncCurrentClerkProfile', async ({ clerkUserId, apiClient }) => {
     const clerk = await clerkClient();
     const clerkUser = await clerk.users.getUser(clerkUserId);
     const email = (
@@ -175,21 +157,14 @@ export const syncCurrentClerkProfile = async () =>
       email.split('@')[0] ||
       'مستخدم الرحلة';
 
-    const { data, error } = await (supabase.rpc as any)('ensure_clerk_profile', {
-      p_email: email,
-      p_name: name.slice(0, 120),
-    });
-
-    if (error) {
+    try {
+      return await ensureClerkProfile(apiClient, {
+        email,
+        name: name.slice(0, 120),
+      });
+    } catch (error) {
       actionError(getDatabaseErrorMessage(error));
     }
-
-    const profile = (Array.isArray(data) ? data[0] : data) as Record<string, any> | null;
-    if (!profile?.id) {
-      actionError('تم تسجيل الدخول، لكن تعذر إعداد ملف المستخدم.');
-    }
-
-    return toSafeProfile(profile);
   });
 
 export const getAllUsers = async (options?: any) => {

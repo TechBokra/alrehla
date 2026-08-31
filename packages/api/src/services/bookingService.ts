@@ -1,107 +1,16 @@
 import { supabase } from '../lib/supabaseClient';
-import { v4 as uuidv4 } from 'uuid';
 import { storageService } from './storageService';
 import { communicationService } from './communicationService';
 import { reportingService } from './reportingService';
 import type { 
-    CreativeWritingBooking, 
     CreativeWritingPackage, 
     StandaloneService, 
     ComparisonItem, 
     Instructor, 
-    ScheduledSession, 
-    BookingStatus, 
     UserRole 
 } from '@alrehla/types';
 
 export const bookingService = {
-    async getAllBookings(options: { page?: number; pageSize?: number; search?: string; statusFilter?: string } = {}) {
-        const { page = 1, pageSize = 10, search, statusFilter } = options;
-        let query = supabase
-            .from('bookings')
-            .select('*, child_profiles:child_profiles!fk_bookings_child(name), instructors:instructors!fk_bookings_instructor(name, user_id), users:profiles!fk_bookings_user(email, name)', { count: 'exact' });
-
-        if (statusFilter && statusFilter !== 'all') {
-            if (statusFilter === 'active') {
-                query = query.neq('status', 'ملغي').neq('status', 'مكتمل');
-            } else if (statusFilter === 'archived') {
-                query = query.or('status.eq.ملغي,status.eq.مكتمل');
-            } else {
-                query = query.eq('status', statusFilter);
-            }
-        }
-
-        if (search) {
-            query = query.or(`id.ilike.%${search}%,package_name.ilike.%${search}%`);
-        }
-
-        const from = (page - 1) * pageSize;
-        const to = from + pageSize - 1;
-        query = query.range(from, to).order('created_at', { ascending: false });
-
-        const { data, count, error } = await query;
-        if (error) {
-            console.error("Error fetching bookings:", error);
-            return { bookings: [], count: 0 };
-        }
-        return { bookings: (data || []) as CreativeWritingBooking[], count: count || 0 };
-    },
-
-    async createBooking(payload: any) {
-        const { data, error } = await (supabase.rpc as any)('create_booking_secure', {
-            p_user_id: payload.userId,
-            p_child_id: payload.payload.child.id,
-            p_instructor_id: payload.payload.instructor.id,
-            p_package_name: payload.payload.package.name,
-            p_booking_date: payload.payload.dateTime.date,
-            p_booking_time: payload.payload.dateTime.time,
-            p_receipt_url: payload.receiptUrl || null,
-            p_expected_total: payload.payload.total,
-        });
-
-        if (error) throw new Error(error.message);
-        return data;
-    },
-
-    async getBookingQuote(packageName: string, instructorId: number) {
-        const { data, error } = await (supabase.rpc as any)('calculate_booking_price', {
-            p_package_name: packageName,
-            p_instructor_id: instructorId,
-        });
-        if (error) throw new Error(error.message);
-        return Number(data);
-    },
-
-    async getBookingAvailability() {
-        const { data, error } = await (supabase.rpc as any)('get_booking_availability_secure');
-        if (error) {
-            console.error("Error fetching availability:", error);
-            return { bookings: [] };
-        }
-        return { bookings: data || [] };
-    },
-
-    async confirmBooking(bookingId: string) {
-        const { data, error } = await (supabase.rpc as any)('confirm_booking_secure', {
-            p_booking_id: bookingId,
-        });
-        if (error) throw new Error(error.message);
-        return data;
-    },
-
-    async updateBookingStatus(bookingId: string, newStatus: BookingStatus) {
-        if (newStatus === 'مؤكد') {
-            return this.confirmBooking(bookingId);
-        }
-
-        const { data, error } = await (supabase.rpc as any)('update_booking_status_secure', {
-            p_booking_id: bookingId,
-            p_new_status: newStatus,
-        });
-        if (error) throw new Error(error.message);
-        return data;
-    },
-
     async updateBookingProgressNotes(bookingId: string, notes: string) {
         const { error } = await (supabase.from('bookings') as any)
             .update({ progress_notes: notes })
@@ -134,17 +43,6 @@ export const bookingService = {
         return data as Instructor | null;
     },
 
-    async getInstructorBookings(instructorId: number) {
-        const { data, error } = await supabase
-            .from('bookings')
-            .select('*, child_profiles:child_profiles!fk_bookings_child(id, name, avatar_url)')
-            .eq('instructor_id', instructorId)
-            .order('booking_date', { ascending: false });
-        
-        if (error) return [];
-        return data as CreativeWritingBooking[];
-    },
-
     async getAllPackages() {
         const { data } = await supabase.from('creative_writing_packages').select('*').order('price');
         return (data || []) as CreativeWritingPackage[];
@@ -160,11 +58,6 @@ export const bookingService = {
         return (data || []) as ComparisonItem[];
     },
 
-    async getAllScheduledSessions() {
-        const { data } = await supabase.from('scheduled_sessions').select('*');
-        return (data || []) as ScheduledSession[];
-    },
-    
     async updateScheduledSession(sessionId: string, updates: any) {
         const { error } = await (supabase.from('scheduled_sessions') as any)
             .update(updates)
@@ -288,32 +181,4 @@ export const bookingService = {
         return { success: true };
     },
 
-    async checkSlotAvailability(instructorId: number, date: string, time: string) {
-        const dateStr = date.split('T')[0];
-
-        const { data, error } = await (supabase.rpc as any)('is_booking_slot_available_secure', {
-            p_instructor_id: instructorId,
-            p_booking_date: dateStr,
-            p_booking_time: time,
-        });
-        if (error) throw new Error(error.message);
-        return data === true;
-    },
-
-    async authorizeSessionJoin(sessionId: string) {
-        const { data, error } = await (supabase.rpc as any)('authorize_session_join_secure', {
-            p_session_id: sessionId,
-        });
-        if (error) throw new Error(error.message);
-        return data as {
-            allowed: boolean;
-            reason: 'allowed' | 'too_early' | 'expired' | 'booking_inactive' | 'session_closed';
-            session_id: string;
-            session_date: string;
-            join_allowed_at: string;
-            join_expires_at: string;
-            domain: string | null;
-            room_name: string | null;
-        };
-    }
 };

@@ -1,11 +1,28 @@
 'use client';
 
-// Marketplace browser access is intentionally limited to the shared anonymous
-// client, Clerk token-provider lifecycle, and safe telemetry user context.
-// Server Actions and Server Components must import a server-only service.
-export {
-  clearSupabaseAccessTokenProvider,
-  setSupabaseAccessTokenProvider,
+import { createBrowserApiClient, type AccessTokenProvider } from '@alrehla/api-client/browser';
+import {
+  clearSupabaseAccessTokenProvider as clearLegacyProvider,
+  setSupabaseAccessTokenProvider as setLegacyProvider,
   supabase,
   syncSentryUserContext,
 } from '@alrehla/api/lib/supabaseClient';
+
+let accessTokenProvider: AccessTokenProvider = () => null;
+
+export const apiClient = createBrowserApiClient({
+  accessToken: () => accessTokenProvider(),
+  allowMissingCredentials: true,
+});
+
+export const setSupabaseAccessTokenProvider = (provider: AccessTokenProvider) => {
+  accessTokenProvider = provider;
+  setLegacyProvider(provider);
+};
+
+export const clearSupabaseAccessTokenProvider = () => {
+  accessTokenProvider = () => null;
+  clearLegacyProvider();
+};
+
+export { supabase, syncSentryUserContext };

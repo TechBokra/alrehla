@@ -44,6 +44,12 @@
       "@alrehla/api/*": [
         "packages/api/src/*"
       ],
+      "@alrehla/api-client": [
+        "packages/api-client/src/index.ts"
+      ],
+      "@alrehla/api-client/*": [
+        "packages/api-client/src/*"
+      ],
       "@alrehla/auth": [
         "packages/auth/src/index.ts"
       ],
@@ -79,6 +85,24 @@
       ],
       "@alrehla/mutations/*": [
         "packages/mutations/src/*"
+      ],
+      "@alrehla/admin-core": [
+        "packages/admin-core/src/index.ts"
+      ],
+      "@alrehla/admin-core/*": [
+        "packages/admin-core/src/*"
+      ],
+      "@alrehla/supabase/public": [
+        "packages/supabase/src/public.ts"
+      ],
+      "@alrehla/supabase/server": [
+        "packages/supabase/src/server.ts"
+      ],
+      "@alrehla/supabase/admin": [
+        "packages/supabase/src/admin.ts"
+      ],
+      "@alrehla/supabase/types": [
+        "packages/supabase/src/types.ts"
       ]
     }
   }

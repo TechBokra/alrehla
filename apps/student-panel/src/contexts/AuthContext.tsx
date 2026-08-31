@@ -21,8 +21,13 @@ import { canAccessAdmin, canAccessInstructorPanel, getPermissions, Permissions, 
 import type { ChildProfile, UserProfile } from "../lib/database.types";
 import { useToast } from "./ToastContext";
 import { useQueryClient } from "@tanstack/react-query";
-import { authService } from "../services/authService";
 import {
+  ensureClerkProfile,
+  getChildProfiles,
+  getStudentProfileByProfileId,
+} from "@alrehla/api-client/resources/auth";
+import {
+  apiClient,
   clearSupabaseAccessTokenProvider,
   setSupabaseAccessTokenProvider,
 } from "../lib/supabaseClient";
@@ -144,7 +149,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       resetSecondaryUserData();
 
       if (user.role === "student") {
-        const profile = await authService.getStudentProfile(user.id);
+        const profile = await getStudentProfileByProfileId(apiClient, user.id);
         setCurrentChildProfile(profile);
       } else if (
         [
@@ -156,7 +161,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           "publisher",
         ].includes(user.role)
       ) {
-        const children = await authService.getUserChildren(user.id);
+        const children = await getChildProfiles(apiClient, user.id);
         setChildProfiles(children || []);
       }
     } catch (e) {
@@ -175,7 +180,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       );
     }
 
-    const user = await authService.getOrCreateClerkUserProfile({
+    const user = await ensureClerkProfile(apiClient, {
       email,
       name: getClerkName(activeClerkUser, email),
     });

@@ -1,7 +1,9 @@
 
 import { useQuery } from '@tanstack/react-query';
+import { getChildProfiles, getProfile } from '@alrehla/api-client/resources/auth';
+import { listBookings, listScheduledSessions } from '@alrehla/api-client/resources/bookings';
 import { useAuth } from '../../../contexts/AuthContext';
-import { supabase } from '../../../lib/supabaseClient';
+import { apiClient, supabase } from '../../../lib/supabaseClient';
 import type { 
     Notification,
     Order, 
@@ -63,33 +65,32 @@ export const useUserAccountData = () => {
             };
 
             // 1. Fetch primary user data in parallel
-            const [ordersRes, subsRes, bookingsRes, childrenRes, badgesRes, allBadgesRes] = await Promise.all([
+            const [ordersRes, subsRes, bookingsResult, children, badgesRes, allBadgesRes] = await Promise.all([
                 supabase.from('orders').select('*').eq('user_id', currentUser.id).order('order_date', { ascending: false }),
                 supabase.from('subscriptions').select('*').eq('user_id', currentUser.id),
-                supabase.from('bookings').select('*, child_profiles(name)').eq('user_id', currentUser.id),
-                supabase.from('child_profiles').select('*').eq('user_id', currentUser.id),
+                listBookings(apiClient, { userId: currentUser.id, pageSize: 100 }),
+                getChildProfiles(apiClient, currentUser.id),
                 supabase.from('child_badges').select('*'),
                 supabase.from('badges').select('*')
             ]);
 
-            const rawBookings = (bookingsRes.data || []) as any[];
+            const rawBookings = bookingsResult.rows.map(booking => ({ ...booking, status: booking.databaseStatus })) as any[];
             let enrichedBookings: EnrichedBooking[] = [];
             let attachments: SessionAttachment[] = [];
             
             // --- Enrich Child Profiles with Student Emails ---
-            let enrichedChildProfiles = (childrenRes.data || []) as EnrichedChildProfile[];
+            let enrichedChildProfiles = children as EnrichedChildProfile[];
             const studentUserIds = enrichedChildProfiles
                 .map(c => c.student_user_id)
                 .filter(id => id !== null) as string[];
 
             if (studentUserIds.length > 0) {
-                const { data: students } = await supabase
-                    .from('profiles')
-                    .select('id, email')
-                    .in('id', studentUserIds);
+                const students = (await Promise.all(
+                    studentUserIds.map(profileId => getProfile(apiClient, profileId)),
+                )).filter(Boolean);
                 
                 const emailMap = new Map<string, string>();
-                students?.forEach((s: any) => emailMap.set(s.id, s.email));
+                students.forEach((s: any) => emailMap.set(s.id, s.email));
 
                 enrichedChildProfiles = enrichedChildProfiles.map(child => ({
                     ...child,
@@ -103,23 +104,20 @@ export const useUserAccountData = () => {
                 const bookingIds = rawBookings.map(b => b.id);
                 
                 try {
-                    const [instructorsRes, packagesRes, sessionsRes, attachmentsRes] = await Promise.all([
-                        supabase.from('instructors').select('id, name'),
+                    const [packagesRes, sessions, attachmentsRes] = await Promise.all([
                         supabase.from('creative_writing_packages').select('*'),
-                        supabase.from('scheduled_sessions').select('*').in('booking_id', bookingIds),
+                        listScheduledSessions(apiClient, { bookingIds }),
                         supabase.from('session_attachments').select('*').in('booking_id', bookingIds).order('created_at', { ascending: false })
                     ]);
 
-                    const instructors = (instructorsRes.data || []) as any[];
                     const packages = (packagesRes.data || []) as CreativeWritingPackage[];
-                    const sessions = (sessionsRes.data || []) as ScheduledSession[];
                     attachments = (attachmentsRes.data || []) as SessionAttachment[];
 
                     enrichedBookings = rawBookings.map((b: any) => ({
                         ...b,
                         sessions: sessions.filter((s) => s.booking_id === b.id) || [],
                         packageDetails: packages.find((p) => p.name === b.package_name),
-                        instructorName: instructors.find((i) => i.id === b.instructor_id)?.name || 'غير محدد',
+                        instructorName: b.instructors?.name || 'غير محدد',
                         child_profiles: b.child_profiles
                     }));
                 } catch (e) {

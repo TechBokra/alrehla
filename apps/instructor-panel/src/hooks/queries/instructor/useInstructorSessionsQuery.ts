@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../../../lib/supabaseClient';
-import { instructorKeys } from './instructorKeys';
+import { sessionKeys } from '@alrehla/api-client/query-keys';
+import { listScheduledSessions } from '@alrehla/api-client/resources/bookings';
+import { apiClient } from '../../../lib/supabaseClient';
 import type { ScheduledSession } from '../../../lib/database.types';
 
 export interface UseInstructorSessionsOptions {
@@ -15,21 +16,14 @@ export const useInstructorSessionsQuery = ({
   const hasBookings = Boolean(instructorId) && bookingIds.length > 0;
 
   return useQuery<ScheduledSession[]>({
-    queryKey: instructorKeys.sessionsByBookings(instructorId || '', bookingIds),
+    queryKey: sessionKeys.list({
+      instructorId: instructorId ?? undefined,
+      bookingIds,
+    }),
     queryFn: async () => {
       if (!instructorId || bookingIds.length === 0) return [];
 
-      const { data, error } = await supabase
-        .from('scheduled_sessions')
-        .select('*')
-        .in('booking_id', bookingIds);
-
-      if (error) {
-        console.error('Error fetching instructor scheduled sessions:', error);
-        throw new Error('تعذر تحميل جلسات المدرب.');
-      }
-
-      return (data || []) as ScheduledSession[];
+      return listScheduledSessions(apiClient, { instructorId, bookingIds }) as Promise<ScheduledSession[]>;
     },
     enabled: hasBookings,
   });

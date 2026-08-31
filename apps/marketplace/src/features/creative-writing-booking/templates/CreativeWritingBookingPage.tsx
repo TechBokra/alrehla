@@ -18,8 +18,12 @@ import BookingSummary from '../../../components/creative-writing/booking/Booking
 import { Button } from '@alrehla/ui/button';
 import { ArrowLeft, Info } from 'lucide-react';
 import type { ChildProfile, CreativeWritingPackage, Instructor } from '../../../lib/database.types';
+import {
+    checkBookingSlotAvailability,
+    quoteBooking,
+} from '@alrehla/api-client/resources/bookings';
+import { apiClient } from '../../../lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@alrehla/ui/card';
-import { bookingService } from '../../../services/bookingService'; 
 
 type BookingStep = 'package' | 'child' | 'instructor' | 'schedule';
 
@@ -69,7 +73,7 @@ const CreativeWritingBookingPage: React.FC = () => {
         setFinalPrice(null);
         if (!selectedPackage || !selectedInstructor) return () => { cancelled = true; };
 
-        bookingService.getBookingQuote(selectedPackage.name, selectedInstructor.id)
+        quoteBooking(apiClient, selectedPackage.name, selectedInstructor.id)
             .then((quote) => {
                 if (!cancelled) setFinalPrice(quote);
             })
@@ -178,7 +182,8 @@ const CreativeWritingBookingPage: React.FC = () => {
 
         try {
             const bookingDate = formatCalendarDate(selectedDateTime.date);
-            const isAvailable = await bookingService.checkSlotAvailability(
+            const isAvailable = await checkBookingSlotAvailability(
+                apiClient,
                 selectedInstructor.id, 
                 bookingDate,
                 selectedDateTime.time

@@ -1,0 +1,33 @@
+{
+  "name": "@alrehla/admin-core",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./data-view": "./src/data-view/index.ts",
+    "./resource": "./src/resource/index.ts",
+    "./mutations": "./src/mutations.ts",
+    "./query-keys": "./src/query-keys.ts",
+    "./resources": "./src/resources.ts",
+    "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@alrehla/auth": "workspace:*",
+    "@alrehla/mutations": "workspace:*",
+    "@tanstack/react-query": "^5.56.0",
+    "@tanstack/react-table": "^8.21.3"
+  },
+  "peerDependencies": {
+    "next": ">=14",
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3"
+  }
+}

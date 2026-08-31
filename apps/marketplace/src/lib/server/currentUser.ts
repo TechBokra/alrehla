@@ -1,11 +1,13 @@
 import 'server-only';
 
 import { auth, clerkClient } from '@clerk/nextjs/server';
-import type { ChildProfile, UserProfile, UserRole } from '@alrehla/types';
+import { createServerApiClient, type ApiClient } from '@alrehla/api-client/server';
 import {
-  runWithSupabaseAccessTokenProvider,
-  supabase,
-} from '@/lib/supabase/server';
+  ensureClerkProfile,
+  getChildProfiles,
+  getStudentProfileByProfileId,
+} from '@alrehla/api-client/resources/auth';
+import type { ChildProfile, UserProfile, UserRole } from '@alrehla/types';
 import type { AuthBootstrapState } from '@/lib/auth-state';
 
 const CHILD_OWNING_ROLES = new Set<UserRole>([
@@ -16,9 +18,6 @@ const CHILD_OWNING_ROLES = new Set<UserRole>([
   'instructor',
   'publisher',
 ]);
-
-const CHILD_PROFILE_COLUMNS =
-  'id,user_id,student_user_id,name,birth_date,gender,avatar_url,interests,strengths';
 
 const getErrorCode = (error: unknown): string | undefined => {
   if (!error || typeof error !== 'object') return undefined;
@@ -71,7 +70,10 @@ const toSafeProfile = (profile: Record<string, unknown>, clerkUser?: any): UserP
   };
 };
 
-const getClerkProfile = async (clerkUserId: string): Promise<UserProfile> => {
+const getClerkProfile = async (
+  client: ApiClient,
+  clerkUserId: string,
+): Promise<UserProfile> => {
   const clerk = await clerkClient();
   const clerkUser = await clerk.users.getUser(clerkUserId);
   const email = (
@@ -92,51 +94,26 @@ const getClerkProfile = async (clerkUserId: string): Promise<UserProfile> => {
     email.split('@')[0] ||
     'مستخدم الرحلة';
 
-  const { data, error } = await (supabase.rpc as any)('ensure_clerk_profile', {
-    p_email: email,
-    p_name: name.slice(0, 120),
+  const profile = await ensureClerkProfile(client, {
+    email,
+    name: name.slice(0, 120),
   });
-
-  if (error) {
-    const profileError = new Error('Unable to resolve the authenticated application profile.');
-    (profileError as Error & { cause?: unknown }).cause = error;
-    throw profileError;
-  }
-
-  const profile = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null;
-  if (!profile?.id || typeof profile.role !== 'string') {
-    throw new Error('Authenticated application profile is unavailable.');
-  }
-
-  return toSafeProfile(profile, clerkUser);
+  return toSafeProfile(profile as unknown as Record<string, unknown>, clerkUser);
 };
 
 const getSecondaryUserData = async (
+  client: ApiClient,
   user: UserProfile,
 ): Promise<Pick<AuthBootstrapState, 'currentChildProfile' | 'childProfiles'>> => {
   if (user.role === 'student') {
-    const { data: child } = await supabase
-      .from('child_profiles')
-      .select(CHILD_PROFILE_COLUMNS)
-      .eq('student_user_id', user.id)
-      .maybeSingle();
+    const child = await getStudentProfileByProfileId(client, user.id);
 
     if (!child) {
       return { currentChildProfile: null, childProfiles: [] };
     }
 
-    const childRecord = child as unknown as ChildProfile & { user_id: string };
-    const { data: parent } = await supabase
-      .from('public_profiles')
-      .select('name')
-      .eq('id', childRecord.user_id)
-      .maybeSingle();
-
     return {
-      currentChildProfile: {
-        ...childRecord,
-        parentName: (parent as { name?: string } | null)?.name,
-      },
+      currentChildProfile: child,
       childProfiles: [],
     };
   }
@@ -145,15 +122,11 @@ const getSecondaryUserData = async (
     return { currentChildProfile: null, childProfiles: [] };
   }
 
-  const { data: children } = await supabase
-    .from('child_profiles')
-    .select(CHILD_PROFILE_COLUMNS)
-    .eq('user_id', user.id)
-    .order('id', { ascending: true });
+  const children = await getChildProfiles(client, user.id);
 
   return {
     currentChildProfile: null,
-    childProfiles: (children || []) as ChildProfile[],
+    childProfiles: children as ChildProfile[],
   };
 };
 
@@ -170,19 +143,15 @@ export const getServerAuthState = async (): Promise<AuthBootstrapState | null> =
   if (!token) return null;
 
   try {
-    return await runWithSupabaseAccessTokenProvider(
-      async () => token,
-      async () => {
-        const currentUser = await getClerkProfile(session.userId);
-        const secondary = await getSecondaryUserData(currentUser);
+    const client = createServerApiClient({ accessToken: token });
+    const currentUser = await getClerkProfile(client, session.userId);
+    const secondary = await getSecondaryUserData(client, currentUser);
 
-        return {
-          clerkUserId: session.userId,
-          currentUser,
-          ...secondary,
-        };
-      },
-    );
+    return {
+      clerkUserId: session.userId,
+      currentUser,
+      ...secondary,
+    };
   } catch (error) {
     // A missing/mismatched Supabase Third-Party Auth key must not take down
     // public pages. The monitored Supabase transport already records the

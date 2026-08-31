@@ -2,6 +2,8 @@
 import { supabase, getCurrentAppProfileId } from '../lib/supabaseClient';
 import { reportingService } from './reportingService';
 import type { UserProfile, ChildProfile, UserRole, PublisherProfile } from '@alrehla/types';
+import { toAdminUserRows } from '../adapters/admin-user-row';
+import type { AdminUserListResult } from '../view-models/user';
 
 export interface CreateUserPayload {
     name: string;
@@ -33,6 +35,13 @@ export interface GetUsersOptions {
     pageSize?: number;
     search?: string;
     roleFilter?: string;
+}
+
+export interface AdminUserRelationsResult {
+    users: UserProfile[];
+    count: number;
+    relatedChildren: ChildProfile[];
+    parentsMap: Map<string, { name: string; email: string }>;
 }
 
 const checkEmailExists = async (email: string): Promise<boolean> => {
@@ -95,6 +104,50 @@ export const userService = {
             console.error("Critical error fetching users:", e);
             return { users: [], count: 0 };
         }
+    },
+
+    /** Data-access contract retained for legacy panel consumers during migration. */
+    async getAdminUsersWithRelations(options: GetUsersOptions = {}): Promise<AdminUserRelationsResult> {
+        const { users, count } = await userService.getAllUsers(options);
+        const userIds = users.map((user) => user.id);
+        const relatedChildren = await userService.getAllChildProfiles();
+        const parentIds = [...new Set(
+            relatedChildren
+                .filter((child) => child.student_user_id && userIds.includes(child.student_user_id))
+                .map((child) => child.user_id)
+                .filter((id): id is string => Boolean(id)),
+        )];
+        const parentsMap = new Map<string, { name: string; email: string }>();
+        users.forEach((user) => parentsMap.set(user.id, { name: user.name, email: user.email }));
+
+        if (parentIds.length > 0) {
+            const { data: externalParents } = await supabase
+                .from('profiles')
+                .select('id, name, email')
+                .in('id', parentIds);
+            (externalParents as Array<{ id: string; name: string; email: string }> | null | undefined)?.forEach((parent) => parentsMap.set(parent.id, { name: parent.name, email: parent.email }));
+        }
+
+        return { users, count, relatedChildren, parentsMap };
+    },
+
+    /**
+     * Query contract for the admin Users resource. Relationship joins and
+     * normalization stay behind the API boundary; the panel receives rows.
+     */
+    async getAdminUserList(options: GetUsersOptions = {}): Promise<AdminUserListResult> {
+        const result = await userService.getAdminUsersWithRelations(options);
+        return {
+            rows: toAdminUserRows(result.users, result.relatedChildren, result.parentsMap),
+            count: result.count,
+            meta: { page: options.page ?? 1, pageSize: options.pageSize ?? 50 },
+        };
+    },
+
+    async getAllPublishers() {
+        const { data, error } = await supabase.from('profiles').select('id, name').eq('role', 'publisher');
+        if (error) throw new Error(error.message);
+        return (data ?? []) as { id: string; name: string }[];
     },
 
     async isEmailTaken(email: string): Promise<boolean> {

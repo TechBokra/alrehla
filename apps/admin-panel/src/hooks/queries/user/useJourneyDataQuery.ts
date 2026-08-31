@@ -1,130 +1,93 @@
-
 import { useQuery } from '@tanstack/react-query';
+import { bookingKeys, sessionKeys } from '@alrehla/api-client/query-keys';
+import { getStudentProfileByProfileId } from '@alrehla/api-client/resources/auth';
+import { getBooking, listBookings, listScheduledSessions } from '@alrehla/api-client/resources/bookings';
 import { useAuth } from '../../../contexts/AuthContext';
-import { supabase } from '../../../lib/supabaseClient';
-import { authService } from '../../../services/authService';
-import type { 
-    ScheduledSession, 
-    SessionMessage, 
-    SessionAttachment, 
-    CreativeWritingPackage,
-    Instructor
+import { apiClient, supabase } from '../../../lib/supabaseClient';
+import type {
+  CreativeWritingPackage,
+  Instructor,
+  ScheduledSession,
+  SessionAttachment,
+  SessionMessage,
 } from '../../../lib/database.types';
 
 export const useStudentDashboardData = () => {
-    const { currentUser } = useAuth();
-    
-    return useQuery({
-        queryKey: ['studentDashboardData', currentUser?.id],
-        queryFn: async () => {
-            if (!currentUser) return null;
+  const { currentUser } = useAuth();
 
-            // 1. جلب ملف الطفل المرتبط بحساب الطالب من DB
-            const childProfile = await authService.getStudentProfile(currentUser.id);
+  return useQuery({
+    queryKey: ['studentDashboardData', currentUser?.id],
+    queryFn: async () => {
+      if (!currentUser) return null;
+      const childProfile = await getStudentProfileByProfileId(apiClient, currentUser.id);
+      if (!childProfile) {
+        return { isUnlinked: true, journeys: [], orders: [], subscriptions: [], badges: [] };
+      }
 
-            if (!childProfile) {
-                return { isUnlinked: true, journeys: [], orders: [], subscriptions: [], badges: [] };
-            }
+      const childId = childProfile.id;
+      const [bookingResult, ordersRes, subsRes, badgesRes, attachmentsRes, sessions] = await Promise.all([
+        listBookings(apiClient, { childProfileId: childId, pageSize: 100 }),
+        supabase.from('orders').select('*').eq('child_id', childId),
+        supabase.from('subscriptions').select('*').eq('child_id', childId),
+        supabase.from('child_badges').select('*, badges(*)').eq('child_id', childId),
+        supabase.from('session_attachments').select('*').eq('uploader_id', currentUser.id),
+        listScheduledSessions(apiClient, { childProfileId: childId }),
+      ]);
 
-            const childId = childProfile.id;
-
-            // 2. جلب اسم ولي الأمر الحقيقي
-            const { data: parentData } = await supabase
-                .from('profiles')
-                .select('name')
-                .eq('id', childProfile.user_id)
-                .single();
-            
-            // Cast to any to avoid strict null checks if type definition is too strict
-            const parentProfile = parentData as any;
-            const parentName = parentProfile?.name || 'ولي أمر';
-
-            // 3. جلب البيانات المرتبطة من الجداول الحقيقية فقط
-            const [bookingsRes, ordersRes, subsRes, badgesRes, attachmentsRes, sessionsRes] = await Promise.all([
-                supabase.from('bookings').select('*, instructors(name, id, avatar_url, specialty)').eq('child_id', childId),
-                supabase.from('orders').select('*').eq('child_id', childId),
-                supabase.from('subscriptions').select('*').eq('child_id', childId),
-                supabase.from('child_badges').select('*, badges(*)').eq('child_id', childId),
-                supabase.from('session_attachments').select('*').eq('uploader_id', currentUser.id),
-                supabase.from('scheduled_sessions').select('*').eq('child_id', childId)
-            ]);
-
-            const allSessions = sessionsRes.data || [];
-
-            return {
-                parentName,
-                isUnlinked: false,
-                journeys: (bookingsRes.data || []).map((b: any) => ({ 
-                    ...b, 
-                    instructor_name: b.instructors?.name,
-                    // نربط الجلسات بالحجز الخاص بها لتجنب الخطأ في الواجهة
-                    sessions: allSessions.filter((s: any) => s.booking_id === b.id)
-                })),
-                orders: ordersRes.data || [],
-                subscriptions: subsRes.data || [],
-                badges: (badgesRes.data || []).map((cb: any) => cb.badges).filter(Boolean),
-                attachments: attachmentsRes.data || [],
-                childProfile
-            };
-        },
-        enabled: !!currentUser,
-    });
+      return {
+        parentName: childProfile.parentName || 'ولي أمر',
+        isUnlinked: false,
+        journeys: bookingResult.rows.map((booking) => ({
+          ...booking,
+          status: booking.databaseStatus,
+          instructor_name: booking.instructors?.name,
+          sessions: sessions.filter((session) => session.booking_id === booking.id),
+        })),
+        orders: ordersRes.data || [],
+        subscriptions: subsRes.data || [],
+        badges: (badgesRes.data || []).map((entry: any) => entry.badges).filter(Boolean),
+        attachments: attachmentsRes.data || [],
+        childProfile,
+      };
+    },
+    enabled: Boolean(currentUser),
+  });
 };
 
-export const useSessionDetails = (sessionId: string | undefined) => {
-    return useQuery({
-        queryKey: ['sessionDetails', sessionId],
-        queryFn: async () => {
-            if (!sessionId) return null;
-            // Updated: Added child_profiles(name) to the selection
-            const { data } = await supabase
-                .from('scheduled_sessions')
-                .select('*, instructors(name), child_profiles(name)')
-                .eq('id', sessionId)
-                .single();
-            return data;
-        },
-        enabled: !!sessionId,
-    });
-};
+export const useSessionDetails = (sessionId: string | undefined) => useQuery({
+  queryKey: sessionKeys.detail(sessionId || 'missing'),
+  queryFn: async () => {
+    if (!sessionId) return null;
+    return (await listScheduledSessions(apiClient, { sessionId }))[0] || null;
+  },
+  enabled: Boolean(sessionId),
+});
 
-export const useTrainingJourneyData = (journeyId: string | undefined) => {
-    return useQuery({
-        queryKey: ['trainingJourney', journeyId],
-        queryFn: async () => {
-            if (!journeyId) return null;
-            
-            const { data: booking, error: bookingError } = await supabase
-                .from('bookings')
-                .select('*, instructors(*), child_profiles(*)')
-                .eq('id', journeyId)
-                .single();
+export const useTrainingJourneyData = (journeyId: string | undefined) => useQuery({
+  queryKey: bookingKeys.detail(journeyId || 'missing'),
+  queryFn: async () => {
+    if (!journeyId) return null;
+    const booking = await getBooking(apiClient, journeyId);
+    if (!booking) throw new Error('Journey not found');
+    const safeBooking = { ...booking, status: booking.databaseStatus };
 
-            if (bookingError) throw bookingError;
-            if (!booking) throw new Error("Journey not found");
+    const [scheduledSessions, messagesRes, attachmentsRes, packagesRes] = await Promise.all([
+      listScheduledSessions(apiClient, { bookingId: journeyId }),
+      supabase.from('session_messages').select('*').eq('booking_id', journeyId).order('created_at', { ascending: true }),
+      supabase.from('session_attachments').select('*').eq('booking_id', journeyId).order('created_at', { ascending: false }),
+      supabase.from('creative_writing_packages').select('*').eq('name', safeBooking.package_name).maybeSingle(),
+    ]);
 
-            // Cast booking to any to safely access potentially joined properties
-            const safeBooking = booking as any;
-
-            const [sessionsRes, messagesRes, attachmentsRes, packagesRes] = await Promise.all([
-                supabase.from('scheduled_sessions').select('*').eq('booking_id', journeyId).order('session_date', { ascending: true }),
-                supabase.from('session_messages').select('*').eq('booking_id', journeyId).order('created_at', { ascending: true }),
-                supabase.from('session_attachments').select('*').eq('booking_id', journeyId).order('created_at', { ascending: false }),
-                supabase.from('creative_writing_packages').select('*').eq('name', safeBooking.package_name).maybeSingle()
-            ]);
-
-            return {
-                booking: safeBooking,
-                package: packagesRes.data as CreativeWritingPackage | null,
-                instructor: safeBooking.instructors as Instructor,
-                childProfile: safeBooking.child_profiles,
-                // Explicitly cast empty arrays to prevent 'never[]' inference
-                scheduledSessions: (sessionsRes.data || []) as ScheduledSession[],
-                messages: (messagesRes.data || []) as SessionMessage[],
-                attachments: (attachmentsRes.data || []) as SessionAttachment[]
-            };
-        },
-        enabled: !!journeyId,
-        refetchInterval: 5000, 
-    });
-};
+    return {
+      booking: safeBooking,
+      package: packagesRes.data as CreativeWritingPackage | null,
+      instructor: safeBooking.instructors as Instructor,
+      childProfile: safeBooking.child_profiles,
+      scheduledSessions: scheduledSessions as ScheduledSession[],
+      messages: (messagesRes.data || []) as SessionMessage[],
+      attachments: (attachmentsRes.data || []) as SessionAttachment[],
+    };
+  },
+  enabled: Boolean(journeyId),
+  refetchInterval: 5000,
+});

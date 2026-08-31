@@ -2,22 +2,6 @@
 
 import { bookingService as apiBookingService } from '@alrehla/api/services/bookingService';
 
-export const getAllBookings = async (options?: any) => {
-  return apiBookingService.getAllBookings(options);
-};
-
-export const createBooking = async (payload: any) => {
-  return apiBookingService.createBooking(payload);
-};
-
-export const getBookingAvailability = async () => {
-  return apiBookingService.getBookingAvailability();
-};
-
-export const updateBookingStatus = async (bookingId: string, newStatus: any) => {
-  return apiBookingService.updateBookingStatus(bookingId, newStatus);
-};
-
 export const updateBookingProgressNotes = async (bookingId: string, notes: string) => {
   return apiBookingService.updateBookingProgressNotes(bookingId, notes);
 };
@@ -82,10 +66,6 @@ export const getInstructorByUserId = async (userId: string) => {
   return apiBookingService.getInstructorByUserId(userId);
 };
 
-export const getInstructorBookings = async (instructorId: number) => {
-  return apiBookingService.getInstructorBookings(instructorId);
-};
-
 export const submitRescheduleRequest = async (payload: any) => {
   return apiBookingService.submitRescheduleRequest(payload);
 };
@@ -100,12 +80,4 @@ export const sendSessionMessage = async (payload: any) => {
 
 export const uploadSessionAttachment = async (payload: any) => {
   return apiBookingService.uploadSessionAttachment(payload);
-};
-
-export const getAllScheduledSessions = async () => {
-  return apiBookingService.getAllScheduledSessions();
-};
-
-export const checkSlotAvailability = async (instructorId: number, date: string, time: string) => {
-  return apiBookingService.checkSlotAvailability(instructorId, date, time);
 };

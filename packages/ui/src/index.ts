@@ -54,4 +54,5 @@ export * from './components/auth/clerk-appearance';
 export * from './components/media/alhrela-image';
 export * from './components/brand/alrehla-logo';
 export * from './components/error-boundary';
+export * from './components/resource';
 export * from './lib/utils';

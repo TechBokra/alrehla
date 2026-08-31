@@ -1,6 +1,7 @@
 "use server";
 
 import { gamificationService as apiGamificationService } from '@alrehla/api/services/gamificationService';
+import { listBookings } from '@alrehla/api-client/resources/bookings';
 import type { UserRole } from '@alrehla/types';
 import { awardBadgeSchema } from '../lib/server/actionSchemas';
 import {
@@ -59,16 +60,13 @@ export const awardBadge = async (payload: {
         }
 
         instructorId = (instructor as any).id;
-        const { data: relatedBooking, error: bookingError } =
-          await context.supabase
-            .from('bookings')
-            .select('id')
-            .eq('child_id', input.childId)
-            .eq('instructor_id', instructorId)
-            .limit(1)
-            .maybeSingle();
+        const relatedBookings = await listBookings(context.apiClient, {
+          childProfileId: input.childId,
+          instructorId,
+          pageSize: 1,
+        });
 
-        if (bookingError || !relatedBooking) {
+        if (!relatedBookings.rows.length) {
           actionError('لا يمكنك منح شارة لطفل غير مرتبط بحجوزاتك.');
         }
       }

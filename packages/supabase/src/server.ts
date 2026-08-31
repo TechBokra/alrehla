@@ -1,28 +1,31 @@
-import 'server-only';
+import { createConfiguredSupabaseClient } from './client';
+import type { AccessToken, SupabaseClientOptions } from './types';
 
-import { auth } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
-
-import type { Database } from '@alrehla/types';
+declare const process: { env: Record<string, string | undefined> };
 
 /**
- * Creates an RLS-aware Supabase client using the normal Clerk session token.
- * Supabase Third-Party Auth validates that token; no custom JWT template is used.
+ * Creates an RLS-aware Supabase client using an injected request token.
+ * Authentication belongs to the application layer; this package only configures
+ * Supabase Third-Party Auth with the supplied token.
  */
-export function createAuthenticatedSupabaseClient() {
-  return createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
-      accessToken: async () => {
-        const { getToken } = await auth();
-        return getToken();
-      },
-    },
-  );
+export function createAuthenticatedSupabaseClient(options: SupabaseClientOptions) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!url || !publishableKey) {
+    throw new Error(
+      'NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are required for the authenticated Supabase client.',
+    );
+  }
+
+  return createConfiguredSupabaseClient({
+    url,
+    key: publishableKey,
+    accessToken: options.accessToken,
+    fetch: options.fetch,
+  });
 }
+
+export const createServerSupabaseClient = createAuthenticatedSupabaseClient;
+
+export type { AccessToken };

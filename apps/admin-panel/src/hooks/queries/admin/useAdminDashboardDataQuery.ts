@@ -1,6 +1,7 @@
 
 import { useQueries } from '@tanstack/react-query';
-import { supabase } from '../../../lib/supabaseClient';
+import { listBookings, listScheduledSessions } from '@alrehla/api-client/resources/bookings';
+import { apiClient, supabase } from '../../../lib/supabaseClient';
 import { publicService } from '../../../services/publicService';
 
 const queries = [
@@ -14,7 +15,9 @@ const queries = [
     },
     { 
         key: 'bookings', 
-        fn: () => supabase.from('bookings').select('id, total, status, booking_date, booking_time, package_name, child_profiles:child_profiles(name), instructors:instructors(name)').order('created_at', { ascending: false }).then(res => res.data || [])
+        fn: () => listBookings(apiClient, { pageSize: 100 }).then(result =>
+            result.rows.map(booking => ({ ...booking, status: booking.databaseStatus })),
+        )
     },
     { 
         key: 'subscriptions', 
@@ -42,7 +45,7 @@ const queries = [
     },
     { 
         key: 'scheduledSessions', 
-        fn: () => supabase.from('scheduled_sessions').select('id, booking_id, session_date, session_time, status').then(res => res.data || [])
+        fn: () => listScheduledSessions(apiClient)
     },
     { 
         key: 'serviceOrders', 

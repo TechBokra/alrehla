@@ -1,5 +1,5 @@
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { adminQueryKeys, useAdminMutation } from '@alrehla/admin-core';
 import { useToast } from '../../contexts/ToastContext';
 import {
     approveProduct as approveProductAction,
@@ -9,40 +9,43 @@ import {
 } from '../../actions/productActions';
 
 export const useProductMutations = () => {
-    const queryClient = useQueryClient();
     const { addToast } = useToast();
 
-    const createPersonalizedProduct = useMutation({
+    const createPersonalizedProduct = useAdminMutation({
+        resource: 'products',
         mutationFn: createPersonalizedProductAction,
+        invalidate: [adminQueryKeys.personalizedProducts()],
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['adminPersonalizedProducts'] });
             addToast('تم إنشاء المنتج بنجاح.', 'success');
         },
         onError: (err: Error) => addToast(`فشل إنشاء المنتج: ${err.message}`, 'error'),
     });
     
-    const updatePersonalizedProduct = useMutation({
+    const updatePersonalizedProduct = useAdminMutation({
+        resource: 'products',
         mutationFn: updatePersonalizedProductAction,
+        invalidate: [adminQueryKeys.personalizedProducts()],
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['adminPersonalizedProducts'] });
             addToast('تم تحديث المنتج بنجاح.', 'success');
         },
         onError: (err: Error) => addToast(`فشل تحديث المنتج: ${err.message}`, 'error'),
     });
 
-    const deletePersonalizedProduct = useMutation({
+    const deletePersonalizedProduct = useAdminMutation({
+        resource: 'products',
         mutationFn: (payload: { productId: number }) => deletePersonalizedProductAction(payload.productId),
+        invalidate: [adminQueryKeys.personalizedProducts()],
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['adminPersonalizedProducts'] });
             addToast('تم حذف المنتج بنجاح.', 'info');
         },
         onError: (err: Error) => addToast(`فشل حذف المنتج: ${err.message}`, 'error'),
     });
     
-    const approveProduct = useMutation({
+    const approveProduct = useAdminMutation({
+        resource: 'products',
         mutationFn: (payload: { productId: number, status: 'approved' | 'rejected' }) => approveProductAction(payload.productId, payload.status),
+        invalidate: [adminQueryKeys.personalizedProducts()],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['adminPersonalizedProducts'] });
             const msg = variables.status === 'approved' ? 'تمت الموافقة على المنتج ونشره.' : 'تم رفض المنتج.';
             addToast(msg, variables.status === 'approved' ? 'success' : 'info');
         },

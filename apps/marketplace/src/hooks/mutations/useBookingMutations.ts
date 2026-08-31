@@ -1,43 +1,68 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAppMutation } from '@alrehla/mutations';
+import { bookingKeys, sessionKeys } from '@alrehla/api-client/query-keys';
+import {
+    createBooking as createBookingResource,
+    updateBookingStatus as updateBookingStatusResource,
+} from '@alrehla/api-client/resources/bookings';
 import { useToast } from '../../contexts/ToastContext';
 import { bookingService } from '../../services/bookingService';
+import { apiClient } from '../../lib/supabase/client';
 import type { BookingStatus } from '../../lib/database.types';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const useBookingMutations = () => {
     const queryClient = useQueryClient();
     const { addToast } = useToast();
-    const { currentUser } = useAuth();
+    const { currentUser, currentChildProfile } = useAuth();
 
-    const createBooking = useMutation({
-        mutationFn: bookingService.createBooking,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['userAccountData', currentUser?.id] });
-            queryClient.invalidateQueries({ queryKey: ['studentDashboardData', currentUser?.id] });
+    const notifier = {
+        success: (message: string) => addToast(message, 'success'),
+        error: (message: string) => addToast(message, 'error'),
+    };
+
+    const createBooking = useAppMutation<any, any>({
+        mutationKey: ['bookings', 'create'],
+        mutationFn: (payload) => {
+            const userId = payload.userId || currentChildProfile?.user_id || currentUser?.id;
+            if (!userId) throw new Error('User not authenticated');
+            return createBookingResource(apiClient, {
+                userId,
+                childProfileId: payload.payload.child.id,
+                instructorId: payload.payload.instructor.id,
+                packageName: payload.payload.package.name,
+                bookingDate: payload.payload.dateTime.date,
+                bookingTime: payload.payload.dateTime.time,
+                receiptUrl: payload.receiptUrl || null,
+                expectedTotal: payload.payload.total,
+            });
         },
-         onError: (error: Error) => {
-            addToast(`فشل إنشاء الحجز: ${error.message}`, 'error');
-        }
+        invalidate: [
+            bookingKeys.lists(),
+            bookingKeys.availability(),
+            ['userAccountData', currentUser?.id],
+            ['studentDashboardData', currentUser?.id],
+        ],
+        notifier,
+        errorMessage: 'فشل إنشاء الحجز.',
     });
     
-    const updateBookingStatus = useMutation({
-        mutationFn: (payload: { bookingId: string, newStatus: BookingStatus }) => bookingService.updateBookingStatus(payload.bookingId, payload.newStatus),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['adminRawCwBookings'] });
-            addToast('تم تحديث حالة الحجز.', 'success');
-        },
-         onError: (error: Error) => {
-            addToast(`فشل تحديث الحالة: ${error.message}`, 'error');
-        }
+    const updateBookingStatus = useAppMutation<any, { bookingId: string, newStatus: BookingStatus }>({
+        mutationKey: ['bookings', 'update-status'],
+        mutationFn: (payload: { bookingId: string, newStatus: BookingStatus }) => updateBookingStatusResource(apiClient, payload.bookingId, payload.newStatus),
+        invalidate: [bookingKeys.lists(), bookingKeys.availability(), bookingKeys.sessions()],
+        notifier,
+        successMessage: 'تم تحديث حالة الحجز.',
+        errorMessage: 'فشل تحديث الحالة.',
     });
 
     const updateBookingProgressNotes = useMutation({
         mutationFn: (payload: { bookingId: string, notes: string }) => bookingService.updateBookingProgressNotes(payload.bookingId, payload.notes),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['adminRawCwBookings'] });
+            queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
             queryClient.invalidateQueries({
-                queryKey: ['trainingJourney', currentUser?.id, variables.bookingId],
+                queryKey: bookingKeys.detail(variables.bookingId),
             });
             addToast('تم حفظ ملاحظات التقدم بنجاح.', 'success');
         },
@@ -49,9 +74,9 @@ export const useBookingMutations = () => {
     // Added missing updateScheduledSession mutation for session reporting and rescheduling
     const updateScheduledSession = useMutation({
         mutationFn: (payload: { sessionId: string, updates: any }) => bookingService.updateScheduledSession(payload.sessionId, payload.updates),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['sessionDetails'] });
-            queryClient.invalidateQueries({ queryKey: ['adminScheduledSessions'] });
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: sessionKeys.detail(variables.sessionId) });
+            queryClient.invalidateQueries({ queryKey: bookingKeys.sessions() });
             queryClient.invalidateQueries({ queryKey: ['instructorData'] });
         },
         onError: (error: Error) => {
@@ -64,7 +89,7 @@ export const useBookingMutations = () => {
         onSuccess: (_, variables) => {
             // تحديث بيانات الرحلة فوراً لتظهر المسودة عند الجميع (تحديث الكاش)
             queryClient.invalidateQueries({
-                queryKey: ['trainingJourney', currentUser?.id, variables.bookingId],
+                queryKey: bookingKeys.detail(variables.bookingId),
             });
             // تحديث الاستعلامات الأخرى ذات الصلة لضمان التزامن
             queryClient.invalidateQueries({ queryKey: ['studentDashboardData'] });
@@ -83,7 +108,7 @@ export const useBookingMutations = () => {
         mutationFn: bookingService.sendSessionMessage,
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
-                queryKey: ['trainingJourney', currentUser?.id, variables.bookingId],
+                queryKey: bookingKeys.detail(variables.bookingId),
             });
         },
         onError: (error: Error) => {
@@ -95,7 +120,7 @@ export const useBookingMutations = () => {
         mutationFn: bookingService.uploadSessionAttachment,
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
-                queryKey: ['trainingJourney', currentUser?.id, variables.bookingId],
+                queryKey: bookingKeys.detail(variables.bookingId),
             });
             addToast('تم رفع الملف بنجاح.', 'success');
         },

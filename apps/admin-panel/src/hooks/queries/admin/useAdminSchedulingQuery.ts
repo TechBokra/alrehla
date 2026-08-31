@@ -1,22 +1,28 @@
 
 import { useQuery } from '@tanstack/react-query';
+import { bookingKeys } from '@alrehla/api-client/query-keys';
+import { listBookings, listScheduledSessions } from '@alrehla/api-client/resources/bookings';
 import { bookingService } from '../../../services/bookingService';
 import { userService } from '../../../services/userService';
 import { orderService } from '../../../services/orderService';
 import type { ScheduledSession } from '../../../lib/database.types';
+import { apiClient } from '../../../lib/supabaseClient';
 
 export const useAdminScheduledSessions = () => useQuery({
-    queryKey: ['adminScheduledSessions'],
+    queryKey: bookingKeys.sessions(),
     queryFn: async () => {
         const [sessions, instructors, children, bookingsResult, subscriptions] = await Promise.all([
-            bookingService.getAllScheduledSessions(),
+            listScheduledSessions(apiClient),
             bookingService.getAllInstructors(),
             userService.getAllChildProfiles(),
-            bookingService.getAllBookings(),
+            listBookings(apiClient, { pageSize: 100 }),
             orderService.getAllSubscriptions()
         ]);
 
-        const bookings = bookingsResult.bookings;
+        const bookings = bookingsResult.rows.map(booking => ({
+            ...booking,
+            status: booking.databaseStatus,
+        }));
 
         return sessions
             .map(session => {

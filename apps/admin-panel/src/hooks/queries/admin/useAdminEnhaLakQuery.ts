@@ -1,5 +1,6 @@
 
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { adminQueryKeys } from '@alrehla/admin-core';
 import { orderService } from '../../../services/orderService';
 import type { OrderWithRelations } from '../../../lib/database.types';
 
@@ -12,7 +13,7 @@ interface UseAdminOrdersOptions {
 
 export const useAdminOrders = (options: UseAdminOrdersOptions = {}) => {
     return useQuery({
-        queryKey: ['adminOrders', options],
+        queryKey: adminQueryKeys.orders(options),
         queryFn: async () => {
             const { orders, count } = await orderService.getAllOrders(options);
             return { orders: orders as OrderWithRelations[], count };
@@ -22,16 +23,16 @@ export const useAdminOrders = (options: UseAdminOrdersOptions = {}) => {
 };
 
 export const useAdminSubscriptions = () => useQuery({
-    queryKey: ['adminSubscriptions'],
+    queryKey: adminQueryKeys.subscriptions(),
     queryFn: () => orderService.getAllSubscriptions(),
 });
 
 export const useAdminSubscriptionPlans = () => useQuery({
-    queryKey: ['adminSubscriptionPlans'],
+    queryKey: adminQueryKeys.subscriptionPlans(),
     queryFn: () => orderService.getSubscriptionPlans(),
 });
 
 export const useAdminPersonalizedProducts = () => useQuery({
-    queryKey: ['adminPersonalizedProducts'],
+    queryKey: adminQueryKeys.personalizedProducts(),
     queryFn: () => orderService.getPersonalizedProducts(),
 });

@@ -1,16 +1,18 @@
 
 import { useQuery } from '@tanstack/react-query';
+import { bookingKeys } from '@alrehla/api-client/query-keys';
+import { getBookingAvailability } from '@alrehla/api-client/resources/bookings';
 import { publicService } from '../../../services/publicService';
-import { bookingService } from '../../../services/bookingService';
+import { apiClient } from '../../../lib/supabase/client';
 import type { PersonalizedProduct } from '@alrehla/types';
 
 export const useBookingData = () => {
     return useQuery({
-        queryKey: ['creativeWritingBookingData'],
+        queryKey: bookingKeys.availability(),
         queryFn: async () => {
             const [data, bookingsResult] = await Promise.all([
                 publicService.getCreativeWritingData(),
-                bookingService.getBookingAvailability()
+                getBookingAvailability(apiClient)
             ]);
             
             return {

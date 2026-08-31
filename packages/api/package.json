@@ -6,7 +6,6 @@
   "exports": {
     ".": "./src/index.ts",
     "./services/aiService": "./src/services/aiService.ts",
-    "./services/authService": "./src/services/authService.ts",
     "./services/bookingService": "./src/services/bookingService.ts",
     "./services/cloudinaryService": "./src/services/cloudinaryService.ts",
     "./services/communicationService": "./src/services/communicationService.ts",
@@ -28,7 +27,10 @@
     "./lib/supabaseClient": "./src/lib/supabaseClient.ts",
     "./lib/utils": "./src/lib/utils.ts",
     "./data/mockData": "./src/data/mockData.ts",
-    "./lib/tokenManager": "./src/lib/tokenManager.ts"
+    "./lib/tokenManager": "./src/lib/tokenManager.ts",
+    "./query-keys": "./src/query-keys/index.ts",
+    "./view-models/user": "./src/view-models/user.ts",
+    "./adapters/admin-user-row": "./src/adapters/admin-user-row.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -36,6 +38,7 @@
     "build": "tsc --noEmit"
   },
   "dependencies": {
+    "@alrehla/supabase": "workspace:*",
     "@alrehla/types": "workspace:*",
     "@alrehla/config": "workspace:*",
     "@alrehla/utils": "workspace:*",

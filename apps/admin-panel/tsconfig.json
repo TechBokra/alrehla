@@ -75,6 +75,24 @@
       ],
       "@alrehla/utils/*": [
         "../../packages/utils/src/*"
+      ],
+      "@alrehla/admin-core": [
+        "../../packages/admin-core/src/index.ts"
+      ],
+      "@alrehla/admin-core/*": [
+        "../../packages/admin-core/src/*"
+      ],
+      "@alrehla/forms": [
+        "../../packages/forms/src/index.ts"
+      ],
+      "@alrehla/forms/*": [
+        "../../packages/forms/src/*"
+      ],
+      "@alrehla/mutations": [
+        "../../packages/mutations/src/index.ts"
+      ],
+      "@alrehla/mutations/*": [
+        "../../packages/mutations/src/*"
       ]
     },
     "strictNullChecks": false

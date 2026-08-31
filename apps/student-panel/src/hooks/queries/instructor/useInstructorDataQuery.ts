@@ -1,10 +1,12 @@
 
 import { useQuery } from '@tanstack/react-query';
+import { getChildProfilesByIds } from '@alrehla/api-client/resources/auth';
+import { listBookings, listScheduledSessions } from '@alrehla/api-client/resources/bookings';
 import { useAuth } from '../../../contexts/AuthContext';
 import { bookingService } from '../../../services/bookingService';
 import { orderService } from '../../../services/orderService';
 import { userService } from '../../../services/userService';
-import { supabase } from '../../../lib/supabaseClient';
+import { apiClient, supabase } from '../../../lib/supabaseClient';
 import type { 
     Instructor, 
     CreativeWritingBooking, 
@@ -27,7 +29,14 @@ export const useInstructorData = () => {
             const currentInstructor = await bookingService.getInstructorByUserId(currentUser.id);
             if (!currentInstructor) return { instructor: null };
 
-            const allInstructorBookings = await bookingService.getInstructorBookings(currentInstructor.id);
+            const bookingResult = await listBookings(apiClient, {
+                instructorId: currentInstructor.id,
+                pageSize: 100,
+            });
+            const allInstructorBookings = bookingResult.rows.map(booking => ({
+                ...booking,
+                status: booking.databaseStatus,
+            })) as CreativeWritingBooking[];
             const instructorBookings = allInstructorBookings.filter(b => b.status !== 'ملغي');
             const bookingIds = instructorBookings.map(b => b.id);
             const childIds = [...new Set(instructorBookings.map(b => b.child_id).filter(Boolean))];
@@ -41,12 +50,8 @@ export const useInstructorData = () => {
                 instructorAttachments
             ] = await Promise.all([
                 bookingService.getAllPackages(),
-                bookingIds.length > 0
-                    ? supabase.from('scheduled_sessions').select('*').in('booking_id', bookingIds).then(res => res.data as ScheduledSession[] || [])
-                    : Promise.resolve([]),
-                childIds.length > 0
-                    ? supabase.from('child_profiles').select('*').in('id', childIds).then(res => res.data as ChildProfile[] || [])
-                    : Promise.resolve([]),
+                listScheduledSessions(apiClient, { instructorId: currentInstructor.id }),
+                getChildProfilesByIds(apiClient, childIds),
                 supabase.from('service_orders').select('*').eq('assigned_instructor_id', currentInstructor.id).then(res => res.data as ServiceOrder[] || []),
                 supabase.from('instructor_payouts').select('*').eq('instructor_id', currentInstructor.id).then(res => res.data as InstructorPayout[] || []),
                 bookingIds.length > 0

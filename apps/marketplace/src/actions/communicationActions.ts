@@ -1,6 +1,7 @@
 "use server";
 
 import { communicationService as apiCommunicationService } from '@alrehla/api/services/communicationService';
+import { getChildProfileById } from '@alrehla/api-client/resources/auth';
 import {
   joinRequestSchema,
   joinRequestStatusSchema,
@@ -79,14 +80,12 @@ export const sendNotification = async (
           context,
           sessionId,
         );
-        const { data: child, error } = await context.supabase
-          .from('child_profiles')
-          .select('user_id, student_user_id')
-          .eq('id', scheduledSession.child_id)
-          .maybeSingle();
+        const child = await getChildProfileById(
+          context.apiClient,
+          scheduledSession.child_id,
+        );
 
         if (
-          error ||
           !child ||
           ![(child as any).user_id, (child as any).student_user_id].includes(
             input.userId,

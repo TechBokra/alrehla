@@ -1,6 +1,9 @@
 export interface AppMutationErrorInit {
   message: string;
+  type?: string;
   code?: string;
+  status?: number;
+  details?: unknown;
   fieldErrors?: Record<string, string[]>;
   cause?: unknown;
 }
@@ -13,14 +16,20 @@ export const DEFAULT_MUTATION_ERROR_MESSAGE =
   'تعذر إكمال العملية. يرجى المحاولة مرة أخرى.';
 
 export class AppMutationError extends Error {
+  readonly type?: string;
   readonly code?: string;
+  readonly status?: number;
+  readonly details?: unknown;
   readonly fieldErrors?: Record<string, string[]>;
   readonly cause?: unknown;
 
-  constructor({ message, code, fieldErrors, cause }: AppMutationErrorInit) {
+  constructor({ message, type, code, status, details, fieldErrors, cause }: AppMutationErrorInit) {
     super(message);
     this.name = 'AppMutationError';
+    this.type = type;
     this.code = code;
+    this.status = status;
+    this.details = details;
     this.fieldErrors = fieldErrors;
     this.cause = cause;
   }
@@ -64,8 +73,14 @@ export const normalizeMutationError = (
 
   return new AppMutationError({
     cause: error,
+    type: isRecord(error) && typeof error.type === 'string' ? error.type : undefined,
     code: getCode(error),
+    status: isRecord(error) && typeof error.status === 'number' ? error.status : undefined,
+    details: isRecord(error) ? error.details : undefined,
     fieldErrors: getFieldErrors(error),
-    message: fallbackMessage,
+    message:
+      isRecord(error) && error.name === 'ApiError' && typeof error.message === 'string'
+        ? error.message
+        : fallbackMessage,
   });
 };

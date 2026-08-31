@@ -17,7 +17,8 @@ alrehla-workspace/
 │   ├── auth/             # Roles, permissions, RBAC helpers
 │   ├── types/            # Shared domain and generated database types
 │   ├── config/           # Shared constants and app configuration
-│   └── utils/            # Date, money, text, slug, validation helpers
+│   ├── utils/            # Date, money, text, slug, validation helpers
+│   └── admin-core/       # Admin resources, permissions, query keys, forms, and mutations
 ├── supabase/             # Reusable setup, seed, and Clerk SQL files
 ├── backups/              # Local migration backups, ignored by git
 ├── package.json
@@ -53,6 +54,7 @@ The student panel is a dedicated Next.js App Router application running on port 
 - `@alrehla/types`: generated Supabase database types and shared domain models.
 - `@alrehla/config`: shared constants, environment-backed config, and reusable seed/mock configuration.
 - `@alrehla/utils`: formatting, validation, pricing, Arabic text, date, and helper functions.
+- `@alrehla/admin-core`: backend-agnostic admin resource definitions, DataView state, URL/query coordination, and mutation integration.
 
 ## Environment Files
 

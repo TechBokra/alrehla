@@ -21,10 +21,14 @@ import { getPermissions, Permissions, type UserRole } from "../lib/roles";
 import type { ChildProfile, UserProfile } from "../lib/database.types";
 import { useToast } from "./ToastContext";
 import { useQueryClient } from "@tanstack/react-query";
-import { authService } from "../services/authService";
+import {
+  getChildProfiles,
+  getStudentProfileByProfileId,
+} from "@alrehla/api-client/resources/auth";
 import { syncCurrentClerkProfile } from "../actions/userActions";
 import type { AuthBootstrapState } from "../lib/auth-state";
 import {
+  apiClient,
   clearSupabaseAccessTokenProvider,
   setSupabaseAccessTokenProvider,
   syncSentryUserContext,
@@ -151,7 +155,7 @@ export const AuthProvider: React.FC<{
       resetSecondaryUserData();
 
       if (user.role === "student") {
-        const profile = await authService.getStudentProfile(user.id);
+        const profile = await getStudentProfileByProfileId(apiClient, user.id);
         setCurrentChildProfile(profile);
       } else if (
         [
@@ -163,7 +167,7 @@ export const AuthProvider: React.FC<{
           "publisher",
         ].includes(user.role)
       ) {
-        const children = await authService.getUserChildren(user.id);
+        const children = await getChildProfiles(apiClient, user.id);
         setChildProfiles(children || []);
       }
     } catch (e) {

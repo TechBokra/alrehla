@@ -1,7 +1,6 @@
 import { bookingService as sharedBookingService } from '@alrehla/api/services/bookingService';
 import { supabase } from '../lib/supabaseClient';
 import type {
-    CreativeWritingBooking,
     CreativeWritingPackage,
     Instructor,
 } from '../lib/database.types';
@@ -26,20 +25,6 @@ export const bookingService = {
         }
 
         return data as Instructor | null;
-    },
-
-    async getInstructorBookings(instructorId: number) {
-        const { data, error } = await supabase
-            .from('bookings')
-            .select('*, child_profiles:child_profiles!fk_bookings_child(id, name, avatar_url)')
-            .eq('instructor_id', instructorId)
-            .order('booking_date', { ascending: false });
-
-        if (error) {
-            throw instructorQueryError('تعذر تحميل حجوزات المدرب.');
-        }
-
-        return (data || []) as CreativeWritingBooking[];
     },
 
     async getAllPackages() {

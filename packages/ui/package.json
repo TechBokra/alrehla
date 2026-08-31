@@ -11,6 +11,7 @@
     "./components/data-display/*": "./src/components/data-display/*.tsx",
     "./components/forms/*": "./src/components/forms/*.tsx",
     "./components/auth/*": "./src/components/auth/*.tsx",
+    "./components/resource": "./src/components/resource/index.ts",
     "./auth": "./src/components/auth/index.ts",
     "./clerk-appearance": "./src/components/auth/clerk-appearance.ts",
     "./lib/utils": "./src/lib/utils.ts",
@@ -75,6 +76,7 @@
     "build": "tsc --noEmit"
   },
   "dependencies": {
+    "@alrehla/admin-core": "workspace:*",
     "@alrehla/utils": "workspace:*",
     "@sentry/react": "10.69.0",
     "@clerk/nextjs": "^7.5.17",

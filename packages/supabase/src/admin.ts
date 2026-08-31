@@ -4,6 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 
 import type { Database } from '@alrehla/types';
 
+declare const process: { env: Record<string, string | undefined> };
+
 /**
  * Secret-key client for verified webhooks and narrowly scoped trusted jobs.
  * Never import this module from a Client Component or ordinary user workflow.

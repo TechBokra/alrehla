@@ -1,7 +1,6 @@
 export * from './lib/supabaseClient';
 export * from './lib/api';
 export * from './services/aiService';
-export * from './services/authService';
 export * from './services/bookingService';
 export * from './services/cloudinaryService';
 export * from './services/communicationService';
@@ -15,3 +14,6 @@ export * from './services/reportingService';
 export * from './services/settingsService';
 export * from './services/storageService';
 export * from './services/userService';
+export * from './query-keys';
+export * from './view-models/user';
+export * from './adapters/admin-user-row';

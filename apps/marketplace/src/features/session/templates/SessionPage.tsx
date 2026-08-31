@@ -20,6 +20,8 @@ import { Textarea } from '@alrehla/ui/textarea';
 import Modal from '@alrehla/ui/modal';
 import FormField from '@alrehla/ui/form-field';
 import { bookingService } from '../../../services/bookingService';
+import { authorizeSessionJoin } from '@alrehla/api-client/resources/bookings';
+import { apiClient } from '../../../lib/supabase/client';
 import { useToast } from '../../../contexts/ToastContext';
 import { formatTime, formatDate } from '../../../utils/helpers';
 
@@ -136,7 +138,7 @@ const SessionPage: React.FC = () => {
         let cancelled = false;
         const validateAccess = async () => {
             try {
-                const access = await bookingService.authorizeSessionJoin(sessionId);
+                const access = await authorizeSessionJoin(apiClient, sessionId);
                 if (cancelled) return;
                 setRoomAccess(access);
                 const allowedAt = new Date(access.join_allowed_at);

@@ -1,6 +1,13 @@
 import 'server-only';
 
 import { auth } from '@clerk/nextjs/server';
+import { createServerApiClient, type ApiClient } from '@alrehla/api-client/server';
+import {
+  getBooking,
+  getChildProfileById,
+  getCurrentProfile,
+} from '@alrehla/api-client/resources';
+import { listScheduledSessions } from '@alrehla/api-client/resources/bookings';
 import {
   runWithSupabaseAccessTokenProvider,
   supabase,
@@ -47,6 +54,7 @@ export type MarketplaceActor = {
 
 export type ClerkActionContext = {
   clerkUserId: string;
+  apiClient: ApiClient;
   supabase: typeof supabase;
 };
 
@@ -129,11 +137,14 @@ export const withClerkSessionAction = async <T>(
       actionError('تعذر التحقق من جلسة تسجيل الدخول. أعد تسجيل الدخول وحاول مرة أخرى.');
     }
 
+    const apiClient = createServerApiClient({ accessToken: token });
+
     return await runWithSupabaseAccessTokenProvider(
       async () => token,
       () =>
         operation({
           clerkUserId: session.userId,
+          apiClient,
           supabase,
         }),
     );
@@ -148,29 +159,9 @@ export const withMarketplaceAction = async <T>(
   allowedRoles?: readonly UserRole[],
 ): Promise<T> =>
   withClerkSessionAction(actionName, async (context) => {
-    const { data: profileId, error: profileIdError } = await (context.supabase.rpc as any)(
-      'current_app_profile_id',
-    );
-
-    if (profileIdError || typeof profileId !== 'string' || !profileId) {
-      actionError('تعذر التحقق من ملف المستخدم المرتبط بجلسة Clerk.');
-    }
-
-    const { data, error } = await context.supabase
-      .from('profiles')
-      .select('id, clerk_user_id, email, role')
-      .eq('id', profileId)
-      .maybeSingle();
-
-    const profile = data as {
-      id?: string;
-      clerk_user_id?: string | null;
-      email?: string;
-      role?: string;
-    } | null;
+    const profile = await getCurrentProfile(context.apiClient);
 
     if (
-      error ||
       !profile?.id ||
       profile.clerk_user_id !== context.clerkUserId ||
       !profile.role ||
@@ -209,20 +200,9 @@ export const requireChildAccess = async (
   childId: number,
   options: { allowLinkedStudent?: boolean } = {},
 ) => {
-  const { data, error } = await context.supabase
-    .from('child_profiles')
-    .select('id, user_id, student_user_id, avatar_url')
-    .eq('id', childId)
-    .maybeSingle();
+  const child = await getChildProfileById(context.apiClient, childId);
 
-  const child = data as {
-    id: number;
-    user_id: string;
-    student_user_id?: string | null;
-    avatar_url?: string | null;
-  } | null;
-
-  if (error || !child) {
+  if (!child) {
     actionError('ملف الطفل غير موجود أو لا تملك صلاحية الوصول إليه.');
   }
 
@@ -281,21 +261,18 @@ export const requireBookingAccess = async (
   };
   relationship: BookingRelationship;
 }> => {
-  const { data, error } = await context.supabase
-    .from('bookings')
-    .select('id, user_id, child_id, instructor_id, status')
-    .eq('id', bookingId)
-    .maybeSingle();
+  const resource = await getBooking(context.apiClient, bookingId);
+  const booking = resource
+    ? {
+        id: resource.id,
+        user_id: resource.user_id,
+        child_id: resource.child_id,
+        instructor_id: resource.instructor_id,
+        status: resource.databaseStatus,
+      }
+    : null;
 
-  const booking = data as {
-    id: string;
-    user_id: string;
-    child_id: number;
-    instructor_id: number;
-    status: string;
-  } | null;
-
-  if (error || !booking) {
+  if (!booking) {
     actionError('الحجز غير موجود أو لا تملك صلاحية الوصول إليه.');
   }
 
@@ -336,20 +313,14 @@ export const requireScheduledSessionManager = async (
   context: MarketplaceActionContext,
   sessionId: string,
 ) => {
-  const { data, error } = await context.supabase
-    .from('scheduled_sessions')
-    .select('id, booking_id, child_id, instructor_id')
-    .eq('id', sessionId)
-    .maybeSingle();
-
-  const scheduledSession = data as {
+  const scheduledSession = (await listScheduledSessions(context.apiClient, { sessionId }))[0] as {
     id: string;
     booking_id?: string | null;
     child_id: number;
     instructor_id: number;
-  } | null;
+  } | undefined;
 
-  if (error || !scheduledSession) {
+  if (!scheduledSession) {
     actionError('الجلسة غير موجودة أو لا تملك صلاحية الوصول إليها.');
   }
 
