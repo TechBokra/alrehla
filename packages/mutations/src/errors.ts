@@ -71,6 +71,11 @@ export const normalizeMutationError = (
 ): AppMutationError => {
   if (error instanceof AppMutationError) return error;
 
+  const preserveMessage =
+    isRecord(error) &&
+    (error.name === 'ApiError' || error.name === 'ResourceContextError') &&
+    typeof error.message === 'string';
+
   return new AppMutationError({
     cause: error,
     type: isRecord(error) && typeof error.type === 'string' ? error.type : undefined,
@@ -78,9 +83,6 @@ export const normalizeMutationError = (
     status: isRecord(error) && typeof error.status === 'number' ? error.status : undefined,
     details: isRecord(error) ? error.details : undefined,
     fieldErrors: getFieldErrors(error),
-    message:
-      isRecord(error) && error.name === 'ApiError' && typeof error.message === 'string'
-        ? error.message
-        : fallbackMessage,
+    message: preserveMessage ? error.message as string : fallbackMessage,
   });
 };

@@ -1,73 +1,559 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import type { Table as TanStackTable } from '@tanstack/react-table';
 import { useDataViewUrlState } from '../data-view/url-state';
-import type { DataViewBulkAction } from '../data-view/contracts';
+import type {
+  DataTableBulkAction,
+  DataTableReorderConfig,
+  DataViewImportConfig,
+  DataViewImportExecutionContext,
+} from '../data-view/contracts';
+import { useAdminNavigation } from '../navigation';
 import { ResourceContext } from './context';
+import {
+  authorizationAllows,
+  useResourceAuthorization,
+} from './authorization';
+import { createMissingResourceScopeError, resolveResourceError } from './errors';
+import { useResourceExecutionContext } from './execution-context';
 import { createResourceActions, useResourceMutations } from './mutations';
 import { useResourceQuery } from './query';
-import type { ResourceDefinition, ResourceFormState, ResourcePendingState, ResourceProviderProps, ResourceDataViewAdapter } from './contracts';
-import { resolveResourceBulkActions, resolveResourceCapabilities, resolveResourcePagination } from './contracts';
+import type {
+  ResourceActions,
+  ResourceContextValue,
+  ResourceDataViewAdapter,
+  ResourceDefinition,
+  ResourceDensity,
+  ResourceFormPresentation,
+  ResourceFormState,
+  ResourceListResult,
+  ResourcePendingState,
+  ResourceProviderProps,
+  ResolvedResourceCapabilities,
+} from './contracts';
+import {
+  resolveResourceBulkActions,
+  resolveResourceCapabilities,
+  resolveResourcePagination,
+} from './contracts';
 
-function useBulkActions<TData, TCreateValues, TUpdateValues, TQueryRaw>(definition: ResourceDefinition<TData, TCreateValues, TUpdateValues, TQueryRaw>, capabilities: ReturnType<typeof resolveResourceCapabilities<TData, TCreateValues, TUpdateValues, TQueryRaw>>, actions: ReturnType<typeof createResourceActions<TData, TCreateValues, TUpdateValues, TQueryRaw>>, pending: ResourcePendingState, clearSelection: () => void) {
-  const resolved = resolveResourceBulkActions(definition, capabilities);
-  return React.useMemo<DataViewBulkAction<TData>[]>(() => {
-    const list: DataViewBulkAction<TData>[] = [...resolved.actions];
-    if (resolved.delete) list.unshift({ id: 'delete', label: 'حذف المحدد', variant: 'destructive', disabled: () => pending.delete || pending.deleteMany, execute: async (rows) => { await actions.deleteMany(rows); clearSelection(); } });
-    return list;
-  }, [actions, clearSelection, pending.delete, pending.deleteMany, resolved.actions, resolved.delete]);
+function resolvedFormMode(
+  definition:
+    | { mode?: ResourceFormPresentation; presentation?: ResourceFormPresentation }
+    | undefined,
+) {
+  return definition?.mode ?? definition?.presentation ?? 'dialog';
 }
 
-export function ResourceRuntimeProvider<TData, TCreateValues = never, TUpdateValues = never, TQueryRaw = import('./contracts').ResourceListResult<TData>>({ children, definition, notifier }: ResourceProviderProps<TData, TCreateValues, TUpdateValues, TQueryRaw>) {
+function createBulkActions<
+  TData,
+  TCreateInput,
+  TUpdateInput,
+  TQueryRaw,
+  TValue,
+  TImport,
+  TDeleteInput,
+>(
+  definition: ResourceDefinition<
+    TData,
+    TCreateInput,
+    TUpdateInput,
+    TQueryRaw,
+    TValue,
+    TImport,
+    TDeleteInput
+  >,
+  capabilities: ResolvedResourceCapabilities,
+  actions: ResourceActions<TData, TCreateInput, TUpdateInput>,
+  pending: ResourcePendingState,
+  authorization: ReturnType<typeof useResourceAuthorization>,
+): DataTableBulkAction<TData>[] {
+  const resolved = resolveResourceBulkActions(
+    definition,
+    capabilities,
+    {},
+    authorization,
+  );
+  const standard: DataTableBulkAction<TData>[] = [];
+
+  if (resolved.delete) {
+    standard.push({
+      id: 'delete',
+      label: 'حذف المحدد',
+      variant: 'destructive',
+      confirmation: {
+        resourceName: definition.metadata.pluralLabel ?? definition.metadata.label,
+      },
+      disabled: () => pending.delete || pending.deleteMany,
+      executeIds: (ids, loadedRows) =>
+        actions.deleteManyByIds
+          ? actions.deleteManyByIds(ids, loadedRows)
+          : actions.deleteMany(loadedRows),
+    });
+  }
+
+  return [...standard, ...resolved.actions];
+}
+
+function createImportConfig<
+  TData,
+  TCreateInput,
+  TUpdateInput,
+  TQueryRaw,
+  TValue,
+  TImport,
+  TDeleteInput,
+>(
+  definition: ResourceDefinition<
+    TData,
+    TCreateInput,
+    TUpdateInput,
+    TQueryRaw,
+    TValue,
+    TImport,
+    TDeleteInput
+  >,
+  actions: ResourceActions<TData, TCreateInput, TUpdateInput>,
+  enabled: boolean,
+): DataViewImportConfig<TImport> | undefined {
+  const importDefinition = definition.import;
+  if (!enabled || !importDefinition || importDefinition.enabled === false) {
+    return undefined;
+  }
+
+  return {
+    ...importDefinition.config,
+    execute: async (context: DataViewImportExecutionContext<TImport>) => {
+      const result = await actions.import(context.file);
+      return importDefinition.result?.(result, context);
+    },
+  };
+}
+
+function createDataViewReorder<
+  TData,
+  TCreateInput,
+  TUpdateInput,
+  TQueryRaw,
+  TValue,
+  TImport,
+  TDeleteInput,
+>(
+  definition: ResourceDefinition<
+    TData,
+    TCreateInput,
+    TUpdateInput,
+    TQueryRaw,
+    TValue,
+    TImport,
+    TDeleteInput
+  >,
+  actions: ResourceActions<TData, TCreateInput, TUpdateInput>,
+  enabled: boolean,
+): DataTableReorderConfig<TData> | undefined {
+  const reorder = definition.dataView.reorder;
+  if (!enabled || !reorder) return undefined;
+
+  return {
+    enabled: reorder.enabled !== false,
+    onReorder: async (rows, context) => {
+      const movedIndex = rows.findIndex(
+        (row) => String(definition.dataView.getRowId(row)) === context.activeId,
+      );
+      const movedRow = movedIndex >= 0 ? rows[movedIndex] : undefined;
+      await actions.reorder(
+        reorder.getPayload({
+          updatedItem: {
+            id: context.activeId,
+            parentId: movedRow ? (reorder.getParentId?.(movedRow) ?? null) : null,
+            index: Math.max(0, movedIndex),
+          },
+          rows,
+        }),
+      );
+    },
+  };
+}
+
+export function ResourceRuntimeProvider<
+  TData,
+  TCreateInput = unknown,
+  TUpdateInput = unknown,
+  TQueryRaw = ResourceListResult<TData>,
+  TValue = unknown,
+  TImport = Record<string, string>,
+  TDeleteInput = string,
+>({
+  children,
+  definition,
+  initialData,
+  defaultDensity = 'comfortable',
+  notifier,
+}: ResourceProviderProps<
+  TData,
+  TCreateInput,
+  TUpdateInput,
+  TQueryRaw,
+  TValue,
+  TImport,
+  TDeleteInput
+>) {
+  const execution = useResourceExecutionContext();
+  const authorization = useResourceAuthorization();
+  const navigation = useAdminNavigation();
   const pagination = resolveResourcePagination(definition);
+  const missingScopeError = definition.scope === 'scoped' && !execution?.scopeId
+    ? createMissingResourceScopeError(definition.metadata.name)
+    : null;
+  const urlStateDefinition = definition.dataView.urlState;
   const urlState = useDataViewUrlState({
-    ...(definition.dataView.urlState?.defaults ? { defaults: definition.dataView.urlState.defaults } : {}),
+    ...(urlStateDefinition?.defaults ? { defaults: urlStateDefinition.defaults } : {}),
     ...(definition.dataView.filters ? { filters: definition.dataView.filters } : {}),
     allowedPageSizes: [...pagination.pageSizeOptions],
-    ...(definition.dataView.urlState?.allowedSortIds ? { allowedSortIds: definition.dataView.urlState.allowedSortIds } : {}),
-    ...(definition.dataView.urlState?.persistenceKey ? { persistenceKey: definition.dataView.urlState.persistenceKey } : {}),
-    ...(definition.dataView.search?.debounceMs !== undefined ? { searchDebounceMs: definition.dataView.search.debounceMs } : {}),
+    ...(urlStateDefinition?.allowedSortIds
+      ? { allowedSortIds: urlStateDefinition.allowedSortIds }
+      : {}),
+    ...(urlStateDefinition?.persistenceKey
+      ? { persistenceKey: urlStateDefinition.persistenceKey }
+      : {}),
+    ...(definition.dataView.search?.debounceMs !== undefined
+      ? { searchDebounceMs: definition.dataView.search.debounceMs }
+      : {}),
+    preserveSelectionAcrossPages:
+      definition.dataView.selection?.preserveAcrossPages === true,
+    selectionScopeKey: `${definition.metadata.name}:${definition.scope ?? 'global'}:${execution?.scopeId ?? ''}`,
   });
-  const query = useResourceQuery(definition, urlState.state);
+  const query = useResourceQuery(definition, initialData, urlState.state);
   const mutations = useResourceMutations(definition, notifier);
-  const capabilities = resolveResourceCapabilities(definition);
-  const actions = React.useMemo(() => createResourceActions(definition, mutations), [definition, mutations]);
-  const [formState, setFormState] = React.useState<ResourceFormState<TData>>({ mode: 'closed' });
+  const capabilities = resolveResourceCapabilities(definition, {}, authorization);
+  const actions = React.useMemo(
+    () => createResourceActions(definition, mutations),
+    [definition, mutations],
+  );
+  const pending: ResourcePendingState = React.useMemo(
+    () => ({
+      create: mutations.createMutation.isPending,
+      update: mutations.updateMutation.isPending,
+      delete: mutations.deleteMutation.isPending,
+      deleteMany: mutations.deleteManyMutation.isPending,
+      reorder: mutations.reorderMutation.isPending,
+      import: mutations.importMutation.isPending,
+    }),
+    [
+      mutations.createMutation.isPending,
+      mutations.deleteManyMutation.isPending,
+      mutations.deleteMutation.isPending,
+      mutations.importMutation.isPending,
+      mutations.reorderMutation.isPending,
+      mutations.updateMutation.isPending,
+    ],
+  );
+  const errors = React.useMemo(
+    () => ({
+      create: resolveResourceError(mutations.createMutation.error, 'create', {
+        resourceLabel: definition.metadata.pluralLabel ?? definition.metadata.label,
+        singularLabel: definition.metadata.singularLabel,
+      }),
+      update: resolveResourceError(mutations.updateMutation.error, 'update', {
+        resourceLabel: definition.metadata.pluralLabel ?? definition.metadata.label,
+        singularLabel: definition.metadata.singularLabel,
+      }),
+      delete: resolveResourceError(mutations.deleteMutation.error, 'delete', {
+        resourceLabel: definition.metadata.pluralLabel ?? definition.metadata.label,
+        singularLabel: definition.metadata.singularLabel,
+      }),
+      deleteMany: resolveResourceError(mutations.deleteManyMutation.error, 'bulk', {
+        resourceLabel: definition.metadata.pluralLabel ?? definition.metadata.label,
+        singularLabel: definition.metadata.singularLabel,
+      }),
+      reorder: resolveResourceError(mutations.reorderMutation.error, 'update', {
+        resourceLabel: definition.metadata.pluralLabel ?? definition.metadata.label,
+        singularLabel: definition.metadata.singularLabel,
+      }),
+      import: resolveResourceError(mutations.importMutation.error, 'bulk', {
+        resourceLabel: definition.metadata.pluralLabel ?? definition.metadata.label,
+        singularLabel: definition.metadata.singularLabel,
+      }),
+    }),
+    [
+      definition.metadata.label,
+      definition.metadata.pluralLabel,
+      definition.metadata.singularLabel,
+      mutations.createMutation.error,
+      mutations.deleteManyMutation.error,
+      mutations.deleteMutation.error,
+      mutations.importMutation.error,
+      mutations.reorderMutation.error,
+      mutations.updateMutation.error,
+    ],
+  );
+  const [formState, setFormState] = React.useState<ResourceFormState<TData>>({
+    mode: 'closed',
+  });
   const [deleteRecord, setDeleteRecord] = React.useState<TData | null>(null);
   const [previewRecord, setPreviewRecord] = React.useState<TData | null>(null);
-  const [selectedRowsById, setSelectedRowsById] = React.useState<Record<string, TData>>({});
-  const [dataTable, setDataTable] = React.useState<import('@tanstack/react-table').Table<TData> | null>(null);
-  const [density, setDensity] = React.useState<import('./contracts').ResourceDensity>('comfortable');
-  const router = useRouter();
-  const pending: ResourcePendingState = { create: mutations.create.isPending, update: mutations.update.isPending, delete: mutations.delete.isPending, deleteMany: mutations.deleteMany.isPending };
-  const openForm = React.useCallback((mode: 'create' | 'update', record?: TData) => {
-    const form = definition.forms?.[mode];
-    if (!form) return;
-    if (form.mode === 'page' && form.href) { router.push(form.href({ mode, ...(record ? { record } : {}) })); return; }
-    setFormState(mode === 'update' && record ? { mode, record } : { mode: 'create' });
-  }, [definition.forms, router]);
-  const clearSelection = React.useCallback(() => urlState.setRowSelection({}), [urlState.setRowSelection]);
-  React.useEffect(() => {
-    const visibleRows = query.data?.rows ?? [];
-    setSelectedRowsById((current) => {
-      const next = { ...current };
-      let changed = false;
-      visibleRows.forEach((row) => {
-        const id = definition.dataView.getRowId(row);
-        if (urlState.state.rowSelection[id]) {
-          if (next[id] !== row) { next[id] = row; changed = true; }
-        } else if (id in next) {
-          delete next[id];
-          changed = true;
-        }
-      });
-      return changed ? next : current;
-    });
-  }, [definition.dataView.getRowId, query.data?.rows, urlState.state.rowSelection]);
-  const selectedRows = React.useMemo(() => Object.values(selectedRowsById), [selectedRowsById]);
-  const bulkActions = useBulkActions(definition, capabilities, actions, pending, clearSelection);
-  const dataView = React.useMemo<ResourceDataViewAdapter<TData>>(() => ({ data: query.data?.rows ?? [], state: urlState.state, rowCount: query.data?.count ?? 0, pageCount: Math.ceil((query.data?.count ?? 0) / urlState.state.pagination.pageSize), loading: query.isLoading, isRefetching: query.isFetching && !query.isLoading, error: query.error, onRetry: () => void query.refetch(), searchInput: urlState.searchInput, onSearchInputChange: urlState.setSearch, onFilterChange: urlState.setFilter, onFiltersReset: urlState.clearFilters, onPaginationChange: urlState.setPagination, onSortingChange: urlState.setSorting, onColumnVisibilityChange: urlState.setColumnVisibility, onColumnOrderChange: urlState.setColumnOrder, onRowSelectionChange: urlState.setRowSelection, selectedRows, bulkActions }), [bulkActions, query.data, query.error, query.isFetching, query.isLoading, query.refetch, selectedRows, urlState]);
-  const value = React.useMemo(() => ({ definition, capabilities, dataView, pending, actions, formState, deleteRecord, dataTable, density, setDensity, openCreate: () => openForm('create'), openUpdate: (record: TData) => openForm('update', record), closeForm: () => setFormState({ mode: 'closed' }), openDelete: (record: TData) => setDeleteRecord(record), closeDelete: () => setDeleteRecord(null), setDataTable, previewRecord, openPreview: (record: TData) => setPreviewRecord(record), closePreview: () => setPreviewRecord(null) }), [actions, capabilities, dataTable, dataView, deleteRecord, definition, density, formState, openForm, pending, previewRecord]);
-  return <ResourceContext.Provider value={value as never}>{children}</ResourceContext.Provider>;
+  const [dataTable, setDataTableState] = React.useState<TanStackTable<TData> | null>(null);
+  const [density, setDensity] = React.useState<ResourceDensity>(defaultDensity);
+
+  const onRowClick = React.useCallback(
+    (row: TData) => {
+      const href = definition.dataView.getRowHref?.(row);
+      if (href) navigation.push(href);
+    },
+    [definition.dataView, navigation],
+  );
+  const openForm = React.useCallback(
+    (mode: 'create' | 'update', record?: TData) => {
+      const formDefinition = definition.forms?.[mode];
+      if (!formDefinition) return;
+      if (resolvedFormMode(formDefinition) === 'page' && formDefinition.href) {
+        navigation.push(formDefinition.href({ mode, ...(record ? { record } : {}) }));
+        return;
+      }
+      setFormState(
+        mode === 'update' && record ? { mode, record } : { mode: 'create' },
+      );
+    },
+    [definition.forms, navigation],
+  );
+  const openCreate = React.useCallback(() => {
+    if (capabilities.create) openForm('create');
+  }, [capabilities.create, openForm]);
+  const openUpdate = React.useCallback(
+    (record: TData) => {
+      if (capabilities.update) openForm('update', record);
+    },
+    [capabilities.update, openForm],
+  );
+  const closeForm = React.useCallback(() => setFormState({ mode: 'closed' }), []);
+  const openDelete = React.useCallback(
+    (record: TData) => {
+      if (capabilities.delete) setDeleteRecord(record);
+    },
+    [capabilities.delete],
+  );
+  const closeDelete = React.useCallback(() => setDeleteRecord(null), []);
+  const openPreview = React.useCallback((record: TData) => setPreviewRecord(record), []);
+  const closePreview = React.useCallback(() => setPreviewRecord(null), []);
+  const setDataTable = React.useCallback((table: TanStackTable<TData> | null) => {
+    setDataTableState((current) => (current === table ? current : table));
+  }, []);
+
+  const selectedRowsById = React.useMemo(() => {
+    const rows = query.data?.rows ?? [];
+    const selectedIds = new Set(urlState.selection.executeIds);
+    return rows.reduce<Record<string, TData>>((result, row) => {
+      const id = definition.dataView.getRowId(row);
+      if (selectedIds.has(id)) result[id] = row;
+      return result;
+    }, {});
+  }, [definition.dataView, query.data?.rows, urlState.selection.executeIds]);
+  const selectedRows = React.useMemo(
+    () => Object.values(selectedRowsById),
+    [selectedRowsById],
+  );
+  const bulkActions = React.useMemo(
+    () => createBulkActions(definition, capabilities, actions, pending, authorization),
+    [actions, authorization, capabilities, definition, pending],
+  );
+  const importConfig = React.useMemo(
+    () => createImportConfig(definition, actions, capabilities.import),
+    [actions, capabilities.import, definition],
+  );
+  const dataViewReorder = React.useMemo(
+    () =>
+      createDataViewReorder(
+        definition,
+        actions,
+        authorizationAllows(definition.authorization?.update, authorization),
+      ),
+    [actions, authorization, definition],
+  );
+  const normalizedRows = query.data?.rows ?? [];
+  const queryRows = definition.dataView.transformRows
+    ? definition.dataView.transformRows(normalizedRows)
+    : normalizedRows;
+  const queryCount = query.data?.count ?? 0;
+  const dataView = React.useMemo<ResourceDataViewAdapter<TData, TValue, TImport>>(
+    () => ({
+      data: queryRows,
+      state: urlState.state,
+      selectionState: urlState.selection,
+      clearSelection: urlState.clearSelection,
+      setSelectedIds: urlState.setSelectedIds,
+      toggleSelection: urlState.toggleSelection,
+      removeSelectedIds: urlState.removeSelectedIds,
+      getRowId: definition.dataView.getRowId,
+      rowCount: queryCount,
+      pageCount: Math.ceil(queryCount / urlState.state.pagination.pageSize),
+      loading: query.isLoading,
+      isRefetching: query.isFetching && !query.isLoading,
+      error: query.data === undefined ? (missingScopeError ?? query.error) : null,
+      partialError: query.data !== undefined ? query.error : null,
+      errorState:
+        query.data === undefined
+          ? resolveResourceError(
+              missingScopeError ?? query.error,
+              missingScopeError ? 'execution_context' : 'query',
+              {
+              resourceLabel: definition.metadata.pluralLabel ?? definition.metadata.label,
+              singularLabel: definition.metadata.singularLabel,
+              },
+            )
+          : null,
+      partialErrorState:
+        query.data !== undefined
+          ? resolveResourceError(query.error, 'partial', {
+              resourceLabel: definition.metadata.pluralLabel ?? definition.metadata.label,
+              singularLabel: definition.metadata.singularLabel,
+            })
+          : null,
+      onRetry: () => void query.refetch(),
+      processingMode: definition.dataView.processingMode ?? 'server',
+      pageSizeOptions: pagination.pageSizeOptions,
+      search: definition.dataView.search,
+      searchInput: urlState.searchInput,
+      onSearchInputChange: urlState.setSearch,
+      onSearchChange: urlState.commitSearch,
+      filters: definition.dataView.filters ?? [],
+      onFilterChange: urlState.setFilter,
+      onFiltersReset: urlState.clearFilters,
+      onPaginationChange: urlState.setPagination,
+      onSortingChange: urlState.setSorting,
+      onColumnVisibilityChange: urlState.setColumnVisibility,
+      onColumnOrderChange: urlState.setColumnOrder,
+      onRowSelectionChange: urlState.setRowSelection,
+      onExpandedChange: urlState.setExpanded,
+      ...(definition.emptyState?.title ? { emptyTitle: definition.emptyState.title } : {}),
+      ...(definition.emptyState?.description
+        ? { emptyDescription: definition.emptyState.description }
+        : {}),
+      checkbox: definition.dataView.checkbox,
+      selection: definition.dataView.selection,
+      hierarchy: definition.dataView.hierarchy,
+      enableColumnOrdering: definition.dataView.enableColumnOrdering,
+      selectedRows,
+      bulkActions,
+      ...(importConfig ? { importConfig } : {}),
+      ...(definition.export ?? definition.dataView.exportConfig
+        ? { exportConfig: definition.export ?? definition.dataView.exportConfig }
+        : {}),
+      ...(dataViewReorder ? { reorder: dataViewReorder } : {}),
+      onTableReady: setDataTable,
+      density,
+      ...(definition.dataView.getRowHref ? { onRowClick } : {}),
+    }),
+    [
+      bulkActions,
+      dataViewReorder,
+      definition.dataView,
+      definition.export,
+      definition.metadata.label,
+      definition.metadata.pluralLabel,
+      definition.metadata.singularLabel,
+      density,
+      importConfig,
+      onRowClick,
+      pagination.pageSizeOptions,
+      query.data,
+      query.error,
+      missingScopeError,
+      query.isFetching,
+      query.isLoading,
+      query.refetch,
+      queryCount,
+      queryRows,
+      selectedRows,
+      setDataTable,
+      urlState,
+    ],
+  );
+  const legacyDelete = definition.mutations?.delete;
+  const mutationAdapters = React.useMemo(
+    () => ({
+      ...(legacyDelete
+        ? {
+            delete: {
+              isPending: pending.delete,
+              mutateAsync: (input: TDeleteInput) =>
+                mutations.deleteMutation.mutateAsync(input),
+              getInput: legacyDelete.getInput,
+              ...(legacyDelete.getLabel ? { getLabel: legacyDelete.getLabel } : {}),
+            },
+          }
+        : {}),
+    }),
+    [legacyDelete, mutations.deleteMutation, pending.delete],
+  );
+  const value = React.useMemo<
+    ResourceContextValue<
+      TData,
+      TCreateInput,
+      TUpdateInput,
+      TQueryRaw,
+      TValue,
+      TImport,
+      TDeleteInput
+    >
+  >(
+    () => ({
+      definition,
+      authorization,
+      capabilities,
+      dataView,
+      mutations: mutationAdapters,
+      actions,
+      pending,
+      errors,
+      formState,
+      deleteRecord,
+      dataTable,
+      density,
+      setDensity,
+      previewRecord,
+      openPreview,
+      closePreview,
+      openCreate,
+      openUpdate,
+      closeForm,
+      openDelete,
+      closeDelete,
+      setDataTable,
+    }),
+    [
+      actions,
+      authorization,
+      capabilities,
+      closeDelete,
+      closeForm,
+      closePreview,
+      dataTable,
+      dataView,
+      definition,
+      deleteRecord,
+      density,
+      errors,
+      formState,
+      mutationAdapters,
+      openCreate,
+      openDelete,
+      openPreview,
+      openUpdate,
+      pending,
+      previewRecord,
+      setDataTable,
+    ],
+  );
+
+  return (
+    <ResourceContext.Provider
+      value={value as unknown as ResourceContextValue<unknown>}
+    >
+      {children}
+    </ResourceContext.Provider>
+  );
 }
+
+export { useResourceMutations } from './mutations';
+export { useResourceQuery } from './query';

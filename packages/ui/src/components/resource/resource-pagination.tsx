@@ -5,7 +5,7 @@ import { Button } from '../ui/button';
 
 export function ResourcePagination() {
   const { dataView, definition } = useResource();
-  const pageSizeOptions = definition.dataView.pageSizeOptions ?? [5, 10, 20, 50, 100];
+  const pageSizeOptions = dataView.pageSizeOptions;
   const page = dataView.state.pagination.pageIndex + 1;
   const totalPages = Math.max(1, dataView.pageCount);
   if (totalPages <= 1 && dataView.rowCount <= dataView.state.pagination.pageSize) return null;

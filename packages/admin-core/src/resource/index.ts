@@ -1,4 +1,7 @@
 export * from './contracts';
+export * from './authorization';
+export * from './cache';
+export * from './errors';
 export * from './context';
 export * from './execution-context';
 export * from './mutations';

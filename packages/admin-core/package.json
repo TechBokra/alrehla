@@ -6,28 +6,45 @@
   "exports": {
     ".": "./src/index.ts",
     "./data-view": "./src/data-view/index.ts",
+    "./data-view/*": "./src/data-view/*.ts",
+    "./data-view/url-state": "./src/data-view/url-state.tsx",
+    "./navigation": "./src/navigation/index.ts",
+    "./navigation/context": "./src/navigation/context.tsx",
     "./resource": "./src/resource/index.ts",
+    "./resource/*": "./src/resource/*.ts",
+    "./resource/authorization": "./src/resource/authorization.tsx",
+    "./resource/context": "./src/resource/context.tsx",
+    "./resource/execution-context": "./src/resource/execution-context.tsx",
+    "./resource/provider": "./src/resource/provider.tsx",
+    "./resource/runtime": "./src/resource/runtime.tsx",
+    "./resource/contracts/*": "./src/resource/contracts/*.ts",
+    "./testing": "./src/testing/index.ts",
     "./mutations": "./src/mutations.ts",
     "./query-keys": "./src/query-keys.ts",
-    "./resources": "./src/resources.ts",
     "./types": "./src/types.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "build": "tsc --noEmit"
+    "build": "tsc --noEmit",
+    "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
-    "@alrehla/auth": "workspace:*",
     "@alrehla/mutations": "workspace:*",
     "@tanstack/react-query": "^5.56.0",
     "@tanstack/react-table": "^8.21.3"
   },
   "peerDependencies": {
-    "next": ">=14",
     "react": ">=18"
   },
   "devDependencies": {
-    "typescript": "^5.5.3"
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^22.13.4",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "eslint": "^9.39.5",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.5.3",
+    "vitest": "^3.2.7"
   }
 }

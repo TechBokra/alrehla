@@ -6,10 +6,11 @@ import type { AdminUserRow } from '@alrehla/api/view-models/user';
 import { bulkDeleteUsers } from '../../../actions/userActions';
 import { userColumns } from '../columns/user-columns';
 import { toUserRow } from '../adapters/user-row';
-import { userListParams, userListQuery, userListQueryKey } from '../api/queries';
+import { userListQuery, userListQueryKey } from '../api/queries';
 import { USER_DATA_VIEW_FILTERS } from './user-filters';
 
 export const userResource = defineResource<AdminUserRow, never, never, Awaited<ReturnType<typeof userListQuery>>>({
+  scope: 'global',
   metadata: {
     name: 'users',
     label: 'المستخدمون',
@@ -18,6 +19,13 @@ export const userResource = defineResource<AdminUserRow, never, never, Awaited<R
     description: 'إدارة حسابات العملاء والطلاب والموظفين ودور النشر.',
   },
   capabilities: { create: true, update: true, delete: true, selection: true, bulkActions: true, export: false },
+  authorization: {
+    read: 'canManageUsers',
+    create: 'canManageUsers',
+    update: 'canManageUsers',
+    delete: 'canManageUsers',
+    bulkActions: 'canManageUsers',
+  },
   query: {
     queryKey: ({ state }) => userListQueryKey(state),
     queryFn: ({ state }) => userListQuery(state),
@@ -41,6 +49,7 @@ export const userResource = defineResource<AdminUserRow, never, never, Awaited<R
       successMessage: 'تم حذف المستخدمين والبيانات المرتبطة بهم بنجاح.',
       errorMessage: 'فشل حذف المستخدمين.',
       getInput: (rows) => rows.map((row) => row.id),
+      getInputFromIds: (ids) => ids,
     },
   },
   dataView: {

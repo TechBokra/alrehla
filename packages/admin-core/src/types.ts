@@ -1,30 +1,6 @@
-import type { Permissions, UserRole } from '@alrehla/auth';
-
-export type AdminPermission = keyof Permissions;
-
-export type AdminResourceId =
-  | 'dashboard'
-  | 'users'
-  | 'instructors'
-  | 'orders'
-  | 'products'
-  | 'subscriptions'
-  | 'bookings'
-  | 'service-orders'
-  | 'publisher-products'
-  | 'publisher-financials'
-  | 'content'
-  | 'blog'
-  | 'support'
-  | 'join-requests'
-  | 'financials'
-  | 'settings'
-  | 'system-config'
-  | 'audit-log'
-  | 'database-inspector'
-  | 'integrations'
-  | 'notifications'
-  | 'my-profile';
+/** Generic resource identifiers. Domain catalogs belong in applications. */
+export type AdminResourceId = string;
+export type AdminPermission = string;
 
 export interface AdminResourceDefinition {
   id: AdminResourceId;
@@ -37,6 +13,6 @@ export type AdminQueryKey = readonly [string, ...ReadonlyArray<unknown>];
 
 export interface AdminSession {
   userId: string;
-  role: UserRole;
-  permissions: Permissions;
+  role: string;
+  permissions: Readonly<Record<string, boolean>>;
 }

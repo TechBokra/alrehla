@@ -1,10 +1,26 @@
 'use client';
 
 import * as React from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import type { ColumnOrderState, PaginationState, RowSelectionState, SortingState, VisibilityState } from '@tanstack/react-table';
-import { createDataViewState, normalizeDataViewFilterValue } from './state';
-import type { DataViewFilterDefinition, DataViewFilterValue, DataViewState } from './contracts';
+import type {
+  ColumnOrderState,
+  ExpandedState,
+  PaginationState,
+  RowSelectionState,
+  SortingState,
+  VisibilityState,
+} from '@tanstack/react-table';
+import { useAdminLocation, useAdminNavigation } from '../navigation';
+import type {
+  DataViewFilterDefinition,
+  DataViewFilterValue,
+  DataViewState,
+  ResourceSelection,
+} from './contracts';
+import {
+  createDataViewState,
+  createResourceSelection,
+  normalizeDataViewFilterValue,
+} from './state';
 
 export interface UseDataViewUrlStateOptions {
   defaults?: {
@@ -20,6 +36,9 @@ export interface UseDataViewUrlStateOptions {
   allowedSortIds?: readonly string[];
   searchDebounceMs?: number;
   persistenceKey?: string;
+  preserveSelectionAcrossPages?: boolean;
+  /** Resets ephemeral selection when a Resource or scope boundary changes. */
+  selectionScopeKey?: string;
 }
 
 const positiveInteger = (value: string | null, fallback: number) => {
@@ -27,105 +46,291 @@ const positiveInteger = (value: string | null, fallback: number) => {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 };
 
-const parseFilter = (definition: DataViewFilterDefinition, value: string | null): DataViewFilterValue | undefined => {
+function rangeParts(value: string): { from?: string; to?: string } {
+  const separator = value.indexOf('..');
+  if (separator < 0) return value ? { from: value } : {};
+  const from = value.slice(0, separator);
+  const to = value.slice(separator + 2);
+  return { ...(from ? { from } : {}), ...(to ? { to } : {}) };
+}
+
+function parseFilter(
+  definition: DataViewFilterDefinition,
+  value: string | null,
+): DataViewFilterValue | undefined {
   if (value === null || value === '') return undefined;
   if (definition.type === 'multi-select') return normalizeDataViewFilterValue(value.split(','));
-  if (definition.type === 'boolean') return value === 'true' ? true : value === 'false' ? false : undefined;
+  if (definition.type === 'boolean') {
+    return value === 'true' ? true : value === 'false' ? false : undefined;
+  }
   if (definition.type === 'number') {
-    const number = Number(value);
-    return Number.isFinite(number) ? number : undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  if (definition.type === 'number-range') {
+    const range = rangeParts(value);
+    const from = range.from === undefined ? undefined : Number(range.from);
+    const to = range.to === undefined ? undefined : Number(range.to);
+    return normalizeDataViewFilterValue({
+      ...(from !== undefined && Number.isFinite(from) ? { from } : {}),
+      ...(to !== undefined && Number.isFinite(to) ? { to } : {}),
+    });
+  }
+  if (definition.type === 'date-range') {
+    return normalizeDataViewFilterValue(rangeParts(value));
   }
   return normalizeDataViewFilterValue(value);
-};
+}
 
-const serializeFilter = (value: DataViewFilterValue | undefined) => {
+function serializeFilter(value: DataViewFilterValue | undefined) {
   const normalized = normalizeDataViewFilterValue(value);
   if (normalized === undefined) return null;
   if (Array.isArray(normalized)) return normalized.join(',');
-  if (typeof normalized === 'object' && normalized !== null) return `${normalized.from ?? ''}..${normalized.to ?? ''}`;
+  if (typeof normalized === 'object' && normalized !== null) {
+    return `${normalized.from ?? ''}..${normalized.to ?? ''}`;
+  }
   return String(normalized);
-};
+}
 
 export function useDataViewUrlState(options: UseDataViewUrlStateOptions = {}) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const navigation = useAdminNavigation();
+  const { pathname, searchParams } = useAdminLocation();
   const defaults = options.defaults ?? {};
   const defaultPage = Math.max(1, defaults.page ?? 1);
-  const defaultPageSize = Math.max(1, defaults.pageSize ?? DEFAULT_PAGE_SIZE);
-  const allowedPageSizes = options.allowedPageSizes ?? [5, 10, 20, 50, 100];
+  const defaultPageSize = Math.max(1, defaults.pageSize ?? 20);
+  const allowedPageSizes = options.allowedPageSizes ?? [10, 20, 30, 50, 100];
+  const debounceMs = Math.max(0, options.searchDebounceMs ?? 300);
   const committedSearch = searchParams.get('q')?.trim() ?? '';
   const [searchInput, setSearchInput] = React.useState(committedSearch);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(defaults.columnVisibility ?? {});
-  const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>(defaults.columnOrder ?? []);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(
+    defaults.columnVisibility ?? {},
+  );
+  const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>(
+    defaults.columnOrder ?? [],
+  );
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const [expanded, setExpanded] = React.useState<ExpandedState>({});
+  const hydratedPersistenceKey = React.useRef<string | null>(null);
+  const previousSelectionScopeKey = React.useRef(options.selectionScopeKey);
+  const clearSelection = React.useCallback(() => setRowSelection({}), []);
 
-  const updateUrl = React.useCallback((values: Record<string, string | number | null | undefined>, history: 'push' | 'replace' = 'replace') => {
-    const next = new URLSearchParams(Array.from(searchParams.entries()) as Array<[string, string]>);
-    Object.entries(values).forEach(([key, value]) => value === null || value === undefined || value === '' ? next.delete(key) : next.set(key, String(value)));
+  const updateUrl = React.useCallback((
+    values: Record<string, string | number | null | undefined>,
+    history: 'push' | 'replace' = 'replace',
+  ) => {
+    const next = new URLSearchParams(searchParams.toString());
+    Object.entries(values).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === '') next.delete(key);
+      else next.set(key, String(value));
+    });
     const query = next.toString();
-    router[history](query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [pathname, router, searchParams]);
+    navigation[history](query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [navigation, pathname, searchParams]);
 
   React.useEffect(() => setSearchInput(committedSearch), [committedSearch]);
   React.useEffect(() => {
-    const debounceMs = Math.max(0, options.searchDebounceMs ?? 300);
     if (searchInput.trim() === committedSearch) return;
-    const timer = window.setTimeout(() => updateUrl({ q: searchInput.trim() || null, page: 1 }), debounceMs);
+    const timer = window.setTimeout(() => {
+      clearSelection();
+      updateUrl({ q: searchInput.trim() || null, page: 1 });
+    }, debounceMs);
     return () => window.clearTimeout(timer);
-  }, [committedSearch, options.searchDebounceMs, searchInput, updateUrl]);
+  }, [clearSelection, committedSearch, debounceMs, searchInput, updateUrl]);
 
   React.useEffect(() => {
-    if (!options.persistenceKey) return;
-    try {
-      const saved = window.localStorage.getItem(options.persistenceKey);
-      if (!saved) return;
-      const parsed = JSON.parse(saved) as { columnVisibility?: VisibilityState; columnOrder?: ColumnOrderState };
-      if (parsed.columnVisibility) setColumnVisibility(parsed.columnVisibility);
-      if (parsed.columnOrder) setColumnOrder(parsed.columnOrder);
-    } catch {
-      // Local persistence is optional and must never make a resource unusable.
-    }
-  }, [options.persistenceKey]);
+    if (previousSelectionScopeKey.current === options.selectionScopeKey) return;
+    previousSelectionScopeKey.current = options.selectionScopeKey;
+    clearSelection();
+  }, [clearSelection, options.selectionScopeKey]);
+
   React.useEffect(() => {
-    if (options.persistenceKey) window.localStorage.setItem(options.persistenceKey, JSON.stringify({ columnVisibility, columnOrder }));
+    const key = options.persistenceKey;
+    if (!key) {
+      hydratedPersistenceKey.current = null;
+      return;
+    }
+    hydratedPersistenceKey.current = null;
+    let timer: number | undefined;
+    try {
+      const saved = window.localStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved) as {
+          columnVisibility?: VisibilityState;
+          columnOrder?: ColumnOrderState;
+        };
+        timer = window.setTimeout(() => {
+          if (parsed.columnVisibility) setColumnVisibility(parsed.columnVisibility);
+          if (parsed.columnOrder) setColumnOrder(parsed.columnOrder);
+          hydratedPersistenceKey.current = key;
+        }, 0);
+      } else hydratedPersistenceKey.current = key;
+    } catch {
+      hydratedPersistenceKey.current = key;
+    }
+    return () => {
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [options.persistenceKey]);
+
+  React.useEffect(() => {
+    const key = options.persistenceKey;
+    if (!key || hydratedPersistenceKey.current !== key) return;
+    try {
+      window.localStorage.setItem(key, JSON.stringify({ columnVisibility, columnOrder }));
+    } catch {
+      // Persistence is optional and cannot make a Resource unusable.
+    }
   }, [columnOrder, columnVisibility, options.persistenceKey]);
 
   const pageSizeFromUrl = positiveInteger(searchParams.get('pageSize'), defaultPageSize);
-  const pageSize = allowedPageSizes.includes(pageSizeFromUrl) ? pageSizeFromUrl : defaultPageSize;
-  const pagination = React.useMemo<PaginationState>(() => ({ pageIndex: positiveInteger(searchParams.get('page'), defaultPage) - 1, pageSize }), [defaultPage, pageSize, searchParams]);
+  const pageSize = allowedPageSizes.includes(pageSizeFromUrl)
+    ? pageSizeFromUrl
+    : defaultPageSize;
+  const pagination = React.useMemo<PaginationState>(() => ({
+    pageIndex: positiveInteger(searchParams.get('page'), defaultPage) - 1,
+    pageSize,
+  }), [defaultPage, pageSize, searchParams]);
+  const rawSort = searchParams.get('sort') ?? '';
   const sorting = React.useMemo<SortingState>(() => {
-    const rawSort = searchParams.get('sort') ?? '';
     if (!rawSort) return defaults.sorting ?? [];
     const desc = rawSort.startsWith('-');
     const id = desc ? rawSort.slice(1) : rawSort;
-    if (!id || (options.allowedSortIds && !options.allowedSortIds.includes(id))) return defaults.sorting ?? [];
+    if (!id || (options.allowedSortIds && !options.allowedSortIds.includes(id))) {
+      return defaults.sorting ?? [];
+    }
     return [{ id, desc }];
-  }, [defaults.sorting, options.allowedSortIds, searchParams]);
+  }, [defaults.sorting, options.allowedSortIds, rawSort]);
   const filters = React.useMemo(() => {
-    const parsed = (options.filters ?? []).flatMap((definition) => {
-      const value = parseFilter(definition, searchParams.get(definition.parameter ?? definition.id));
+    const entries = (options.filters ?? []).flatMap((definition) => {
+      const value = parseFilter(
+        definition,
+        searchParams.get(definition.parameter ?? definition.id),
+      );
       return value === undefined ? [] : [[definition.id, value] as const];
     });
-    return { ...(defaults.filters ?? {}), ...Object.fromEntries(parsed) };
+    return { ...(defaults.filters ?? {}), ...Object.fromEntries(entries) };
   }, [defaults.filters, options.filters, searchParams]);
-  const state = React.useMemo<DataViewState>(() => createDataViewState({ search: committedSearch, filters, sorting, pagination, columnVisibility, columnOrder, rowSelection }), [columnOrder, columnVisibility, committedSearch, filters, pagination, rowSelection, sorting]);
 
-  const setPagination = React.useCallback((next: PaginationState) => updateUrl({ page: next.pageSize === pagination.pageSize ? next.pageIndex + 1 : 1, pageSize: next.pageSize }, 'push'), [pagination.pageSize, updateUrl]);
+  const previousQuerySignature = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    const signature = JSON.stringify({
+      search: committedSearch,
+      filters,
+      ...(options.preserveSelectionAcrossPages !== true
+        ? { page: pagination.pageIndex, pageSize: pagination.pageSize }
+        : {}),
+    });
+    if (previousQuerySignature.current === null) {
+      previousQuerySignature.current = signature;
+      return;
+    }
+    if (previousQuerySignature.current !== signature) {
+      previousQuerySignature.current = signature;
+      clearSelection();
+    }
+  }, [
+    clearSelection,
+    committedSearch,
+    filters,
+    options.preserveSelectionAcrossPages,
+    pagination.pageIndex,
+    pagination.pageSize,
+  ]);
+
+  const state = React.useMemo<DataViewState>(() => createDataViewState({
+    search: committedSearch,
+    filters,
+    sorting,
+    pagination,
+    columnVisibility,
+    columnOrder,
+    rowSelection,
+    expanded,
+  }), [
+    columnOrder,
+    columnVisibility,
+    committedSearch,
+    expanded,
+    filters,
+    pagination,
+    rowSelection,
+    sorting,
+  ]);
+
+  const setPagination = React.useCallback((next: PaginationState) => {
+    const sizeChanged = next.pageSize !== pagination.pageSize;
+    if (options.preserveSelectionAcrossPages !== true) clearSelection();
+    updateUrl({ page: sizeChanged ? 1 : next.pageIndex + 1, pageSize: next.pageSize }, 'push');
+  }, [clearSelection, options.preserveSelectionAcrossPages, pagination.pageSize, updateUrl]);
   const setSorting = React.useCallback((next: SortingState) => {
     const first = next[0];
+    clearSelection();
     updateUrl({ sort: first ? `${first.desc ? '-' : ''}${first.id}` : null, page: 1 });
-  }, [updateUrl]);
+  }, [clearSelection, updateUrl]);
   const setFilter = React.useCallback((id: string, value: DataViewFilterValue | undefined) => {
-    const definition = options.filters?.find((item) => item.id === id);
+    const definition = options.filters?.find((candidate) => candidate.id === id);
+    clearSelection();
     updateUrl({ [definition?.parameter ?? id]: serializeFilter(value), page: 1 });
-  }, [options.filters, updateUrl]);
+  }, [clearSelection, options.filters, updateUrl]);
   const clearFilters = React.useCallback(() => {
-    updateUrl({ q: null, page: 1, ...Object.fromEntries((options.filters ?? []).map((definition) => [definition.parameter ?? definition.id, null])) });
+    clearSelection();
+    updateUrl({
+      q: null,
+      page: 1,
+      ...Object.fromEntries(
+        (options.filters ?? []).map((definition) => [definition.parameter ?? definition.id, null]),
+      ),
+    });
     setSearchInput('');
-  }, [options.filters, updateUrl]);
+  }, [clearSelection, options.filters, updateUrl]);
+  const commitSearch = React.useCallback((value: string) => {
+    clearSelection();
+    setSearchInput(value);
+    updateUrl({ q: value.trim() || null, page: 1 });
+  }, [clearSelection, updateUrl]);
+  const setSelectedIds = React.useCallback((ids: string[]) => {
+    const unique = [...new Set(ids.filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    setRowSelection(Object.fromEntries(unique.map((id) => [id, true])));
+  }, []);
+  const toggleSelection = React.useCallback((id: string, selected?: boolean) => {
+    if (!id) return;
+    setRowSelection((current) => {
+      const next = { ...current };
+      const shouldSelect = selected ?? !Boolean(next[id]);
+      if (shouldSelect) next[id] = true;
+      else delete next[id];
+      return next;
+    });
+  }, []);
+  const removeSelectedIds = React.useCallback((ids: string[]) => {
+    const removals = new Set(ids);
+    setRowSelection((current) => Object.fromEntries(
+      Object.entries(current).filter(([id, selected]) => Boolean(selected) && !removals.has(id)),
+    ));
+  }, []);
+  const selection = React.useMemo<ResourceSelection>(
+    () => createResourceSelection(rowSelection),
+    [rowSelection],
+  );
 
-  return { state, searchInput, setSearch: setSearchInput, commitSearch: (value: string) => { setSearchInput(value); updateUrl({ q: value.trim() || null, page: 1 }); }, setFilter, clearFilters, setPagination, setSorting, setColumnVisibility, setColumnOrder, setRowSelection, updateUrl };
+  return {
+    state,
+    searchInput,
+    setSearch: setSearchInput,
+    commitSearch,
+    setFilter,
+    clearFilters,
+    setPagination,
+    setSorting,
+    setColumnVisibility,
+    setColumnOrder,
+    setRowSelection,
+    selection,
+    clearSelection,
+    setSelectedIds,
+    toggleSelection,
+    removeSelectedIds,
+    setExpanded,
+    updateUrl,
+  };
 }
-
-const DEFAULT_PAGE_SIZE = 10;

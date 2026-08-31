@@ -3,6 +3,8 @@
 import {
   useMutation,
   useQueryClient,
+  type QueryClient,
+  type MutationFunctionContext,
   type MutationKey,
   type MutationMeta,
 } from '@tanstack/react-query';
@@ -19,13 +21,21 @@ export interface MutationNotifier {
 }
 
 export interface AppMutationOptions<TData, TVariables> {
-  mutationFn: (variables: TVariables) => Promise<TData> | TData;
+  mutationFn: (
+    variables: TVariables,
+    context: MutationFunctionContext,
+  ) => Promise<TData> | TData;
   invalidate?: MutationInvalidateConfig<TData, TVariables>;
   mutationKey?: MutationKey;
   meta?: MutationMeta;
   successMessage?: string;
   errorMessage?: string;
   notifier?: MutationNotifier;
+  updateCache?: (
+    data: TData,
+    variables: TVariables,
+    queryClient: QueryClient,
+  ) => void | Promise<void>;
   onSuccess?: (data: TData, variables: TVariables) => void | Promise<void>;
   onError?: (error: AppMutationError, variables: TVariables) => void | Promise<void>;
   onSettled?: (
@@ -55,14 +65,15 @@ export const useAppMutation = <TData, TVariables = void>(
     onSettled,
     onSuccess,
     successMessage,
+    updateCache,
   } = options;
 
   return useMutation<TData, AppMutationError, TVariables>({
     meta,
     mutationKey,
-    mutationFn: async (variables) => {
+    mutationFn: async (variables, context) => {
       try {
-        return await mutationFn(variables);
+        return await mutationFn(variables, context);
       } catch (error) {
         throw normalizeMutationError(error, { fallbackMessage: errorMessage });
       }
@@ -75,6 +86,7 @@ export const useAppMutation = <TData, TVariables = void>(
       await onSettled?.(data, error, variables);
     },
     onSuccess: async (data, variables) => {
+      await updateCache?.(data, variables, queryClient);
       await invalidateQueryKeys(
         queryClient,
         resolveInvalidationKeys(invalidate, data, variables),

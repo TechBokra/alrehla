@@ -3,7 +3,7 @@
 import { useResource } from '@alrehla/admin-core/resource';
 
 export function ResourceFormHost() {
-  const { definition, formState, closeForm, actions, pending } = useResource<any, any, any>();
+  const { definition, formState, closeForm, actions, pending } = useResource<unknown, unknown, unknown>();
   if (formState.mode === 'closed') return null;
   const form = definition.forms?.[formState.mode];
   if (!form || form.mode === 'page' || !form.component) return null;
