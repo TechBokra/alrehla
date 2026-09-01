@@ -8,6 +8,7 @@ import type {
   ResourceProviderProps,
 } from '@alrehla/admin-core/resource';
 import { cn } from '../../lib/utils';
+import { DataViewPresentationProvider } from '../data-view/presentation-provider';
 
 export interface ResourcePageProps<
   TData = unknown,
@@ -61,9 +62,9 @@ export function ResourcePage<
 >) {
   return (
     <ResourceProvider definition={resource} {...providerProps}>
-      <div className={cn('mx-auto w-full max-w-7xl space-y-6', className)}>
-        {children}
-      </div>
+      <DataViewPresentationProvider>
+        <div className={cn('mx-auto w-full max-w-7xl space-y-6', className)}>{children}</div>
+      </DataViewPresentationProvider>
     </ResourceProvider>
   );
 }

@@ -78,6 +78,38 @@ export type DataViewViewId =
   | 'calendar'
   | (string & {});
 
+export interface DataViewViewsConfig {
+  default?: DataViewViewId;
+  available?: readonly DataViewViewId[];
+}
+
+export type DataViewCalendarMode = 'month' | 'week' | 'day' | 'agenda';
+export type DataViewCalendarLocale = 'ar' | 'en';
+export type DataViewCalendarDirection = 'rtl' | 'ltr';
+
+export interface DataViewCalendarEvent {
+  id: string;
+  title: string;
+  start: Date | string;
+  end?: Date | string;
+  allDay?: boolean;
+}
+
+export interface DataViewCalendarRange {
+  start: Date;
+  end: Date;
+}
+
+export interface DataViewCalendarConfig<TData> {
+  getEvent(record: TData): DataViewCalendarEvent;
+  initialMode?: DataViewCalendarMode;
+  locale?: DataViewCalendarLocale;
+  direction?: DataViewCalendarDirection;
+  onEventClick?: (event: DataViewCalendarEvent, record: TData) => void;
+  onDateClick?: (date: Date) => void;
+  onRangeChange?: (range: DataViewCalendarRange) => void;
+}
+
 export interface DataViewState extends DataViewQueryState {
   view?: DataViewViewId;
   columnVisibility: VisibilityState;

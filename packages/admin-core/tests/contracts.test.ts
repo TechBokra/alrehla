@@ -10,6 +10,7 @@ import {
   normalizeDataViewState,
   resolveResourceSelectionExecution,
 } from '../src/data-view/state';
+import { resolveDataViewViewsConfig } from '../src/data-view/views';
 import type { DataViewHierarchyConfig } from '../src/data-view/contracts';
 import { createResourceAuthorization, resolveResourceAccess, authorizationPermissions } from '../src/resource/authorization';
 import { createResourceCacheTools } from '../src/resource/cache';
@@ -93,6 +94,18 @@ describe('Resource scope and cache contracts', () => {
 });
 
 describe('DataView contracts', () => {
+  it('normalizes configured views once and never stores an invalid URL view', () => {
+    const views = resolveDataViewViewsConfig({
+      default: 'calendar',
+      available: ['table', 'calendar', 'calendar'],
+    });
+    expect(views.available).toEqual(['table', 'calendar']);
+    expect(views.default).toBe('calendar');
+    expect(views.normalize('banana')).toBe('calendar');
+    expect(views.normalize('table')).toBe('table');
+    expect(views.isConfigured('banana')).toBe(false);
+  });
+
   it('normalizes filters, state, sorting, and semantic selection deterministically', () => {
     expect(normalizeDataViewFilters({ z: '  ', roles: ['b', 'a', 'a'], score: 2 })).toEqual({
       roles: ['a', 'b'],

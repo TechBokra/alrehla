@@ -3,6 +3,7 @@ export * from './resource-page-header';
 export * from './resource-toolbar';
 export * from './resource-search';
 export * from './resource-data-view';
+export * from './resource-table-view';
 export * from './resource-pagination';
 export * from './resource-bulk-action-bar';
 export * from './resource-create';

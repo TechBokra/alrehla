@@ -56,4 +56,5 @@ export * from './components/media/alhrela-image';
 export * from './components/brand/alrehla-logo';
 export * from './components/error-boundary';
 export * from './components/resource';
+export * from './components/data-view';
 export * from './lib/utils';

@@ -1,0 +1,14 @@
+@import '@fullcalendar/react/skeleton.css';
+
+.alrehla-calendar {
+  --fc-border-color: hsl(var(--border));
+  --fc-button-bg-color: hsl(var(--primary));
+  --fc-button-border-color: hsl(var(--primary));
+  --fc-button-hover-bg-color: hsl(var(--primary) / 0.9);
+  --fc-button-hover-border-color: hsl(var(--primary) / 0.9);
+  --fc-today-bg-color: hsl(var(--muted) / 0.5);
+}
+
+.alrehla-calendar .fc {
+  font-family: inherit;
+}

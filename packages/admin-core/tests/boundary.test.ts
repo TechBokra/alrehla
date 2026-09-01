@@ -17,7 +17,8 @@ describe('Admin Core framework boundary', () => {
     const source = sourceFiles(join(packageRoot, 'src'))
       .map((path) => readFileSync(path, 'utf8'))
       .join('\n');
-    expect(source).not.toMatch(/(?:from|import\()\s*['"](?:next\/|@clerk\/|@alrehla\/(?:ui|forms|api|supabase)|react-query|@tanstack\/react-query\/src)/);
+    expect(source).not.toMatch(/(?:from|import\()\s*['"](?:next\/|@clerk\/|@fullcalendar\/|temporal-polyfill|@alrehla\/(?:ui|forms|api|supabase)|react-query|@tanstack\/react-query\/src)/);
+    expect(source).not.toMatch(/(?:^|['"/])apps\//m);
     expect(source).not.toMatch(/from\s*['"]@sentry\//);
   });
 
@@ -38,6 +39,8 @@ describe('Admin Core framework boundary', () => {
       '@alrehla/ui',
       '@alrehla/forms',
       '@clerk/nextjs',
+      '@fullcalendar/react',
+      'temporal-polyfill',
     ]));
   });
 });

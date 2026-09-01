@@ -25,6 +25,7 @@ import type {
   ResourceDataViewAdapter,
   ResourceDefinition,
   ResourceDensity,
+  ResourceControlCapabilities,
   ResourceFormPresentation,
   ResourceFormState,
   ResourceListResult,
@@ -32,6 +33,7 @@ import type {
   ResourceProviderProps,
   ResolvedResourceCapabilities,
 } from './contracts';
+import { resolveDataViewViewsConfig } from '../data-view/views';
 import {
   resolveResourceBulkActions,
   resolveResourceCapabilities,
@@ -203,11 +205,16 @@ export function ResourceRuntimeProvider<
   const authorization = useResourceAuthorization();
   const navigation = useAdminNavigation();
   const pagination = resolveResourcePagination(definition);
+  const viewsConfig = React.useMemo(
+    () => resolveDataViewViewsConfig(definition.dataView.views),
+    [definition.dataView.views],
+  );
   const missingScopeError = definition.scope === 'scoped' && !execution?.scopeId
     ? createMissingResourceScopeError(definition.metadata.name)
     : null;
   const urlStateDefinition = definition.dataView.urlState;
   const urlState = useDataViewUrlState({
+    views: viewsConfig,
     ...(urlStateDefinition?.defaults ? { defaults: urlStateDefinition.defaults } : {}),
     ...(definition.dataView.filters ? { filters: definition.dataView.filters } : {}),
     allowedPageSizes: [...pagination.pageSizeOptions],
@@ -227,6 +234,13 @@ export function ResourceRuntimeProvider<
   const query = useResourceQuery(definition, initialData, urlState.state);
   const mutations = useResourceMutations(definition, notifier);
   const capabilities = resolveResourceCapabilities(definition, {}, authorization);
+  const controlCapabilities = React.useMemo<ResourceControlCapabilities>(() => ({
+    pagination: pagination.enabled,
+    selection: capabilities.selection,
+    density: true,
+    columns: definition.dataView.columns.length > 0,
+    sorting: definition.dataView.columns.some((column) => column.enableSorting !== false),
+  }), [capabilities.selection, definition.dataView.columns, pagination.enabled]);
   const actions = React.useMemo(
     () => createResourceActions(definition, mutations),
     [definition, mutations],
@@ -379,6 +393,7 @@ export function ResourceRuntimeProvider<
     () => ({
       data: queryRows,
       state: urlState.state,
+      controlCapabilities,
       selectionState: urlState.selection,
       clearSelection: urlState.clearSelection,
       setSelectedIds: urlState.setSelectedIds,
@@ -425,6 +440,7 @@ export function ResourceRuntimeProvider<
       onColumnOrderChange: urlState.setColumnOrder,
       onRowSelectionChange: urlState.setRowSelection,
       onExpandedChange: urlState.setExpanded,
+      onViewChange: urlState.setView,
       ...(definition.emptyState?.title ? { emptyTitle: definition.emptyState.title } : {}),
       ...(definition.emptyState?.description
         ? { emptyDescription: definition.emptyState.description }
@@ -456,6 +472,7 @@ export function ResourceRuntimeProvider<
       importConfig,
       onRowClick,
       pagination.pageSizeOptions,
+      controlCapabilities,
       query.data,
       query.error,
       missingScopeError,

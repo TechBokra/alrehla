@@ -21,8 +21,10 @@ import type {
   DataViewImportConfig,
   DataViewImportExecutionContext,
   DataViewImportResult,
+  DataViewCalendarConfig,
   DataViewSearchConfig,
   DataViewState,
+  DataViewViewsConfig,
   ResourceSelection,
 } from '../../data-view/contracts';
 import type { ResourceAuthorization } from '../authorization';
@@ -125,6 +127,8 @@ export interface ResourceDataViewDefinition<
 > {
   columns: ColumnDef<TData, TValue>[];
   getRowId(row: TData): string;
+  views?: DataViewViewsConfig;
+  calendar?: DataViewCalendarConfig<TData>;
   checkbox?: boolean;
   search?: DataViewSearchConfig;
   filters?: readonly DataViewFilterDefinition[];
@@ -153,6 +157,14 @@ export interface ResourceDataViewDefinition<
   };
 }
 
+export interface ResourceControlCapabilities {
+  pagination: boolean;
+  selection: boolean;
+  density: boolean;
+  columns: boolean;
+  sorting: boolean;
+}
+
 export interface ResourceDataViewAdapter<
   TData,
   TValue = unknown,
@@ -160,6 +172,7 @@ export interface ResourceDataViewAdapter<
 > {
   data: readonly TData[];
   state: DataViewState;
+  controlCapabilities: ResourceControlCapabilities;
   selectionState: ResourceSelection;
   clearSelection(): void;
   setSelectedIds(ids: string[]): void;
@@ -190,6 +203,7 @@ export interface ResourceDataViewAdapter<
   onColumnOrderChange(order: ColumnOrderState): void;
   onRowSelectionChange(selection: RowSelectionState): void;
   onExpandedChange(expanded: ExpandedState): void;
+  onViewChange(view: DataViewState['view']): void;
   emptyTitle?: string;
   emptyDescription?: string;
   emptyAction?: React.ReactNode;

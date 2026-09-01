@@ -14,6 +14,8 @@ import type {
   DataViewFilterDefinition,
   DataViewFilterValue,
   DataViewState,
+  DataViewViewId,
+  DataViewViewsConfig,
   ResourceSelection,
 } from './contracts';
 import {
@@ -21,8 +23,11 @@ import {
   createResourceSelection,
   normalizeDataViewFilterValue,
 } from './state';
+import type { ResolvedDataViewViewsConfig } from './views';
+import { resolveDataViewViewsConfig } from './views';
 
 export interface UseDataViewUrlStateOptions {
+  views?: ResolvedDataViewViewsConfig | DataViewViewsConfig;
   defaults?: {
     page?: number;
     pageSize?: number;
@@ -96,6 +101,12 @@ export function useDataViewUrlState(options: UseDataViewUrlStateOptions = {}) {
   const navigation = useAdminNavigation();
   const { pathname, searchParams } = useAdminLocation();
   const defaults = options.defaults ?? {};
+  const resolvedViews = React.useMemo<ResolvedDataViewViewsConfig>(
+    () => options.views && 'normalize' in options.views
+      ? options.views
+      : resolveDataViewViewsConfig(options.views),
+    [options.views],
+  );
   const defaultPage = Math.max(1, defaults.page ?? 1);
   const defaultPageSize = Math.max(1, defaults.pageSize ?? 20);
   const allowedPageSizes = options.allowedPageSizes ?? [10, 20, 30, 50, 100];
@@ -126,6 +137,14 @@ export function useDataViewUrlState(options: UseDataViewUrlStateOptions = {}) {
     const query = next.toString();
     navigation[history](query ? `${pathname}?${query}` : pathname, { scroll: false });
   }, [navigation, pathname, searchParams]);
+
+  const rawView = searchParams.get('view');
+  const view = resolvedViews.normalize(rawView);
+
+  React.useEffect(() => {
+    if (rawView === null || resolvedViews.isConfigured(rawView)) return;
+    updateUrl({ view }, 'replace');
+  }, [rawView, resolvedViews, updateUrl, view]);
 
   React.useEffect(() => setSearchInput(committedSearch), [committedSearch]);
   React.useEffect(() => {
@@ -246,6 +265,7 @@ export function useDataViewUrlState(options: UseDataViewUrlStateOptions = {}) {
     columnOrder,
     rowSelection,
     expanded,
+    view,
   }), [
     columnOrder,
     columnVisibility,
@@ -255,6 +275,7 @@ export function useDataViewUrlState(options: UseDataViewUrlStateOptions = {}) {
     pagination,
     rowSelection,
     sorting,
+    view,
   ]);
 
   const setPagination = React.useCallback((next: PaginationState) => {
@@ -308,6 +329,9 @@ export function useDataViewUrlState(options: UseDataViewUrlStateOptions = {}) {
       Object.entries(current).filter(([id, selected]) => Boolean(selected) && !removals.has(id)),
     ));
   }, []);
+  const setView = React.useCallback((next: DataViewViewId) => {
+    updateUrl({ view: resolvedViews.normalize(next) }, 'push');
+  }, [resolvedViews, updateUrl]);
   const selection = React.useMemo<ResourceSelection>(
     () => createResourceSelection(rowSelection),
     [rowSelection],
@@ -331,6 +355,7 @@ export function useDataViewUrlState(options: UseDataViewUrlStateOptions = {}) {
     toggleSelection,
     removeSelectedIds,
     setExpanded,
+    setView,
     updateUrl,
   };
 }

@@ -212,6 +212,31 @@ describe('Resource runtime and navigation adapter', () => {
     expect(navigation.replace).toHaveBeenCalledWith('/users?sort=-name&page=1', { scroll: false });
   });
 
+  it('canonicalizes invalid URL views before they enter DataViewState', () => {
+    const queryClient = new QueryClient();
+    const navigation = {
+      pathname: '/users',
+      searchParams: new URLSearchParams('view=banana'),
+      push: vi.fn(),
+      replace: vi.fn(),
+      back: vi.fn(),
+    };
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={queryClient}>
+        <AdminNavigationProvider navigation={navigation} location={navigation}>
+          {children}
+        </AdminNavigationProvider>
+      </QueryClientProvider>
+    );
+    const { result } = renderHook(() => useDataViewUrlState({
+      views: { default: 'calendar', available: ['table', 'calendar'] },
+    }), { wrapper });
+    expect(result.current.state.view).toBe('calendar');
+    expect(navigation.replace).toHaveBeenCalledWith('/users?view=calendar', { scroll: false });
+    act(() => result.current.setView('banana'));
+    expect(navigation.push).toHaveBeenCalledWith('/users?view=calendar', { scroll: false });
+  });
+
   it('exposes blocking and partial query errors without dropping retained rows', async () => {
     const queryFn = vi.fn()
       .mockResolvedValueOnce({ rows: [{ id: '1', name: 'One' }], count: 1 })
