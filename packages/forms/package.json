@@ -9,10 +9,12 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "build": "tsc --noEmit"
+    "build": "tsc --noEmit",
+    "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "@alrehla/ui": "workspace:*",
+    "@alrehla/mutations": "workspace:*",
     "@tanstack/react-form": "1.33.3",
     "zod": "^3.25.76"
   },
@@ -20,6 +22,13 @@
     "react": ">=18"
   },
   "devDependencies": {
-    "typescript": "^5.5.3"
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^22.13.4",
+    "@types/react-dom": "^18.3.0",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.5.3",
+    "vitest": "^3.2.7"
   }
 }

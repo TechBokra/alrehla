@@ -48,6 +48,7 @@ export * from './components/data-display/status-badge';
 export * from './components/forms/form-field';
 export * from './components/forms/search-input';
 export * from './components/forms/submit-button';
+export * from './components/forms';
 export * from './components/auth/clerk-auth-form';
 export * from './components/auth/clerk-oauth-callback';
 export * from './components/auth/clerk-appearance';

@@ -36,6 +36,7 @@ export interface DatePickerProps {
   name?: string;
   onBlur?: () => void;
   'aria-invalid'?: React.AriaAttributes['aria-invalid'];
+  'aria-describedby'?: React.AriaAttributes['aria-describedby'];
 }
 
 const normalizeDigits = (value: string) =>
@@ -104,6 +105,7 @@ export function DatePicker({
   name,
   onBlur,
   'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
   const [manualValue, setManualValue] = React.useState("");
@@ -188,6 +190,7 @@ export function DatePicker({
             disabled={disabled}
             aria-required={required}
             aria-invalid={ariaInvalid || Boolean(manualError)}
+            aria-describedby={ariaDescribedBy}
             aria-haspopup="dialog"
             className={cn(
               "h-10 w-full justify-start bg-background px-3 py-2 text-right font-normal",

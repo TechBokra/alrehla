@@ -4,12 +4,14 @@ import * as React from 'react';
 import { Button, type ButtonProps } from '@alrehla/ui/button';
 import { Checkbox } from '@alrehla/ui/checkbox';
 import { DatePicker, type DatePickerProps } from '@alrehla/ui/date-picker';
+import { DateTimePicker, type DateTimePickerProps } from '@alrehla/ui/date-time-picker';
+import { RadioGroup, RadioGroupItem } from '@alrehla/ui/components/ui/radio-group';
 import FormField from '@alrehla/ui/form-field';
 import { Input } from '@alrehla/ui/input';
 import { Select, type SelectProps } from '@alrehla/ui/native-select';
 import { Textarea } from '@alrehla/ui/textarea';
 import { cn } from '@alrehla/ui/lib/utils';
-import { Switch } from '@alrehla/ui';
+import { Switch } from '@alrehla/ui/components/ui/switch';
 import { useFieldContext, useFormContext } from '../core/contexts';
 import {
   getFieldErrorMessages,
@@ -36,6 +38,19 @@ const getFieldPresentation = (field: FieldErrorSource, id?: string) => {
   };
 };
 
+const getAccessibilityProps = (
+  fieldId: string,
+  hasError: boolean,
+  description?: React.ReactNode,
+  error?: string,
+) => ({
+  'aria-invalid': hasError || undefined,
+  'aria-describedby': [
+    description ? `${fieldId}-description` : undefined,
+    error ? `${fieldId}-error` : undefined,
+  ].filter(Boolean).join(' ') || undefined,
+});
+
 interface FieldShellProps extends FieldAdapterProps {
   children: React.ReactNode;
   error?: string;
@@ -57,6 +72,8 @@ const FieldShell = ({
     htmlFor={fieldId}
     label={label}
     required={required}
+    descriptionId={description ? `${fieldId}-description` : undefined}
+    errorId={error ? `${fieldId}-error` : undefined}
   >
     {children}
   </FormField>
@@ -87,7 +104,7 @@ export const TextField = ({
     >
       <Input
         {...inputProps}
-        aria-invalid={hasError || undefined}
+        {...getAccessibilityProps(fieldId, hasError, description, errors[0])}
         disabled={disabled}
         id={fieldId}
         onBlur={field.handleBlur}
@@ -124,7 +141,7 @@ export const TextareaField = ({
     >
       <Textarea
         {...textareaProps}
-        aria-invalid={hasError || undefined}
+        {...getAccessibilityProps(fieldId, hasError, description, errors[0])}
         disabled={disabled}
         id={fieldId}
         onBlur={field.handleBlur}
@@ -167,7 +184,7 @@ export const NumberField = ({
     >
       <Input
         {...inputProps}
-        aria-invalid={hasError || undefined}
+        {...getAccessibilityProps(fieldId, hasError, description, errors[0])}
         disabled={disabled}
         id={fieldId}
         onBlur={field.handleBlur}
@@ -209,7 +226,7 @@ export const SelectField = ({
     >
       <Select
         {...selectProps}
-        aria-invalid={hasError || undefined}
+        {...getAccessibilityProps(fieldId, hasError, description, errors[0])}
         disabled={disabled}
         id={fieldId}
         onBlur={field.handleBlur}
@@ -248,7 +265,7 @@ export const CheckboxField = ({
     >
       <Checkbox
         {...checkboxProps}
-        aria-invalid={hasError || undefined}
+        {...getAccessibilityProps(fieldId, hasError, description, errors[0])}
         checked={field.state.value}
         disabled={disabled}
         id={fieldId}
@@ -284,7 +301,7 @@ export const SwitchField = ({
     >
       <Switch
         {...switchProps}
-        aria-invalid={hasError || undefined}
+        {...getAccessibilityProps(fieldId, hasError, description, errors[0])}
         checked={field.state.value}
         disabled={disabled}
         id={fieldId}
@@ -320,7 +337,7 @@ export const DateField = ({
     >
       <DatePicker
         {...datePickerProps}
-        aria-invalid={hasError || undefined}
+        {...getAccessibilityProps(fieldId, hasError, description, errors[0])}
         disabled={disabled}
         id={fieldId}
         onBlur={field.handleBlur}
@@ -357,7 +374,7 @@ export const TimeField = ({
     >
       <Input
         {...inputProps}
-        aria-invalid={hasError || undefined}
+        {...getAccessibilityProps(fieldId, hasError, description, errors[0])}
         disabled={disabled}
         id={fieldId}
         onBlur={field.handleBlur}
@@ -369,6 +386,101 @@ export const TimeField = ({
     </FieldShell>
   );
 };
+
+export const EmailField = (props: TextFieldProps) => (
+  <TextField {...props} type="email" autoComplete="email" />
+);
+
+export const PasswordField = (props: TextFieldProps) => (
+  <TextField {...props} type="password" autoComplete="new-password" />
+);
+
+export const PhoneField = (props: TextFieldProps) => (
+  <TextField {...props} type="tel" autoComplete="tel" />
+);
+
+export const UrlField = (props: TextFieldProps) => (
+  <TextField {...props} type="url" inputMode="url" />
+);
+
+type DateTimeFieldProps = FieldAdapterProps &
+  Omit<DateTimePickerProps, 'disabled' | 'id' | 'name' | 'onBlur' | 'onChange' | 'required' | 'value'>;
+
+export const DateTimeField = ({
+  description,
+  disabled,
+  id,
+  label,
+  required,
+  ...dateTimeProps
+}: DateTimeFieldProps) => {
+  const field = useFieldContext<string>();
+  const fieldId = id ?? field.name;
+  const { errors, hasError } = getFieldPresentation(field, fieldId);
+
+  return (
+    <FieldShell
+      description={description}
+      error={errors[0]}
+      fieldId={fieldId}
+      label={label}
+      required={required}
+    >
+      <DateTimePicker
+        {...dateTimeProps}
+        {...getAccessibilityProps(fieldId, hasError, description, errors[0])}
+        disabled={disabled}
+        id={fieldId}
+        onBlur={field.handleBlur}
+        onChange={field.handleChange}
+        required={required}
+        value={field.state.value ?? ''}
+      />
+    </FieldShell>
+  );
+};
+
+interface RadioGroupFieldProps extends FieldAdapterProps {
+  children: React.ReactNode;
+}
+
+export const RadioGroupField = ({
+  children,
+  description,
+  disabled,
+  id,
+  label,
+  required,
+}: RadioGroupFieldProps) => {
+  const field = useFieldContext<string>();
+  const fieldId = id ?? field.name;
+  const { errors, hasError } = getFieldPresentation(field, fieldId);
+
+  return (
+    <FieldShell
+      description={description}
+      error={errors[0]}
+      fieldId={fieldId}
+      label={label}
+      required={required}
+    >
+      <RadioGroup
+        id={fieldId}
+        name={field.name}
+        value={field.state.value ?? ''}
+        onValueChange={field.handleChange}
+        onBlur={field.handleBlur}
+        aria-invalid={hasError || undefined}
+        aria-disabled={disabled || undefined}
+        className={disabled ? 'pointer-events-none opacity-60' : undefined}
+      >
+        {children}
+      </RadioGroup>
+    </FieldShell>
+  );
+};
+
+export { RadioGroupItem };
 
 export const FormError = ({
   className,
@@ -396,11 +508,17 @@ export const FormError = ({
   );
 };
 
-export type FormSubmitButtonProps = Omit<ButtonProps, 'loading' | 'type'>;
+export interface FormSubmitButtonProps extends Omit<ButtonProps, 'loading' | 'type'> {
+  /** Pending state owned by an external mutation (for example useAppMutation). */
+  pending?: boolean;
+  pendingText?: React.ReactNode;
+}
 
 export const FormSubmitButton = ({
   children,
   disabled,
+  pending = false,
+  pendingText,
   ...buttonProps
 }: FormSubmitButtonProps) => {
   const form = useFormContext();
@@ -410,13 +528,32 @@ export const FormSubmitButton = ({
       {(state) => (
         <Button
           {...buttonProps}
-          disabled={disabled || !state.canSubmit || state.isSubmitting}
-          loading={state.isSubmitting}
+          disabled={disabled || pending || !state.canSubmit || state.isSubmitting}
+          loading={pending || state.isSubmitting}
           type="submit"
         >
-          {children}
+          {pending && pendingText ? pendingText : children}
         </Button>
       )}
     </form.Subscribe>
+  );
+};
+
+export type FormResetButtonProps = Omit<ButtonProps, 'type' | 'loading'>;
+
+export const FormResetButton = ({ onClick, children = 'Reset', ...buttonProps }: FormResetButtonProps) => {
+  const form = useFormContext();
+
+  return (
+    <Button
+      {...buttonProps}
+      type="button"
+      onClick={(event) => {
+        form.reset();
+        onClick?.(event);
+      }}
+    >
+      {children}
+    </Button>
   );
 };

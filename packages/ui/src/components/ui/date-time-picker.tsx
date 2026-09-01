@@ -21,6 +21,8 @@ export interface DateTimePickerProps {
   id?: string;
   name?: string;
   onBlur?: () => void;
+  'aria-invalid'?: React.AriaAttributes['aria-invalid'];
+  'aria-describedby'?: React.AriaAttributes['aria-describedby'];
 }
 
 const getLocalParts = (value?: string | Date) => {
@@ -50,6 +52,8 @@ export function DateTimePicker({
   id,
   name,
   onBlur,
+  'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
 }: DateTimePickerProps) {
   const initialParts = React.useMemo(() => getLocalParts(value), [value]);
   const [dateValue, setDateValue] = React.useState(initialParts.date);
@@ -93,6 +97,8 @@ export function DateTimePicker({
         placeholder={placeholder}
         disabled={disabled}
         required={required}
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
         onChange={(nextDate) => {
           setDateValue(nextDate);
           emit(nextDate, timeValue);
@@ -114,6 +120,8 @@ export function DateTimePicker({
           onBlur={onBlur}
           disabled={disabled}
           required={required}
+          aria-invalid={ariaInvalid}
+          aria-describedby={ariaDescribedBy}
           className="h-10 w-full rounded-md border border-input bg-background px-3 pr-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </label>
