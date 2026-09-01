@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { defineResource, ResourceProvider, useResource } from '../src/resource';
+import { createDataViewState } from '../src/data-view/state';
+import type { DataViewState } from '../src/data-view/contracts';
+import { defineResource, ResourceProvider, useResource, useResourceQuery } from '../src/resource';
 import { useDataViewUrlState } from '../src/data-view/url-state';
 import { AdminNavigationProvider } from '../src/navigation';
 import { ResourceAuthorizationProvider, createResourceAuthorization } from '../src/resource/authorization';
@@ -52,6 +54,74 @@ function resource(queryFn: () => Promise<{ rows: Row[]; count: number }>) {
 }
 
 describe('Resource runtime and navigation adapter', () => {
+  it('preserves query identity, cache, rows, and call count across presentation changes', async () => {
+    const rows = [
+      { id: '1', name: 'One' },
+      { id: '2', name: 'Two' },
+    ];
+    const queryFn = vi.fn(async () => ({ rows, count: rows.length }));
+    const definition = defineResource<Row>({
+      metadata: { name: 'users', label: 'Users', singularLabel: 'User' },
+      query: {
+        queryKey: ({ state }) => ['users', state],
+        queryFn: () => queryFn(),
+        normalize: (response) => response,
+      },
+      dataView: { columns: [], getRowId: (row) => row.id },
+    });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const initialState = createDataViewState({ view: 'table' });
+    const rendered = renderHook(
+      ({ state }: { state: DataViewState }) => useResourceQuery(definition, undefined, state),
+      { wrapper, initialProps: { state: initialState } },
+    );
+
+    await waitFor(() => expect(rendered.result.current.data?.rows).toEqual(rows));
+    expect(queryFn).toHaveBeenCalledOnce();
+
+    const initialQueries = queryClient.getQueryCache().getAll();
+    expect(initialQueries).toHaveLength(1);
+    const queryKey = initialQueries[0]!.queryKey;
+    const cachedRows = queryClient.getQueryData<{ rows: Row[]; count: number }>(queryKey);
+    expect(cachedRows?.rows).toEqual(rows);
+    expect(queryClient.getQueryState(queryKey)?.isInvalidated).not.toBe(true);
+
+    const assertPresentationChangeIsStable = async (state: DataViewState) => {
+      rendered.rerender({ state });
+      await waitFor(() => expect(rendered.result.current.data?.rows).toEqual(rows));
+
+      const queries = queryClient.getQueryCache().getAll();
+      expect(queryFn).toHaveBeenCalledOnce();
+      expect(queries).toHaveLength(1);
+      expect(queries[0]!.queryKey).toEqual(queryKey);
+      expect(queryClient.getQueryData(queryKey)).toEqual(cachedRows);
+      expect(queryClient.getQueryState(queryKey)?.isInvalidated).not.toBe(true);
+      expect(rendered.result.current.data?.rows).toEqual(rows);
+    };
+
+    await assertPresentationChangeIsStable(createDataViewState({ view: 'calendar' }));
+    await assertPresentationChangeIsStable(createDataViewState({ view: 'table' }));
+    await assertPresentationChangeIsStable(createDataViewState({
+      view: 'table',
+      rowSelection: { '1': true },
+    }));
+    await assertPresentationChangeIsStable(createDataViewState({
+      view: 'table',
+      columnVisibility: { name: false },
+    }));
+    await assertPresentationChangeIsStable(createDataViewState({
+      view: 'table',
+      columnOrder: ['name'],
+    }));
+    await assertPresentationChangeIsStable(createDataViewState({
+      view: 'table',
+      expanded: { '1': true },
+    }));
+  });
+
   it('loads normalized rows through the injected navigation/runtime boundary', async () => {
     const queryFn = vi.fn(async () => ({ rows: [{ id: '1', name: 'One' }], count: 1 }));
     const { wrapper } = createWrapper(resource(queryFn));

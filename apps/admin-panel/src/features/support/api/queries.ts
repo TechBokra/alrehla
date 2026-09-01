@@ -1,4 +1,4 @@
-import type { DataViewState } from '@alrehla/admin-core/data-view';
+import type { DataViewQueryState } from '@alrehla/admin-core/data-view';
 import { communicationService } from '../../../services/communicationService';
 import type { SupportTicket, TicketStatus } from '@alrehla/types';
 
@@ -27,7 +27,7 @@ export const supportKeys = {
   detail: (id: string) => [...supportKeys.details(), id] as const,
 };
 
-export function supportListParams(state: DataViewState): SupportListParams {
+export function supportListParams(state: DataViewQueryState): SupportListParams {
   const status = state.filters.status;
   return {
     ...(state.search ? { search: state.search } : {}),
@@ -50,10 +50,10 @@ export function filterSupportTickets(
   });
 }
 
-export const supportListQueryKey = (state: DataViewState) =>
+export const supportListQueryKey = (state: DataViewQueryState) =>
   supportKeys.list(supportListParams(state));
 
-export const supportListQuery = async (state: DataViewState) => {
+export const supportListQuery = async (state: DataViewQueryState) => {
   const rows = await communicationService.getAllSupportTickets();
   return filterSupportTickets(rows, supportListParams(state));
 };

@@ -1,4 +1,4 @@
-import type { DataViewState } from '@alrehla/admin-core/data-view';
+import type { DataViewQueryState } from '@alrehla/admin-core/data-view';
 import { userKeys, userService, type GetUsersOptions } from '@alrehla/api';
 
 export type UserRoleFilter = 'parent' | 'customers' | 'student' | 'staff' | 'publisher' | 'all';
@@ -9,7 +9,7 @@ export const normalizeUserRoleFilter = (value: unknown): UserRoleFilter => {
   return 'parent';
 };
 
-export function userListParams(state: DataViewState): GetUsersOptions {
+export function userListParams(state: DataViewQueryState): GetUsersOptions {
   const roleFilter = normalizeUserRoleFilter(state.filters.roleFilter);
   return {
     page: state.pagination.pageIndex + 1,
@@ -19,5 +19,5 @@ export function userListParams(state: DataViewState): GetUsersOptions {
   };
 }
 
-export const userListQueryKey = (state: DataViewState) => userKeys.list(userListParams(state));
-export const userListQuery = (state: DataViewState) => userService.getAdminUserList(userListParams(state));
+export const userListQueryKey = (state: DataViewQueryState) => userKeys.list(userListParams(state));
+export const userListQuery = (state: DataViewQueryState) => userService.getAdminUserList(userListParams(state));

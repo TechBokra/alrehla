@@ -1,8 +1,8 @@
-import type { DataViewState } from '../../data-view/contracts';
+import type { DataViewQueryState } from '../../data-view/contracts';
 import type { ResourceExecutionContext } from '../execution-context';
 
 export interface ResourceQueryContext {
-  state: DataViewState;
+  state: DataViewQueryState;
   execution?: ResourceExecutionContext;
   /** TanStack cancellation signal for the current request. */
   signal?: AbortSignal;

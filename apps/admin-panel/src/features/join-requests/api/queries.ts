@@ -1,4 +1,4 @@
-import type { DataViewState } from '@alrehla/admin-core/data-view';
+import type { DataViewQueryState } from '@alrehla/admin-core/data-view';
 import { communicationService } from '../../../services/communicationService';
 import type { JoinRequest, RequestStatus } from '@alrehla/types';
 
@@ -28,7 +28,7 @@ export const joinRequestKeys = {
   detail: (id: string) => [...joinRequestKeys.details(), id] as const,
 };
 
-export function joinRequestListParams(state: DataViewState): JoinRequestListParams {
+export function joinRequestListParams(state: DataViewQueryState): JoinRequestListParams {
   const status = state.filters.status;
   return {
     ...(state.search ? { search: state.search } : {}),
@@ -51,10 +51,10 @@ export function filterJoinRequests(
   });
 }
 
-export const joinRequestListQueryKey = (state: DataViewState) =>
+export const joinRequestListQueryKey = (state: DataViewQueryState) =>
   joinRequestKeys.list(joinRequestListParams(state));
 
-export const joinRequestListQuery = async (state: DataViewState) => {
+export const joinRequestListQuery = async (state: DataViewQueryState) => {
   const rows = await communicationService.getAllJoinRequests();
   return filterJoinRequests(rows, joinRequestListParams(state));
 };

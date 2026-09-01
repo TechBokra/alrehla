@@ -4,7 +4,8 @@ import {
   createDataViewState,
   createResourceSelection,
   collectDataViewPages,
-  toDataViewQueryState,
+  selectDataViewQueryState,
+  toDataViewQueryParams,
   normalizeDataViewFilters,
   normalizeDataViewState,
   resolveResourceSelectionExecution,
@@ -118,7 +119,7 @@ describe('DataView contracts', () => {
       successIds: ['a'],
       failedIds: ['b'],
     });
-    expect(toDataViewQueryState(createDataViewState({
+    expect(toDataViewQueryParams(createDataViewState({
       search: ' users ',
       filters: { roles: ['b', 'a'] },
       sorting: [{ id: 'name', desc: true }],
@@ -129,6 +130,67 @@ describe('DataView contracts', () => {
       filters: { roles: ['a', 'b'] },
       sort: { field: 'name', order: 'desc' },
     });
+  });
+
+  it('projects only query state and serializes only backend query parameters', () => {
+    const state = createDataViewState({
+      search: ' users ',
+      filters: { roles: ['b', 'a'] },
+      sorting: [{ id: 'name', desc: true }],
+      pagination: { pageIndex: 2, pageSize: 10 },
+      view: 'calendar',
+      columnVisibility: { name: false },
+      columnOrder: ['name'],
+      rowSelection: { user: true },
+      expanded: { user: true },
+    });
+
+    expect(selectDataViewQueryState(state)).toEqual({
+      search: 'users',
+      filters: { roles: ['a', 'b'] },
+      sorting: [{ id: 'name', desc: true }],
+      pagination: { pageIndex: 2, pageSize: 10 },
+    });
+    expect(Object.keys(selectDataViewQueryState(state)).sort()).toEqual([
+      'filters',
+      'pagination',
+      'search',
+      'sorting',
+    ]);
+
+    const params = toDataViewQueryParams(state);
+    expect(params).toEqual({
+      page: 3,
+      pageSize: 10,
+      search: 'users',
+      filters: { roles: ['a', 'b'] },
+      sort: { field: 'name', order: 'desc' },
+    });
+    expect(Object.keys(params).sort()).toEqual(['filters', 'page', 'pageSize', 'search', 'sort']);
+  });
+
+  it('prevents presentation fields from entering Resource query callbacks by type', () => {
+    const definition = defineResource<Row>({
+      metadata: { name: 'query-only', label: 'Query-only', singularLabel: 'Query-only' },
+      query: {
+        queryKey: ({ state }) => {
+          // @ts-expect-error Resource query callbacks receive query state only.
+          state.view;
+          // @ts-expect-error Resource query callbacks receive query state only.
+          state.rowSelection;
+          // @ts-expect-error Resource query callbacks receive query state only.
+          state.columnVisibility;
+          // @ts-expect-error Resource query callbacks receive query state only.
+          state.expanded;
+          return ['query-only', state.search];
+        },
+        queryFn: async () => ({ rows: [], count: 0 }),
+        normalize: (response) => response,
+      },
+      dataView: { columns: [], getRowId: (row) => row.id },
+    });
+
+    expect(definition.query).toBeDefined();
   });
 
   it('supports partial bulk outcomes without claiming unloaded rows succeeded', () => {

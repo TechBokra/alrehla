@@ -6,6 +6,8 @@ import {
   normalizeMutationError,
   type AppMutationError,
 } from '@alrehla/mutations';
+import type { DataViewState } from '../data-view/contracts';
+import { selectDataViewQueryState } from '../data-view/state';
 import type {
   ResourceDefinition,
   ResourceListResult,
@@ -74,14 +76,24 @@ export function useResourceQuery<
     TDeleteInput
   >,
   initialData: TQueryRaw | undefined,
-  state: ResourceQueryContext['state'],
+  state: DataViewState,
 ) {
   const queryDefinition = definition.query;
   const execution = useResourceExecutionContext();
   const scope = definition.scope ?? DEFAULT_RESOURCE_SCOPE;
+  const queryStateSignature = hashKey([
+    state.search,
+    state.filters,
+    state.sorting,
+    state.pagination,
+  ]);
+  const queryState = React.useMemo(
+    () => selectDataViewQueryState(state),
+    [queryStateSignature],
+  );
   const queryContext = React.useMemo<ResourceQueryContext>(
-    () => ({ state, ...(execution ? { execution } : {}) }),
-    [execution, state],
+    () => ({ state: queryState, ...(execution ? { execution } : {}) }),
+    [execution, queryState],
   );
   const scoped = scope === 'scoped';
   const baseQueryKey = queryDefinition?.queryKey(queryContext) ?? [
@@ -122,7 +134,7 @@ export function useResourceQuery<
     (!scoped || Boolean(execution?.scopeId)) &&
     policy?.initialData !== 'never' &&
     (queryDefinition?.useInitialData?.(queryContext) ??
-      defaultInitialDataPredicate(definition, state));
+      defaultInitialDataPredicate(definition, queryState));
 
   return useQuery<TQueryRaw, AppMutationError, ResourceListResult<TData>>({
     queryKey,

@@ -64,11 +64,22 @@ export interface DataViewFilterDefinition {
   }) => React.ReactNode;
 }
 
-export interface DataViewState {
+export interface DataViewQueryState {
   search: string;
   filters: Record<string, DataViewFilterValue>;
   sorting: SortingState;
   pagination: PaginationState;
+}
+
+export type DataViewViewId =
+  | 'table'
+  | 'cards'
+  | 'list'
+  | 'calendar'
+  | (string & {});
+
+export interface DataViewState extends DataViewQueryState {
+  view?: DataViewViewId;
   columnVisibility: VisibilityState;
   columnOrder: ColumnOrderState;
   rowSelection: RowSelectionState;

@@ -1,5 +1,6 @@
 import type {
   DataViewFilterValue,
+  DataViewQueryState,
   DataViewState,
   ResourceSelection,
   ResourceSelectionExecution,
@@ -50,6 +51,15 @@ export function normalizeDataViewFilters(
   );
 }
 
+export function selectDataViewQueryState(state: DataViewState): DataViewQueryState {
+  return {
+    search: state.search,
+    filters: state.filters,
+    sorting: state.sorting,
+    pagination: state.pagination,
+  };
+}
+
 export function normalizeDataViewState(state: DataViewState): DataViewState {
   const pageIndex = Number.isFinite(state.pagination.pageIndex)
     ? Math.max(0, Math.trunc(state.pagination.pageIndex))
@@ -63,6 +73,7 @@ export function normalizeDataViewState(state: DataViewState): DataViewState {
     filters: normalizeDataViewFilters(state.filters),
     sorting: firstSort ? [{ id: firstSort.id, desc: Boolean(firstSort.desc) }] : [],
     pagination: { pageIndex, pageSize },
+    view: state.view ?? 'table',
     columnVisibility: Object.fromEntries(
       Object.entries(state.columnVisibility).sort(([left], [right]) => left.localeCompare(right)),
     ),
@@ -88,6 +99,7 @@ export function createDataViewState(initial: Partial<DataViewState> = {}): DataV
     filters: {},
     sorting: [],
     pagination: { pageIndex: 0, pageSize: DEFAULT_DATA_VIEW_PAGE_SIZE },
+    view: 'table',
     columnVisibility: {},
     columnOrder: [],
     rowSelection: {},
@@ -144,7 +156,7 @@ export function resolveResourceSelectionExecution(
   };
 }
 
-export function toDataViewQueryState(state: DataViewState) {
+export function toDataViewQueryParams(state: DataViewState) {
   const normalized = normalizeDataViewState(state);
   const sort = normalized.sorting[0];
   return {
