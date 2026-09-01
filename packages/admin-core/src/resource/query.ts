@@ -90,7 +90,15 @@ export function useResourceQuery<
     'disabled',
   ];
   const queryKey = scopeResourceKey(scope, baseQueryKey, execution?.scopeId);
-  const namespace = hashKey([scope, execution?.scopeId ?? null, definition.metadata.name]);
+  // Global resources can still be partitioned by an execution identity (for example,
+  // a user-owned notification feed). Keep retained placeholder data inside that
+  // identity boundary without treating userId as a backend authorization decision.
+  const namespace = hashKey([
+    scope,
+    execution?.scopeId ?? null,
+    execution?.userId ?? null,
+    definition.metadata.name,
+  ]);
   const namespaces = React.useRef(new Map<string, string>());
   namespaces.current.set(hashKey(queryKey), namespace);
   const queryIdentity = hashKey([namespace, queryKey]);

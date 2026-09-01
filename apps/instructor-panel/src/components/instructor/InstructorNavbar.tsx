@@ -7,6 +7,7 @@ import { useNotificationMutations } from '../../hooks/mutations/useNotificationM
 import Link from 'next/link';
 import { Menu, LogOut, PanelRightOpen, PanelRightClose, User, Bell } from 'lucide-react';
 import { Button } from '@alrehla/ui/button';
+import type { Notification } from '@alrehla/types';
 import NotificationDropdown from '../header/NotificationDropdown';
 
 interface InstructorNavbarProps {
@@ -34,7 +35,7 @@ const InstructorNavbar: React.FC<InstructorNavbarProps> = ({
     const { data: notifications = [] } = useUserNotifications();
     const { markNotificationAsRead, deleteNotification } = useNotificationMutations();
 
-    const unreadCount = useMemo(() => notifications.filter((n: any) => !n.read).length, [notifications]);
+    const unreadCount = useMemo(() => notifications.filter((n: Notification) => !n.read).length, [notifications]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {

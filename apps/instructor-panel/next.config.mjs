@@ -9,6 +9,7 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: [
     '@alrehla/ui',
+    '@alrehla/admin-core',
     '@alrehla/api',
     '@alrehla/auth',
     '@alrehla/types',

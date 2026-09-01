@@ -52,6 +52,12 @@
       "@alrehla/api/*": [
         "../../packages/api/src/*"
       ],
+      "@alrehla/admin-core": [
+        "../../packages/admin-core/src/index.ts"
+      ],
+      "@alrehla/admin-core/*": [
+        "../../packages/admin-core/src/*"
+      ],
       "@alrehla/auth": [
         "../../packages/auth/src/index.ts"
       ],

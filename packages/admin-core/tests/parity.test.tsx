@@ -137,6 +137,63 @@ describe('Admin Core parity contracts', () => {
     expect(queryClient.getQueryData(['scope', 'scope-a', 'users'])).toBeUndefined();
   });
 
+  it('keeps retained global placeholder data inside its execution identity', async () => {
+    let resolveA: ((value: { rows: Row[]; count: number }) => void) | undefined;
+    let resolveB: ((value: { rows: Row[]; count: number }) => void) | undefined;
+    let switchUser: ((userId: string) => void) | undefined;
+    const queryFn = vi.fn(({ execution }: { execution?: { userId?: string } }) => {
+      if (execution?.userId === 'user-a') {
+        return new Promise<{ rows: Row[]; count: number }>((resolve) => { resolveA = resolve; });
+      }
+      return new Promise<{ rows: Row[]; count: number }>((resolve) => { resolveB = resolve; });
+    });
+    const definition = defineResource<Row>({
+      scope: 'global',
+      metadata: { name: 'user-notifications', label: 'Notifications', singularLabel: 'Notification' },
+      query: {
+        queryKey: ({ execution }) => ['userNotifications', execution?.userId ?? 'unauthenticated'],
+        queryFn,
+        normalize: (response) => response,
+      },
+      dataView: { columns: [], getRowId: (row) => row.id },
+    });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    function SwitchingWrapper({ children }: { children: React.ReactNode }) {
+      const [userId, setUserId] = React.useState('user-a');
+      switchUser = setUserId;
+      return (
+        <QueryClientProvider client={queryClient}>
+          <ResourceExecutionContextProvider value={{ userId }}>
+            <AdminNavigationProvider
+              navigation={{ push: vi.fn(), replace: vi.fn(), back: vi.fn() }}
+              location={{ pathname: '/notifications', searchParams: new URLSearchParams() }}
+            >
+              <ResourceProvider definition={definition}>{children}</ResourceProvider>
+            </AdminNavigationProvider>
+          </ResourceExecutionContextProvider>
+        </QueryClientProvider>
+      );
+    }
+
+    const rendered = renderHook(() => useResource<Row>(), { wrapper: SwitchingWrapper });
+    await waitFor(() => expect(queryFn).toHaveBeenCalledOnce());
+    act(() => switchUser?.('user-b'));
+    await waitFor(() => expect(queryFn).toHaveBeenCalledTimes(2));
+    expect(rendered.result.current.dataView.data).toEqual([]);
+
+    await act(async () => {
+      resolveB?.({ rows: [{ id: 'b', name: 'B' }], count: 1 });
+    });
+    await waitFor(() => expect(rendered.result.current.dataView.data).toEqual([{ id: 'b', name: 'B' }]));
+    await act(async () => {
+      resolveA?.({ rows: [{ id: 'a', name: 'A' }], count: 1 });
+    });
+    expect(queryClient.getQueryData(['global', 'userNotifications', 'user-b'])).toEqual({
+      rows: [{ id: 'b', name: 'B' }],
+      count: 1,
+    });
+  });
+
   it('binds a late scoped mutation cache callback to its original scope', async () => {
     const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     let resolveCreate: ((value: Row) => void) | undefined;

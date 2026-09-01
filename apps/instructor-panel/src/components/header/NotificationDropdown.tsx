@@ -4,6 +4,7 @@ import { Button } from '@alrehla/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@alrehla/ui/card';
 import { formatDate } from '../../utils/helpers';
 import { ShoppingCart, Calendar, Info, Trash2 } from 'lucide-react';
+import type { Notification } from '@alrehla/types';
 
 const NotificationIcon: React.FC<{ type: string }> = ({ type }) => {
     switch (type) {
@@ -14,7 +15,7 @@ const NotificationIcon: React.FC<{ type: string }> = ({ type }) => {
 };
 
 interface NotificationDropdownProps {
-    notifications: any[];
+    notifications: Notification[];
     onClose: () => void;
     onMarkAsRead: (id: number) => void;
     onDelete: (e: React.MouseEvent, id: number) => void;
@@ -26,7 +27,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notificatio
             <h3 className="font-semibold text-sm">الإشعارات</h3>
         </CardHeader>
         <CardContent className="p-0 max-h-80 overflow-y-auto custom-scrollbar">
-            {notifications.length > 0 ? notifications.map((notif: any) => (
+            {notifications.length > 0 ? notifications.map((notif) => (
                 <Link
                     key={notif.id}
                     href={notif.link || '/notifications'}

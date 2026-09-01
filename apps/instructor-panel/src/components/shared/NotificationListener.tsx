@@ -3,6 +3,10 @@ import { useAuth } from '@clerk/nextjs';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { useToast } from '../../contexts/ToastContext';
+import { scopeResourceKey } from '@alrehla/admin-core/resource';
+import type { Notification } from '@alrehla/types';
+import { isNotification } from '../../features/notifications/api/notifications';
+import { notificationListsKey } from '../../features/notifications/api/keys';
 
 const NotificationListener: React.FC = () => {
     const { userId } = useAuth();
@@ -31,8 +35,11 @@ const NotificationListener: React.FC = () => {
                     filter: `user_id=eq.${userId}`,
                 },
                 (payload) => {
-                    const newNotification = payload.new as any;
-                    queryClient.invalidateQueries({ queryKey: ['userNotifications'] });
+                    if (!isNotification(payload.new)) return;
+                    const newNotification: Notification = payload.new;
+                    queryClient.invalidateQueries({
+                        queryKey: scopeResourceKey('global', notificationListsKey(userId)),
+                    });
                     addToast(newNotification.message, 'info');
                     
                     if (audioRef.current) {
