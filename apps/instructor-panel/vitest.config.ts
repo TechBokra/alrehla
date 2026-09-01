@@ -8,6 +8,8 @@ const fromRoot = (path: string) => resolve(root, path);
 export default defineConfig({
   resolve: {
     alias: [
+      { find: /^@alrehla\/ui\/(.+)$/, replacement: fromRoot('../../packages/ui/src/$1') },
+      { find: '@alrehla/admin-core/data-view', replacement: fromRoot('../../packages/admin-core/src/data-view/index.ts') },
       { find: '@alrehla/admin-core/resource', replacement: fromRoot('../../packages/admin-core/src/resource/index.ts') },
       { find: '@alrehla/admin-core/navigation', replacement: fromRoot('../../packages/admin-core/src/navigation/index.ts') },
       { find: '@alrehla/admin-core', replacement: fromRoot('../../packages/admin-core/src/index.ts') },
