@@ -17,7 +17,7 @@ import {
   useResource,
   type ResourceRowAction,
 } from '@alrehla/admin-core/resource';
-import { useDataViewPresentation } from '../data-view/presentation-provider';
+import type { DataViewRendererProps } from '../data-view/registry';
 import { Checkbox } from '../ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Button } from '../ui/button';
@@ -97,15 +97,13 @@ function RowActions<TData>({
 }
 
 export function ResourceTableView<TData = unknown>({
+  dataView,
+  effectiveCapabilities,
   renderRowActions,
   emptyState,
-}: {
-  renderRowActions?: (record: TData) => React.ReactNode;
-  emptyState?: React.ReactNode;
-} = {}) {
+}: DataViewRendererProps<TData>) {
   const {
     definition,
-    dataView,
     capabilities,
     authorization,
     openDelete,
@@ -113,7 +111,6 @@ export function ResourceTableView<TData = unknown>({
     setDataTable,
     density,
   } = useResource<TData>();
-  const { effectiveCapabilities } = useDataViewPresentation();
   const resolvedActions = resolveResourceRowActions(definition, capabilities, authorization);
   const columns = React.useMemo<ColumnDef<TData, unknown>[]>(() => {
     const hasActions = Boolean(

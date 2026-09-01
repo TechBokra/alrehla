@@ -34,6 +34,7 @@ export function ResourceDataView<TData = unknown>({
         <React.Suspense fallback={<div className="rounded-xl border p-8 text-center text-muted-foreground">جارٍ تحميل طريقة العرض...</div>}>
           <Renderer
             dataView={dataView}
+            effectiveCapabilities={presentation.effectiveCapabilities}
             {...(renderRowActions ? { renderRowActions } : {})}
             {...(emptyState ? { emptyState } : {})}
           />

@@ -34,6 +34,7 @@ function getEnvironmentDefaults() {
 /** Calendar v1 presents the loaded Resource dataset, not the Table's visible page. */
 export function CalendarView<TData = unknown>({
   dataView,
+  effectiveCapabilities: _effectiveCapabilities,
   emptyState,
 }: DataViewRendererProps<TData>) {
   const { definition } = useResource<TData>();

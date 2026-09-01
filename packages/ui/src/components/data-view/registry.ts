@@ -12,6 +12,7 @@ export interface DataViewRendererCapabilities {
 
 export interface DataViewRendererProps<TData = unknown> {
   dataView: ResourceDataViewAdapter<TData>;
+  effectiveCapabilities: DataViewRendererCapabilities;
   renderRowActions?: (record: TData) => React.ReactNode;
   emptyState?: React.ReactNode;
 }

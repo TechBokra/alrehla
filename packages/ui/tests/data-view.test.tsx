@@ -453,6 +453,15 @@ describe('DataView presentation provider and ResourcePage integration', () => {
     expect(packageJson.dependencies?.['@fullcalendar/list']).toBeUndefined();
   });
 
+  it('keeps ResourceTableView independent from the presentation provider', () => {
+    const tableSource = readFileSync(
+      resolve(import.meta.dirname, '../src/components/resource/resource-table-view.tsx'),
+      'utf8',
+    );
+    expect(tableSource).not.toContain('presentation-provider');
+    expect(tableSource).not.toContain('useDataViewPresentation');
+  });
+
   it('uses the shared provider result for a custom registry without showing unregistered configured views', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const definition = {
