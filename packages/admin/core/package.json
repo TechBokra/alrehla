@@ -1,0 +1,51 @@
+{
+  "name": "@eng-mohamedelsayed/admin-core",
+  "version": "0.3.0",
+  "private": false,
+  "type": "module",
+  "files": [
+    "src",
+    "package.json",
+    "README.md"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./navigation": "./src/navigation/index.ts",
+    "./data-view": "./src/data-view/index.ts",
+    "./data-view/url-state": "./src/data-view/url-state.tsx",
+    "./data-view/*": "./src/data-view/*.ts",
+    "./resource": "./src/resource/index.ts",
+    "./resource/context": "./src/resource/context.tsx",
+    "./resource/provider": "./src/resource/provider.tsx",
+    "./resource/runtime": "./src/resource/runtime.tsx",
+    "./resource/*": "./src/resource/*.ts",
+    "./testing": "./src/testing/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "lint": "eslint . --config ../../config/src/eslint/index.mjs"
+  },
+  "dependencies": {
+    "@eng-mohamedelsayed/mutations": "workspace:@alrehla/mutations@*",
+    "@tanstack/react-query": "^5.101.4",
+    "@tanstack/react-table": "^8.21.2"
+  },
+  "devDependencies": {
+    "@alrehla/config": "workspace:*",
+    "@testing-library/react": "16.3.0",
+    "@types/node": "^22.13.4",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "eslint": "9.39.5",
+    "jsdom": "26.1.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "typescript": "^5.9.3",
+    "vitest": "3.2.7"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

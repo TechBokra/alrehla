@@ -103,6 +103,42 @@
       ],
       "@alrehla/supabase/types": [
         "packages/supabase/src/types.ts"
+      ],
+      "@eng-mohamedelsayed/admin-core": [
+        "packages/admin/core/src/index.ts"
+      ],
+      "@eng-mohamedelsayed/admin-core/*": [
+        "packages/admin/core/src/*"
+      ],
+      "@eng-mohamedelsayed/admin-forms": [
+        "packages/admin/forms/src/index.ts"
+      ],
+      "@eng-mohamedelsayed/admin-forms/resource": [
+        "packages/admin/forms/src/components/resource/index.ts"
+      ],
+      "@eng-mohamedelsayed/admin-forms/resource/*": [
+        "packages/admin/forms/src/components/resource/*"
+      ],
+      "@eng-mohamedelsayed/admin-forms/*": [
+        "packages/admin/forms/src/*"
+      ],
+      "@eng-mohamedelsayed/admin-shell": [
+        "packages/admin/shell/src/index.ts"
+      ],
+      "@eng-mohamedelsayed/admin-shell/*": [
+        "packages/admin/shell/src/*"
+      ],
+      "@eng-mohamedelsayed/admin-ui": [
+        "packages/admin/ui/src/index.ts"
+      ],
+      "@eng-mohamedelsayed/admin-ui/*": [
+        "packages/admin/ui/src/*"
+      ],
+      "@eng-mohamedelsayed/mutations": [
+        "packages/mutations/src/index.ts"
+      ],
+      "@eng-mohamedelsayed/mutations/*": [
+        "packages/mutations/src/*"
       ]
     }
   }

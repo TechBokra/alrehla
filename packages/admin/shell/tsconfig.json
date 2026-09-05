@@ -1,0 +1,11 @@
+{
+  "extends": "../../config/src/typescript/react.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@eng-mohamedelsayed/admin-ui": ["../ui/src/index.ts"],
+      "@eng-mohamedelsayed/admin-ui/*": ["../ui/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

@@ -1,0 +1,42 @@
+{
+  "name": "@eng-mohamedelsayed/notification-core",
+  "version": "0.1.0",
+  "private": false,
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Eng-MohamedElsayed/ecommerce-platform.git",
+    "directory": "packages/notification-core"
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.ts",
+    "package.json",
+    "README.md"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./contracts": "./src/contracts/index.ts",
+    "./entities": "./src/entities/index.ts",
+    "./ports": "./src/ports/index.ts",
+    "./policies": "./src/policies/index.ts",
+    "./recipients": "./src/recipients/index.ts",
+    "./templates": "./src/templates/index.ts",
+    "./utils": "./src/utils/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --config ../../packages/config/src/eslint/index.mjs",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@alrehla/config": "workspace:*",
+    "@types/node": "^20.19.43",
+    "eslint": "9.39.5",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

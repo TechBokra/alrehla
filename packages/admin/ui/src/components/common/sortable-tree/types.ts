@@ -1,0 +1,26 @@
+"use client";
+
+import type { DraggableAttributes, UniqueIdentifier } from "@dnd-kit/core";
+import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
+import type { MutableRefObject } from "react";
+
+export type TreeItem = {
+  id: UniqueIdentifier;
+  [key: string]: any;
+};
+
+export interface FlattenedItem extends TreeItem {
+  parentId: UniqueIdentifier | null;
+  depth: number;
+  index: number;
+}
+
+export type SensorContext = MutableRefObject<{
+  items: FlattenedItem[];
+  offset: number;
+}>;
+
+export type HandleProps = {
+  attributes?: DraggableAttributes | undefined;
+  listeners?: SyntheticListenerMap | undefined;
+};

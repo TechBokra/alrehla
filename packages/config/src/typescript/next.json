@@ -1,0 +1,12 @@
+{
+  "extends": "./react.json",
+  "compilerOptions": {
+    "plugins": [{ "name": "next" }],
+    "noEmit": true,
+    "allowJs": true,
+    "incremental": true,
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "types": ["node"]
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "name": "@eng-mohamedelsayed/admin-forms",
+  "version": "0.3.0",
+  "private": false,
+  "type": "module",
+  "files": ["src", "package.json", "README.md"],
+  "exports": {
+    ".": "./src/index.ts",
+    "./form": "./src/components/form/index.ts",
+    "./form/*": "./src/components/form/*.tsx",
+    "./forms": "./src/components/forms/index.ts",
+    "./forms/*": "./src/components/forms/*.tsx",
+    "./fields": "./src/components/fields/index.ts",
+    "./fields/*": "./src/components/fields/*.tsx",
+    "./resource": "./src/components/resource/index.ts",
+    "./resource/*": "./src/components/resource/*.tsx",
+    "./components/*": "./src/components/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "lint": "eslint . --config ../../config/src/eslint/index.mjs"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^8.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@eng-mohamedelsayed/admin-core": "workspace:*",
+    "@eng-mohamedelsayed/admin-ui": "workspace:*",
+    "@eng-mohamedelsayed/mutations": "workspace:@alrehla/mutations@*",
+    "@tanstack/react-form": "^1.33.3",
+    "@tanstack/react-query": "^5.101.4",
+    "@tiptap/extension-link": "^3.29.2",
+    "@tiptap/react": "^3.29.2",
+    "@tiptap/starter-kit": "^3.29.2",
+    "date-fns": "^4.4.0",
+    "lucide-react": "^0.475.0",
+    "react-day-picker": "10.0.1",
+    "sonner": "^2.0.7",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@alrehla/config": "workspace:*",
+    "@testing-library/react": "16.3.0",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "^22.13.4",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "eslint": "9.39.5",
+    "jsdom": "26.1.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "typescript": "^5.9.3",
+    "vitest": "3.2.7"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

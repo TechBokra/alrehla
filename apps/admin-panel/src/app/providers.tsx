@@ -2,10 +2,15 @@
 
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AdminNavigationProvider } from '@alrehla/admin-core/navigation';
+import { AdminNavigationProvider as CoreNavProvider } from '@eng-mohamedelsayed/admin-core/navigation';
 import {
-  createResourceAuthorization,
-  ResourceAuthorizationProvider,
+  createResourceAuthorization as createCoreResourceAuthorization,
+  ResourceAuthorizationProvider as CoreResourceAuthProvider,
+} from '@eng-mohamedelsayed/admin-core/resource';
+import { AdminNavigationProvider as LegacyNavProvider } from '@alrehla/admin-core/navigation';
+import {
+  createResourceAuthorization as createLegacyResourceAuthorization,
+  ResourceAuthorizationProvider as LegacyResourceAuthProvider,
 } from '@alrehla/admin-core/resource';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ProductProvider } from '@/contexts/ProductContext';
@@ -14,21 +19,45 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 function AdminResourceAuthorizationBridge({ children }: { children: React.ReactNode }) {
   const { permissions, authStatus } = useAuth();
-  const authorization = React.useMemo(() => createResourceAuthorization({
-    status: authStatus === 'authenticated'
+  const grantedPermissions = React.useMemo(
+    () =>
+      Object.entries(permissions)
+        .filter(([, allowed]) => allowed)
+        .map(([permission]) => permission),
+    [permissions],
+  );
+
+  const status =
+    authStatus === 'authenticated'
       ? 'ready'
       : authStatus === 'loading'
         ? 'loading'
-        : 'error',
-    permissions: Object.entries(permissions)
-      .filter(([, allowed]) => allowed)
-      .map(([permission]) => permission),
-  }), [authStatus, permissions]);
+        : 'error';
+
+  const legacyAuthorization = React.useMemo(
+    () =>
+      createLegacyResourceAuthorization({
+        status,
+        permissions: grantedPermissions,
+      }),
+    [status, grantedPermissions],
+  );
+
+  const coreAuthorization = React.useMemo(
+    () =>
+      createCoreResourceAuthorization({
+        status,
+        permissions: grantedPermissions,
+      }),
+    [status, grantedPermissions],
+  );
 
   return (
-    <ResourceAuthorizationProvider value={authorization}>
-      {children}
-    </ResourceAuthorizationProvider>
+    <LegacyResourceAuthProvider value={legacyAuthorization}>
+      <CoreResourceAuthProvider value={coreAuthorization}>
+        {children}
+      </CoreResourceAuthProvider>
+    </LegacyResourceAuthProvider>
   );
 }
 
@@ -63,15 +92,17 @@ function AdminNavigationAdapter({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <AdminNavigationProvider navigation={navigation} location={location}>
-      <ToastProvider>
-        <AuthProvider>
-          <AdminResourceAuthorizationBridge>
-            <ProductProvider>{children}</ProductProvider>
-          </AdminResourceAuthorizationBridge>
-        </AuthProvider>
-      </ToastProvider>
-    </AdminNavigationProvider>
+    <LegacyNavProvider navigation={navigation} location={location}>
+      <CoreNavProvider navigation={navigation} location={location}>
+        <ToastProvider>
+          <AuthProvider>
+            <AdminResourceAuthorizationBridge>
+              <ProductProvider>{children}</ProductProvider>
+            </AdminResourceAuthorizationBridge>
+          </AuthProvider>
+        </ToastProvider>
+      </CoreNavProvider>
+    </LegacyNavProvider>
   );
 }
 
