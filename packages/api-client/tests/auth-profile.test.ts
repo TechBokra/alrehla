@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  PROFILE_SELECT,
   getChildProfileById,
   getChildProfiles,
   getStudentProfileByProfileId,
@@ -12,17 +13,29 @@ import { createTestClient, jsonResponse } from './helpers';
 
 const profileId = '11111111-1111-4111-8111-111111111111';
 
-const validProfile = {
+const productionProfile = {
   id: profileId,
   clerk_user_id: 'user_123',
   email: 'parent@example.com',
-  email_verified: true,
   name: 'ولي الأمر',
   role: 'parent',
-  avatar_url: null,
-  account_type: 'parent',
-  global_role: null,
+  phone: null,
+  governorate: 'القاهرة',
+  address: null,
   created_at: '2026-08-31T10:00:00.000Z',
+  updated_at: '2026-09-01T10:00:00.000Z',
+  country: 'EG',
+  timezone: 'UTC',
+  currency: 'EGP',
+  city: 'Cairo',
+};
+
+const developmentSupersetProfile = {
+  ...productionProfile,
+  email_verified: true,
+  avatar_url: 'https://example.com/avatar.png',
+  account_type: 'parent',
+  global_role: 'super_admin',
 };
 
 const validChild = {
@@ -40,22 +53,68 @@ const validChild = {
 };
 
 describe('Auth/Profile normalization', () => {
-  it('normalizes a valid UserProfile and preserves parent role fields', () => {
-    expect(toUserProfile(validProfile)).toMatchObject({
+  it('normalizes the Production profiles contract without development-only columns', () => {
+    expect(toUserProfile(productionProfile)).toMatchObject({
       id: profileId,
+      email: 'parent@example.com',
+      name: 'ولي الأمر',
       role: 'parent',
-      account_type: 'parent',
-      global_role: null,
+      governorate: 'القاهرة',
+      country: 'EG',
+      timezone: 'UTC',
+      currency: 'EGP',
+      city: 'Cairo',
     });
   });
 
-  it('rejects an invalid role and missing required profile fields', () => {
-    expect(() => toUserProfile({ ...validProfile, role: 'administrator' })).toThrowError(
+  it('ignores development-only profile fields when a superset row is returned', () => {
+    const profile = toUserProfile(developmentSupersetProfile);
+
+    expect(profile).toMatchObject({
+      id: profileId,
+      role: 'parent',
+    });
+    expect(profile).not.toHaveProperty('account_type');
+    expect(profile).not.toHaveProperty('global_role');
+    expect(profile).not.toHaveProperty('email_verified');
+    expect(profile).not.toHaveProperty('avatar_url');
+  });
+
+  it('handles nullable Production name and role with safe application fallbacks', () => {
+    expect(toUserProfile({ ...productionProfile, name: null, role: null })).toMatchObject({
+      name: 'parent',
+      role: 'user',
+    });
+
+    expect(toUserProfile({ ...productionProfile, role: 'administrator' })).toMatchObject({
+      role: 'user',
+    });
+  });
+
+  it('still rejects missing required Production profile fields', () => {
+    expect(() => toUserProfile({ ...productionProfile, email: undefined })).toThrowError(
       expect.objectContaining({ type: 'contract', code: 'API_CONTRACT_ERROR' }),
     );
-    expect(() => toUserProfile({ ...validProfile, email: undefined })).toThrowError(
+    expect(() => toUserProfile({ ...productionProfile, created_at: undefined })).toThrowError(
       expect.objectContaining({ type: 'contract', code: 'API_CONTRACT_ERROR' }),
     );
+  });
+
+  it('uses an explicit Production-compatible projection for profile reads', async () => {
+    const { client, requests } = createTestClient(() => jsonResponse(productionProfile));
+
+    const profile = await getProfile(client, profileId);
+
+    expect(profile).toMatchObject({ id: profileId, role: 'parent' });
+    expect(requests).toHaveLength(1);
+
+    const select = new URL(requests[0].url).searchParams.get('select');
+    expect(select).toBe(PROFILE_SELECT);
+    expect(select).not.toContain('*');
+    expect(select).not.toContain('account_type');
+    expect(select).not.toContain('global_role');
+    expect(select).not.toContain('email_verified');
+    expect(select).not.toContain('avatar_url');
   });
 
   it('normalizes a valid ChildProfile and rejects invalid gender or child ID', () => {
@@ -88,7 +147,7 @@ describe('Auth/Profile normalization', () => {
   });
 
   it('rejects invalid server contracts from profile and child queries', async () => {
-    const invalidProfile = createTestClient(() => jsonResponse({ ...validProfile, role: 'invalid' }));
+    const invalidProfile = createTestClient(() => jsonResponse({ ...productionProfile, email: null }));
     await expect(getProfile(invalidProfile.client, profileId)).rejects.toMatchObject({
       type: 'contract',
       code: 'API_CONTRACT_ERROR',

@@ -2,14 +2,14 @@ import type { ApiClient } from '../../clients';
 import { ApiError, normalizeApiError } from '../../errors';
 import { optionalResult, unwrapResult } from '../../shared';
 import {
-  ACCOUNT_TYPES,
-  GLOBAL_ROLES,
   USER_ROLES,
   type ChildProfile,
   type UserProfile,
 } from '@alrehla/types';
 import type { Database } from '@alrehla/types';
 import type { ClerkProfileInput } from './types';
+
+const PROFILE_SELECT = 'id,email,name,role,phone,governorate,address,created_at,updated_at,country,timezone,currency,city,clerk_user_id' as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -49,25 +49,16 @@ const nullableString = (
   return value;
 };
 
-const optionalBoolean = (
-  record: Record<string, unknown>,
-  key: string,
-  message: string,
-): boolean | null => {
-  const value = record[key];
-  if (value === undefined || value === null) return null;
-  if (typeof value !== 'boolean') throw contractError(message, { key, value });
-  return value;
-};
-
 const isUserRole = (value: unknown): value is UserProfile['role'] =>
   typeof value === 'string' && USER_ROLES.some((role) => role === value);
 
-const isAccountType = (value: unknown): value is UserProfile['account_type'] =>
-  typeof value === 'string' && ACCOUNT_TYPES.some((accountType) => accountType === value);
+const normalizeProfileName = (value: unknown, email: string): string => {
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  return email.split('@')[0] || 'مستخدم الرحلة';
+};
 
-const isGlobalRole = (value: unknown): value is NonNullable<UserProfile['global_role']> =>
-  typeof value === 'string' && GLOBAL_ROLES.some((globalRole) => globalRole === value);
+const normalizeProfileRole = (value: unknown): UserProfile['role'] =>
+  isUserRole(value) ? value : 'user';
 
 const normalizeEmail = (value: unknown): string => {
   if (typeof value !== 'string' || !value.trim() || !value.includes('@')) {
@@ -107,41 +98,14 @@ const toUserProfile = (value: unknown): UserProfile => {
 
   const id = requiredString(value, 'id', 'معرّف ملف المستخدم المُرجع من الخادم غير صالح.');
   const email = requiredString(value, 'email', 'بريد ملف المستخدم المُرجع من الخادم غير صالح.');
-  const name = requiredString(value, 'name', 'اسم ملف المستخدم المُرجع من الخادم غير صالح.');
-  const roleValue = requiredString(value, 'role', 'دور ملف المستخدم المُرجع من الخادم غير صالح.');
   const createdAt = requiredString(value, 'created_at', 'تاريخ إنشاء ملف المستخدم غير صالح.');
-  if (!isUserRole(roleValue)) throw contractError('دور ملف المستخدم المُرجع من الخادم غير معروف.', roleValue);
-
-  const accountTypeValue = value.account_type;
-  if (
-    accountTypeValue !== undefined &&
-    accountTypeValue !== null &&
-    !isAccountType(accountTypeValue)
-  ) {
-    throw contractError('نوع حساب المستخدم المُرجع من الخادم غير معروف.', accountTypeValue);
-  }
-  const globalRoleValue = value.global_role;
-  if (
-    globalRoleValue !== undefined &&
-    globalRoleValue !== null &&
-    !isGlobalRole(globalRoleValue)
-  ) {
-    throw contractError('الدور العام للمستخدم المُرجع من الخادم غير معروف.', globalRoleValue);
-  }
-
-  const accountType = isAccountType(accountTypeValue) ? accountTypeValue : undefined;
-  const globalRole = isGlobalRole(globalRoleValue) ? globalRoleValue : null;
 
   return {
     id,
     clerk_user_id: nullableString(value, 'clerk_user_id', 'معرّف Clerk المُرجع من الخادم غير صالح.'),
     email,
-    email_verified: optionalBoolean(value, 'email_verified', 'حالة توثيق البريد المُرجعة من الخادم غير صالحة.'),
-    name,
-    role: roleValue,
-    avatar_url: nullableString(value, 'avatar_url', 'رابط صورة المستخدم المُرجع من الخادم غير صالح.'),
-    account_type: accountType,
-    global_role: globalRole,
+    name: normalizeProfileName(value.name, email),
+    role: normalizeProfileRole(value.role),
     phone: optionalString(value, 'phone', 'رقم هاتف المستخدم المُرجع من الخادم غير صالح.'),
     address: optionalString(value, 'address', 'عنوان المستخدم المُرجع من الخادم غير صالح.'),
     city: optionalString(value, 'city', 'مدينة المستخدم المُرجع من الخادم غير صالحة.'),
@@ -223,7 +187,11 @@ export const getProfile = async (
 ): Promise<UserProfile | null> => {
   const normalizedProfileId = requireIdentifier(profileId, 'ملف المستخدم');
   try {
-    const result = await client.from('profiles').select('*').eq('id', normalizedProfileId).maybeSingle();
+    const result = await client
+      .from('profiles')
+      .select(PROFILE_SELECT)
+      .eq('id', normalizedProfileId)
+      .maybeSingle();
     const profile = optionalResult(result, 'تعذر قراءة ملف المستخدم.');
     return profile ? toUserProfile(profile) : null;
   } catch (error) {
@@ -321,4 +289,4 @@ export const getChildProfilesByIds = async (
   }
 };
 
-export { toChildProfile, toUserProfile, contractError };
+export { PROFILE_SELECT, toChildProfile, toUserProfile, contractError };
