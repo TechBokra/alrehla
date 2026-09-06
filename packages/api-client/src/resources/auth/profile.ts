@@ -9,22 +9,7 @@ import {
 import type { Database } from '@alrehla/types';
 import type { ClerkProfileInput } from './types';
 
-const PROFILE_SELECT = [
-  'id',
-  'email',
-  'name',
-  'role',
-  'phone',
-  'governorate',
-  'address',
-  'created_at',
-  'updated_at',
-  'country',
-  'timezone',
-  'currency',
-  'city',
-  'clerk_user_id',
-].join(',');
+const PROFILE_SELECT = 'id,email,name,role,phone,governorate,address,created_at,updated_at,country,timezone,currency,city,clerk_user_id' as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
