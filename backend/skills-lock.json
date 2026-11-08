@@ -1,0 +1,125 @@
+{
+  "version": 1,
+  "skills": {
+    "architect": {
+      "source": "JavaScript-Mastery-Pro/jsm-agent-skill",
+      "sourceType": "github",
+      "skillPath": "skills/architect/SKILL.md",
+      "computedHash": "62908472db7bd81004ab9abe0810bac166cee1b6e08aaf5793175bb90c4916f7"
+    },
+    "arcjet": {
+      "source": "arcjet/skills",
+      "sourceType": "github",
+      "skillPath": "arcjet/SKILL.md",
+      "computedHash": "02abc8728ee904644952978367cfed22a4f01ba8f1693b5fadbf2d9dbfbcb312"
+    },
+    "better-auth-best-practices": {
+      "source": "better-auth/skills",
+      "sourceType": "github",
+      "skillPath": "better-auth/best-practices/SKILL.md",
+      "computedHash": "0c30be0e118c2b7a0c4c57bd9e63bf110c7e420a79ec6ce7997153f3b1e066ee"
+    },
+    "better-auth-security-best-practices": {
+      "source": "better-auth/skills",
+      "sourceType": "github",
+      "skillPath": "security/SKILL.md",
+      "computedHash": "7a230edf3a24ce18162cb4379f59b6a19b8d24ca04db530609d0f15cede556dc"
+    },
+    "create-auth": {
+      "source": "better-auth/skills",
+      "sourceType": "github",
+      "skillPath": "better-auth/create-auth/SKILL.md",
+      "computedHash": "9a9b498bc144367b8e237233f89def63fb2bd69e8cafe173eaa58fe3a863cdc4"
+    },
+    "email-and-password-best-practices": {
+      "source": "better-auth/skills",
+      "sourceType": "github",
+      "skillPath": "better-auth/emailAndPassword/SKILL.md",
+      "computedHash": "863886759f729081e265941f4f72c503835d55a1f34f6d63cebe6571159fff4a"
+    },
+    "integrate-arcjet-guard-agent-framework-go": {
+      "source": "arcjet/skills",
+      "sourceType": "github",
+      "skillPath": "integrate-arcjet-guard-agent-framework-go/SKILL.md",
+      "computedHash": "23c8f4c2467b2703bcf52cd46ae492bf4d3338c05afa09e755318cb36dd89111"
+    },
+    "integrate-arcjet-guard-claude-agent-sdk-py": {
+      "source": "arcjet/skills",
+      "sourceType": "github",
+      "skillPath": "integrate-arcjet-guard-claude-agent-sdk-py/SKILL.md",
+      "computedHash": "abf6de3af56445bf5f26fc795d7ae7e21db982b4096f08dd5bf7c015cb40709c"
+    },
+    "integrate-arcjet-guard-claude-managed-agents-py": {
+      "source": "arcjet/skills",
+      "sourceType": "github",
+      "skillPath": "integrate-arcjet-guard-claude-managed-agents-py/SKILL.md",
+      "computedHash": "313e02fa2e5c25ab6263b2c3c550fbfaaae285a243e56db80ab07e2f95639799"
+    },
+    "integrate-arcjet-guard-cloudflare-think": {
+      "source": "arcjet/skills",
+      "sourceType": "github",
+      "skillPath": "integrate-arcjet-guard-cloudflare-think/SKILL.md",
+      "computedHash": "2c1389ef4e75570930918694579e4df56d734de91a7bd5be01e40f1de81f3845"
+    },
+    "integrate-arcjet-guard-crewai": {
+      "source": "arcjet/skills",
+      "sourceType": "github",
+      "skillPath": "integrate-arcjet-guard-crewai/SKILL.md",
+      "computedHash": "fad591905ea859146431e96261cd9109c364de0e0ea3dd8304ff8e776869f6ec"
+    },
+    "integrate-arcjet-guard-google-adk-py": {
+      "source": "arcjet/skills",
+      "sourceType": "github",
+      "skillPath": "integrate-arcjet-guard-google-adk-py/SKILL.md",
+      "computedHash": "34f07416f35547ec9af0bb6d81c0f6872c4c05dd9d0c7e74941916b350c67c16"
+    },
+    "integrate-arcjet-guard-langchain-py": {
+      "source": "arcjet/skills",
+      "sourceType": "github",
+      "skillPath": "integrate-arcjet-guard-langchain-py/SKILL.md",
+      "computedHash": "34f555391574f95d252a394b8e0ce5a12f1664a6418c6e921e89ca6347f9459f"
+    },
+    "integrate-arcjet-guard-openai-agents-py": {
+      "source": "arcjet/skills",
+      "sourceType": "github",
+      "skillPath": "integrate-arcjet-guard-openai-agents-py/SKILL.md",
+      "computedHash": "0b14f9f9789edd00269187c010b6b0b138c744d464c25bede516661db05b84b5"
+    },
+    "integrate-arcjet-guard-strands-agents-py": {
+      "source": "arcjet/skills",
+      "sourceType": "github",
+      "skillPath": "integrate-arcjet-guard-strands-agents-py/SKILL.md",
+      "computedHash": "65ccd5c0fddd2239b17de8188378f3c8ae79ef7aaa22be5f7686207ebcf5237a"
+    },
+    "organization-best-practices": {
+      "source": "better-auth/skills",
+      "sourceType": "github",
+      "skillPath": "better-auth/organization/SKILL.md",
+      "computedHash": "8c85e683dabef4532f1e8b67bbed5c453d39e0e3d5aeedd69d16b568f6e6d44f"
+    },
+    "recover": {
+      "source": "JavaScript-Mastery-Pro/jsm-agent-skill",
+      "sourceType": "github",
+      "skillPath": "skills/recover/SKILL.md",
+      "computedHash": "3eea3552368d8131362187e3dcce7d3c8477dbbc986fec2dc34b711f37144e33"
+    },
+    "remember": {
+      "source": "JavaScript-Mastery-Pro/jsm-agent-skill",
+      "sourceType": "github",
+      "skillPath": "skills/remember/SKILL.md",
+      "computedHash": "6669b9ef52142b5128612e6c32b0d238b5b843beea7bf196653004d746d6a1d3"
+    },
+    "review": {
+      "source": "JavaScript-Mastery-Pro/jsm-agent-skill",
+      "sourceType": "github",
+      "skillPath": "skills/review/SKILL.md",
+      "computedHash": "1b0bfd542962466b53935c1a992542564d0216d508610645ee9a5432f937c112"
+    },
+    "two-factor-authentication-best-practices": {
+      "source": "better-auth/skills",
+      "sourceType": "github",
+      "skillPath": "better-auth/twoFactor/SKILL.md",
+      "computedHash": "5bc3051aef5060db013f0b3cbe812c40dbae5c22d6ba3ddde4b941158362a197"
+    }
+  }
+}
